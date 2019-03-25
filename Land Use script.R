@@ -1,9 +1,19 @@
 
 
 setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
+
+# land-use harmonization databse: 
 LU<-read.table("landuseData2.txt", header = T)
 dim(LU)
 head(LU)
+
+# ESA Land Cover State products
+LU2<-read.table("LU_CCIESA_1992on.txt", header = T)
+hist(LU2$X2015, breaks=seq(5,225,by=1)) # distribution of sites over different categories 
+# were there any changes in landcover in this period? 
+changed<- (LU2[(LU2$X1992 - LU2$X2015 != 0)   , c(1,24:26) ]) # 67 sites  have a  chage 
+# which changes do we have 
+unique(changed[,1:2])
 
 
 LU$EndTotalLandCover<- rowSums(LU[, c(13,15,17,19)])
