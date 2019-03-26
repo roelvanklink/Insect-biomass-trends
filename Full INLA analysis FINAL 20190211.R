@@ -178,18 +178,25 @@ pts.wgs$slope.scal[pts.wgs$slope.scal>(0.02)]<- 0.02
 
 # plot on map  by Datasource # scale is set to be symmetrical over most extreme value
 p.wgs+
-  geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data, size = 1.3, aes(x = mean_long, y = mean_lat, group = NULL),  colour = 1) +
-  geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data , size = 1, aes(x = mean_long,   y = mean_lat,  colour = slope.scal, group = NULL)) +
-  scale_color_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal))) +# "PuBuGn"
+ # geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data, pch = 21, 
+ #            size = 1.3, aes(x = mean_long, y = mean_lat, group = NULL),  colour = 1) +
+  geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data , size = 1.3, pch = 21,
+             aes(x = mean_long,   y = mean_lat,  fill = slope.scal, group = NULL), 
+             position=position_jitter(h=1, w=1)) +  #
+  scale_fill_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , 
+                       limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal)), name = 'Abundance trend') +# "PuBuGn"
   ggtitle("Freshwater fauna") 
 
   
 
 # terrestrial
 p.wgs+
-  geom_point(data = subset(pts.wgs, Realm =="Terrestrial")@data, size = 1.3, aes(x = mean_long, y = mean_lat, group = NULL),  colour = 1) +
-  geom_point(data = subset(pts.wgs, Realm =="Terrestrial")@data , size = 1, aes(x = mean_long, y = mean_lat, colour = slope.scal, group = NULL)) +
-  scale_color_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal))) +# "PuBuGn"
+##  geom_point(data = subset(pts.wgs, Realm =="Terrestrial")@data, size = 1.3, aes(x = mean_long, y = mean_lat, group = NULL),  colour = 1) +
+ geom_point(data = subset(pts.wgs, Realm =="Terrestrial")@data, size = 1.3, pch = 21,
+            aes(x = mean_long,   y = mean_lat,  fill = slope.scal, group = NULL) , 
+            position=position_jitter(h=1, w=1)) +
+  scale_fill_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , 
+                       limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal)), name = 'Abundance trend') +# "PuBuGn"
   ggtitle("Terrestrial fauna") 
 
 # both on one map
