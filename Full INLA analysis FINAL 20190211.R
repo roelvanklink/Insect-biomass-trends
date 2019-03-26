@@ -100,6 +100,23 @@ inla1 <- inla(log10(Number+1) ~ cYear +
 save(inla1, file = "inla1.RData")
 
 
+# Check for confounding factors
+
+inla1.1 <- inla(log10(Number+1) ~ cYear: + 
+                f(Period_4INLA,model='iid')+
+                f(Location_4INLA,model='iid')+
+                f(Plot_ID_4INLA,model='iid')+
+                f(Datasource_ID_4INLA,model='iid')+
+                f(Plot_ID_4INLAR,iYear,model='iid')+
+                f(Datasource_ID_4INLAR,iYear,model='iid')+
+                f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+              control.compute = list(dic=TRUE,waic=TRUE),
+              data=completeData) # has lower WAIC and DIC than inlaF2
+save(inla1, file = "inla1.1.RData")
+
+
+
+
 
 ############################################################
 #Pull out the random effects and slopes from the grand model
@@ -229,7 +246,19 @@ inlaF <- inla(log10(Number+1) ~ cYear:Realm+ Realm +
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData) # has lower WAIC and DIC than inlaF2
 
-load("inlaF.RData")
+load("E:/inlaF.RData")
+
+summary(inlaF)
+10^(0.007*10) 
+1- (10^(summary(inlaF)$fixed[4] *10)) # 10 year % change terrestrial
+1- (10^(summary(inlaF)$fixed[12] *10)) # upper CI 10 year % change terrestrial
+1- (10^(summary(inlaF)$fixed[20] *10)) # lower CI 10 year % change terrestrial
+
+(10^(summary(inlaF)$fixed[3] *10)) # 10 year % change FW
+(10^(summary(inlaF)$fixed[11] *10)) # upper CI 10 year % change fw
+(10^(summary(inlaF)$fixed[19] *10)) # lower CI 10 year % change fw
+
+
 
 # check if correlation slope and intercept is insignificant # correct 
 inlaF2 <- inla(log10(Number+1) ~ cYear:Realm+ Realm + 
@@ -244,7 +273,7 @@ inlaF2 <- inla(log10(Number+1) ~ cYear:Realm+ Realm +
                data=completeData); beep(2)
 
 
-#strata
+#strata ####
 
 metadata_strata<-  completeData %>% 
   group_by(Stratum) %>%
@@ -266,7 +295,7 @@ inlaFstrat <- inla(log10(Number+1) ~ cYear:Stratum + Stratum +
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data=completeData)
 
-load("inlaFstrat.RData")
+load("E:/inlaFstrat.RData")
 stratSlope<- inlaFstrat$summary.fixed[9:14,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(stratSlope), split = ":")))
 stratSlope<-cbind(stratSlope, vars)
@@ -283,10 +312,10 @@ ggplot(data.frame(stratSlope))+
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7, fill = "grey70")+
   #scale_fill_manual(values = col.scheme.strat, guide=FALSE)+
   coord_flip()+
-  ylim(-0.015, 0.03)+
-  xlab ("")+
+  ylim(-0.015, 0.025)+
+  xlab ("")+ ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
-  geom_text(aes(x = X1 , y = 0.027, label = text), size = 3) +
+  geom_text(aes(x = X1 , y = 0.022, label = text), size = 3) +
 theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
       panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
@@ -332,7 +361,7 @@ ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude afric
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
   geom_hline(yintercept=0,linetype="dashed") +
-  xlab ("")+ ylab("Slope")+
+  xlab ("")+ ylab("Trend slope")+
   geom_text(aes(x = Continent , y = 0.028, label = text, fill = Realm),  
             position = position_dodge(width = 1), size = 3, color = 1) +
     coord_flip()+
@@ -455,7 +484,7 @@ ggplot(data.frame(biomSlope))+
   geom_crossbar(aes(x=Biome,   y=mean, fill = Realm,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
-    xlab ("")+ ylab ("Slope")+geom_hline(yintercept=0,linetype="dashed")+
+    xlab ("")+ ylab ("Trend slope")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
   ylim(-0.03, 0.032)+  
@@ -538,9 +567,9 @@ sigmaPlot;sigmaDatasource;sigmaLocation;sigmaPeriod;sigmaPlotR;sigmaDatasourceR
 # 10 or 15 year slices 
   
 
-window = 15
+window = 10
 
-windowFits15 <- ddply(subset(completeData,Year>1959),
+windowFits10 <- ddply(subset(completeData,Year>1959),
                     .(Realm,Continent),
                     function(df){
                       
@@ -620,7 +649,7 @@ windowFits15 <- ddply(subset(completeData,Year>1959),
                               })
                             })
 
-save(windowFits15,file="windowFits.RData") 
+save(windowFits10,file="windowFits.RData") 
 
 
 
