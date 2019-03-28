@@ -281,7 +281,7 @@ dim(plots)
 
 
 test2<-merge(plots, studies, by = "Datasource_ID") # 
-dim(test2) # correct
+dim(test2) # correct, because black rock forest is not in studies
 
 plots[!plots$Datasource_ID %in% studies$Datasource_ID, ] # black rock forest was disqualified 
 
@@ -419,10 +419,10 @@ metadata_per_plot<-  merge4 %>%
     TOTAL_N = sum(Number, na.rm = T)
   )
 dim(metadata_per_plot) # 1661
-new<- metadata_per_plot
+newest<- metadata_per_plot
 
 
-new<- read.csv("metadata per plot 20190206.csv")
+new<- read.csv("New metadata per plot 20190206.csv")
 old<-read.csv("metadata per plot 20190122.csv")   #1509
 older<-read.csv("metadata per plot 20181123.csv") #1486
 
