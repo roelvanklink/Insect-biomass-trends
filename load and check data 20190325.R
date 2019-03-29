@@ -611,49 +611,10 @@ merge(m1, arth, by = "Var1", all.y = T)
 
 
 
-# merge in biome #####
-
-load(all.aggr.insects)
-
-biomes<- read.csv( "biomesEdited 2019.csv", header = T)
-dim(all.aggr.insects)
-dim(all.aggr.arth)
-
-#merge with biome data
-all.aggr.insects<- merge (all.aggr.insects, biomes[, c(3, 6:length(names(biomes)))] , by = "Plot_ID")
-dim(all.aggr.insects) # 
-all.aggr.arth<-merge (all.aggr.arth, biomes[, c(3, 6:length(names(biomes)))] , by = "Plot_ID")
-dim(all.aggr.arth)
-
-#check all plots are in the biomes file
-unique(all.aggr.insects$Plot_ID)[!unique(all.aggr.insects$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
-unique(all.aggr.arth$Plot_ID)[!unique(all.aggr.arth$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
-
-#set Europe as the reference level
-all.aggr.insects$Continent<- relevel(all.aggr.insects$Continent, ref = "Europe")
-
-save(all.aggr.insects,file="all.aggr.insects.RData") 
-save(all.aggr.arth,file="all.aggr.arth.RData") 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# make completeData file for INLA analysis #####
+# Prep for INLA: #####
+# Add NA's for all missing years for INLA analysis #####
 
 # Insects
 #####and aggregated data 
@@ -675,7 +636,7 @@ completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                         myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
                                          by=c("Year","Plot_ID"),all=T)
                         # add descriptors
-                        myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "biome", "BiomeCoarse", "Stratum" )]),  #"classes",
+                        myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "Stratum" )]),
                                         by="Plot_ID",all=T)
                         
                         #fit in missing values for period with random sample
@@ -690,7 +651,55 @@ completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                         
                       })
 
-#step 2 add indicies to the dataset for INLA
+completeDataArth <- ddply(all.aggr.arth,.(Realm,Continent,Datasource_ID),
+                          function(myData){
+                            #expand grid to include NAs
+                            constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
+                            allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                                                   Year= min(myData$Year):max(myData$Year))
+                            allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
+                            
+                            #add observed data
+                            myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+                                             by=c("Year","Plot_ID"),all=T)
+                            # add descriptors
+                            myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Stratum" )]),  #"classes",
+                                            by="Plot_ID",all=T)
+                            
+                            #fit in missing values for period with random sample
+                            if(!all(is.na(myData$Period))){
+                              myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
+                                                                          length(myData$Period[is.na(myData$Period)]),
+                                                                          replace=T)
+                            }
+                            
+                            #return dataset
+                            return(myData)
+                            
+                          })
+
+
+
+# merge in explanatory variables, counfounding factors and center Years
+# add metadata to check for confounding factors: start year and duration
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#step 2 center Years and add indicies to the dataset for INLA
 addIndicies <- function(myData){
   
   #year covariates
@@ -699,20 +708,25 @@ addIndicies <- function(myData){
   myData$rYear <- myData$iYear
   myData$rYear2 <- myData$iYear
   
-  #random intercept indices
+  #random intercept indices (these are nested)
   myData$Period_4INLA <- interaction(myData$Datasource_ID,myData$Period)
   myData$Period_4INLA <- as.numeric(factor(myData$Period_4INLA))
   myData$Plot_ID_4INLA <- interaction(myData$Datasource_ID,myData$Plot_ID)
   myData$Plot_ID_4INLA <- as.numeric(factor(myData$Plot_ID_4INLA))   
   myData$Datasource_ID_4INLA <- as.numeric(factor(myData$Datasource_ID))
+  myData$Country_State_4INLA <- as.numeric(factor(myData$Country_State))
+  
+  # This is now a crossed random effect: accounting for datasets that were collected at the same location
   myData$Location[is.na(myData$Location)] <- 1#dummy value
-  myData$Location_4INLA <- interaction(myData$Datasource_ID,myData$Location)
-  myData$Location_4INLA <- as.numeric(factor(myData$Location_4INLA))
+ # myData$Location_4INLA <- interaction(myData$Datasource_ID,myData$Location) # this is not necessary anymore
+  myData$Location_4INLA <- as.numeric(factor(myData$Location))
   
   #random slope indices
   myData$Plot_ID_4INLAR <- myData$Plot_ID_4INLA+max(myData$Plot_ID_4INLA)
   myData$Datasource_ID_4INLAR <- myData$Datasource_ID_4INLA+max(myData$Datasource_ID_4INLA)
   myData$Location_4INLAR <- myData$Location_4INLA+max(myData$Location_4INLA)
+  myData$Country_State_4INLAR <- myData$Country_State_4INLA+max(myData$Country_State_4INLA)
+  
   
   return(myData)
 }
@@ -727,42 +741,11 @@ sum(is.na(completeData$Continent))  # should be 0
 sum(is.na(completeData$Number)) # 25000
 sum(is.na(completeData$Location))
 sum(is.na(completeData$Datasource_ID))
-sum(is.na(completeData$biome))
 sum(is.na(completeData$Stratum)) # looks good
 unique(completeData$Stratum)
 
 
 
-# all arthropds
-load("all.aggr.arth.RData")
-
-library(plyr)  
-completeDataArth <- ddply(all.aggr.arth,.(Realm,Continent,Datasource_ID),
-                      function(myData){
-                        #expand grid to include NAs
-                        constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
-                        allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                                               Year= min(myData$Year):max(myData$Year))
-                        allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
-                        
-                        #add observed data
-                        myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
-                                         by=c("Year","Plot_ID"),all=T)
-                        # add descriptors
-                        myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "biome", "BiomeCoarse", "Stratum" )]),  #"classes",
-                                        by="Plot_ID",all=T)
-                        
-                        #fit in missing values for period with random sample
-                        if(!all(is.na(myData$Period))){
-                          myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
-                                                                      length(myData$Period[is.na(myData$Period)]),
-                                                                      replace=T)
-                        }
-                        
-                        #return dataset
-                        return(myData)
-                        
-                      })
 
 #step 2 add indicies to the dataset for INLA
 
@@ -782,6 +765,59 @@ sum(is.na(completeDataArth$Number)) # 25180
 sum(is.na(completeData$Location)) # should be 0
 sum(is.na(completeDataArth$Location)) # 
 sum(is.na(completeData$biome)) # should be 0
+
+
+
+
+# add possible confounding factors: start, end and duration: #####
+
+confounders<- completeData %>% 
+  group_by(Plot_ID) %>%
+  summarise(
+    Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T))
+    
+completeData<- merge(completeData, confounders)
+completeDataArth<-merge(completeDataArth, confounders
+                        )
+
+# center yrs for INLA
+completeData$cStartYear <- completeData$Start_year - median(completeData$Start_year)
+completeData$cDuration <- completeData$Duration - median(completeData$Duration)
+completeDataArth$cStartYear <- completeDataArth$Start_year - median(completeDataArth$Start_year)
+completeDataArth$cDuration <- completeDataArth$Duration - median(completeDataArth$Duration)
+
+
+
+
+
+# merge in biome #####
+
+load("completeData.RData")
+
+biomes<- read.csv( "biomesEdited 2019.csv", header = T)
+dim(all.aggr.insects)
+dim(all.aggr.arth)
+
+#check all plots are in the biomes file
+unique(completeData$Plot_ID)[!unique(completeData$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
+unique(completeDataArth$Plot_ID)[!unique(completeDataArth$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
+
+
+#merge with biome data
+completeData<- merge (completeData, biomes[, c("Plot_ID", "biome", "BiomeCoarse" )] , by = "Plot_ID")
+dim(completeData) # 
+completeDataArth<-merge (completeDataArth, biomes[, c("Plot_ID", "biome", "BiomeCoarse" )] , by = "Plot_ID")
+dim(completeDataArth)
+
+
+#set Europe as the reference level
+all.aggr.insects$Continent<- relevel(all.aggr.insects$Continent, ref = "Europe")
+
+save(completeData,file="completeData.RData") 
+save(completeDataArth,file="completeData.RData") 
+
 
 
 
@@ -835,7 +871,7 @@ metadata_per_dataset<-  all.selectedIns %>%
     NUMBER_OF_YEARS = length(unique(Year)), 
     mean_lat = mean(Latitude), 
     mean_long =   mean(Longitude), 
-Continent = unique(Continent), 
+    Continent = unique(Continent), 
     Realm = unique(Realm)
     )
 dim(metadata_per_dataset) #  should be 155
