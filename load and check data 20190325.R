@@ -825,7 +825,8 @@ metadata_per_dataset<-  all.selectedIns %>%
   group_by(Datasource_ID) %>%
   summarise(
     Datasource_name = unique(Datasource_name), 
-#    Place = unique(Country_State),
+    Place = unique(Country_State),
+    Country = unique(Country),
     Taxon = unique(Invertebrate_group), 
     Start = min(Year, na.rm = T),
     End = max(Year, na.rm = T),
@@ -847,7 +848,18 @@ save(metadata_per_dataset, file = "metadata_per_dataset.RData")
 
 
 
-# pesticide data load ####
+# select countries
+
+summ<-metadata_per_dataset %>% 
+  group_by(Country, Realm) %>%
+  summarise( 
+  datasets = length(unique(Datasource_ID)), plots = sum(NUMBER_OF_PLOTS))
+summ %>% print(n = Inf)
+
+
+
+
+# pesticide data load  # looks unreliable to me ####
 pesticideData<-read.csv("FAO pesticides per country.csv", header = T)
 head(pesticideData)
 cropAreaData<-  read.csv("FAO crop cover per country.csv", header = T)
