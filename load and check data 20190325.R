@@ -61,6 +61,17 @@ ecn.m2<-  read.csv(file ="ECN moths final_2.csv", header = T)
 ecn.m<-  read.csv(file ="ECN moths final.csv", header = T)
 Sweden2<- read.csv("SEstandardized.final2019.csv", header = T) # this file is more careful regarding standardizaTION
 Sweden<-read.csv("SEall.final2019.csv", header = T); Sweden$Plot_name<- as.factor(Sweden$Plot_name)
+# Sweden: add lines with 0 insects:
+Sweden<- rbind(Sweden, c(88678, "Sweden freshwater"  ,1358, 697, 304, 1986,  5,  "8-5-1986",  "Chironomidae", NA, "abundance" ,0, NA,   0,    NA))
+Sweden<- rbind(Sweden, c(88678, "Sweden freshwater"  ,1358, 697 ,304, 1986,  8, "13-8-1986",  "Chironomidae", NA, "abundance" ,0, NA,   0,    NA))
+Sweden<- rbind(Sweden, c(88496, "Sweden freshwater",  1358, 697 ,303, 1977,  7, "12-7-1977",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA))
+Sweden<- rbind(Sweden, c(88496, "Sweden freshwater",  1358, 697 ,304, 1977,  7, "12-7-1977",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA))
+Sweden<- rbind(Sweden, c(886921, "Sweden freshwater", 1358, 697 ,304, 1987,  8, "15-8-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA))
+Sweden<- rbind(Sweden, c(88053 , "Sweden freshwater", 1368, 692 ,304, 1987,  8, "15-8-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA))
+Sweden<- rbind(Sweden, c(146410 , "Sweden freshwater", 1393, 23005 ,306, 2007,  7, "2-7-2007",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA))
+Sweden<- rbind(Sweden, c(876651 , "Sweden freshwater", 1482, 688,   304, 1987, 5, "14-5-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA))
+Sweden<- rbind(Sweden, c(876651 , "Sweden freshwater", 1482, 688,   304, 1986, 8, "12-8-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA))
+
 NZ<- read.csv(file = "NZ river monitoring final.csv", header = T)
 Kellogg<- read.csv(file = "Kellogg final.csv", header = T)
 Ireland<- read.csv(file = "IRfinal1.csv", header = T)
@@ -622,7 +633,15 @@ load("all.aggr.insects.RData")
 load("all.aggr.arth.RData")
 
 
+# why do these df's have different dims? 
+anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
+# fixes: Utah FW: added 0 insects to three dates with no insects in 1994
+# Russia FW2: zooplankton should have been removed: are now marked as taxonredundant
+# Russia FW:  zooplankton should have been removed: are now marked as taxonredundant
 
+
+
+# numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
 library(plyr)  
 completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                       function(myData){
@@ -677,22 +696,6 @@ completeDataArth <- ddply(all.aggr.arth,.(Realm,Continent,Datasource_ID),
                             return(myData)
                             
                           })
-
-
-
-# merge in explanatory variables, counfounding factors and center Years
-# add metadata to check for confounding factors: start year and duration
-
-
-
-
-
-
-
-
-
-
-
 
 
 
