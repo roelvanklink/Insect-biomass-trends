@@ -45,14 +45,30 @@ inla1.2RS <- inla(log10(Number+1) ~ cYear+
                   data=completeData); beep(2)
 
 
+# additions 2019.03: add country and location level random slopes? 
+inla1.4RS <- inla(log10(Number+1) ~ cYear+
+                  f(Period_4INLA,model='iid')+
+                  f(Location_4INLA,model='iid')+
+                  f(Plot_ID_4INLA,model='iid')+
+                  f(Datasource_ID_4INLA,model='iid')+
+                  f(Country_State_4INLA) 
+                     f(Plot_ID_4INLAR,iYear,copy='Plot_ID_4INLA')+
+                     f(Location_4INLAR)                      +
+                     f(Datasource_ID_4INLAR,iYear,copy='Datasource_ID_4INLA')+
+                     f(Country_State_4INLAR)  +
+                  f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
+                control.compute = list(dic=TRUE,waic=TRUE),
+                data=completeData); beep(2)
+save(E:/inla1.4RS)
+
 
 #load outputs of the 3 models: 
 load("~/inla1.datasetRS.RData")
 load("~/inla1.2RS.RData")
 load("~/inla1.plotRS.RData")
 
-data.frame(inla1.plotRS$dic$dic,  inla1.datasetRS$dic$dic   , inla1.2RS$dic$dic)
-data.frame(inla1.plotRS$waic$waic,  inla1.datasetRS$waic$waic   , inla1.2RS$waic$waic)
+data.frame(inla1.plotRS$dic$dic,  inla1.datasetRS$dic$dic   , inla1.2RS$dic$dic, inla1.4RS$dic$dic)
+data.frame(inla1.plotRS$waic$waic,  inla1.datasetRS$waic$waic   , inla1.2RS$waic$waic, inla1.4RS$waic$waic)
 
 # both IC's agree that the model with both random slopes is better
 
@@ -82,19 +98,6 @@ inla2 <- inla(log10(Number+1) ~ cYear+
 #Decision is:  not to include the correlations
 
 
-# additions 2019.03: add country and location level random slopes? 
-inla2.1 <- inla(log10(Number+1) ~ cYear+
-                f(Period_4INLA,model='iid')+
-                f(Location_4INLA,model='iid')+
-                f(Plot_ID_4INLA,model='iid2d',n=2*max.plots)+
-                f(Datasource_ID_4INLA,model='iid2d',n=2*max.datasourceId)+
-                f(Plot_ID_4INLAR,iYear,copy='Plot_ID_4INLA')+
-                  f(Location_4INLAR)                      +
-                  f(Datasource_ID_4INLAR,iYear,copy='Datasource_ID_4INLA')+
-                  f(Country_State_4INLAR)  +
-                  f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
-              control.compute = list(dic=TRUE,waic=TRUE),
-              data=completeData); beep(2)
 
 
 
