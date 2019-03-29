@@ -82,6 +82,26 @@ inla2 <- inla(log10(Number+1) ~ cYear+
 #Decision is:  not to include the correlations
 
 
+# additions 2019.03: add country and location level random slopes? 
+inla2.1 <- inla(log10(Number+1) ~ cYear+
+                f(Period_4INLA,model='iid')+
+                f(Location_4INLA,model='iid')+
+                f(Plot_ID_4INLA,model='iid2d',n=2*max.plots)+
+                f(Datasource_ID_4INLA,model='iid2d',n=2*max.datasourceId)+
+                f(Plot_ID_4INLAR,iYear,copy='Plot_ID_4INLA')+
+                  f(Location_4INLAR)                      +
+                  f(Datasource_ID_4INLAR,iYear,copy='Datasource_ID_4INLA')+
+                  f(Country_State_4INLAR)  +
+                  f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
+              control.compute = list(dic=TRUE,waic=TRUE),
+              data=completeData); beep(2)
+
+
+
+
+
+
+
 
 #2) run final models for : overall slope, continents, biomes, strata
 
@@ -100,16 +120,16 @@ inla1 <- inla(log10(Number+1) ~ cYear +
 save(inla1, file = "inla1.RData")
 
 
-# Check for confounding factors
+# Check for confounding factors####
 
-inla1.1 <- inla(log10(Number+1) ~ cYear: + 
+inla1.1 <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration + cYear:Country_state
                 f(Period_4INLA,model='iid')+
                 f(Location_4INLA,model='iid')+
                 f(Plot_ID_4INLA,model='iid')+
                 f(Datasource_ID_4INLA,model='iid')+
                 f(Plot_ID_4INLAR,iYear,model='iid')+
-                f(Datasource_ID_4INLAR,iYear,model='iid')+
-                f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData) # has lower WAIC and DIC than inlaF2
 save(inla1, file = "inla1.1.RData")
@@ -120,7 +140,7 @@ save(inla1, file = "inla1.1.RData")
 
 ############################################################
 #Pull out the random effects and slopes from the grand model
-load("inla1.RData")
+load("E:/inla1.RData")
 #get list of unique plots and datasourceID
 summary_df <- unique(completeData[,c("Plot_ID","Datasource_ID",
                                      "Plot_ID_4INLA","Datasource_ID_4INLA",
