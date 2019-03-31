@@ -272,7 +272,7 @@ inlaF <- inla(log10(Number+1) ~ cYear:Realm+ Realm +
 load("E:/inlaF.RData")
 
 summary(inlaF)
-10^(0.007*10) 
+10^(-0.004*100) 
 1- (10^(summary(inlaF)$fixed[4] *10)) # 10 year % change terrestrial
 1- (10^(summary(inlaF)$fixed[12] *10)) # upper CI 10 year % change terrestrial
 1- (10^(summary(inlaF)$fixed[20] *10)) # lower CI 10 year % change terrestrial
