@@ -277,9 +277,9 @@ sum(duplicated(Luquillo[, -1]))
 tail(subset(dups, Datasource_name == "LTER Luquillo canopy1" ))
 
 
-head(Sweden) # ll duplicates ahve been removed
-sum(duplicated(Sweden[, -1])) #11256
-SEdups<- Sweden[duplicated(Sweden[, -1]), ]
+head(Sweden2) # ll duplicates ahve been removed
+sum(duplicated(Sweden2[, -1])) #11256
+SEdups<- Sweden2[duplicated(Sweden2[, -1]), ]
 
 SEdups[c(seq(1,1001, by = 50)),]
 #That's a lot of NA's 
@@ -508,7 +508,7 @@ merge4$duration.ok<- ! merge4$Plot_ID %in% short.plots # length = ok
 
 # only select plots that have sufficient duration
 merge4.1<- subset(merge4, duration.ok == T)
-dim(merge4.1)# 812397 on 31-3-19
+dim(merge4.1)# 812397 on 31-3-19       659305 with stdzd SE FW data 
 
 
 
@@ -529,7 +529,7 @@ dim(merge4.3)
 
 
 full.dataset<- merge4.3
-save(full.dataset, file = "full.dataset.RData") # matching on 29-1
+save(full.dataset, file = "full.dataset.RData") # 
 
 
 
@@ -564,7 +564,7 @@ length(unique(merge4.5$Datasource_name))
 
 all.insects.dataset<- merge4.5
 
-save(all.insects.dataset, file = "all.insects.dataset.RData")  # matching on 29-1
+save(all.insects.dataset, file = "all.insects.dataset.RData")  # 
 
 
 
@@ -631,15 +631,15 @@ load( "all.selectedArth.RData")
 
 all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
                    Year + Period + Date  + Realm + Country_State +  Country+Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
- #  104096 # 54761 with ecn.m means
+ #  104096 # 54761 with ecn.m means   52716 with SE-FW stdzd
 dim(all.aggr.insects)
-length(unique(all.aggr.insects$Plot_ID)) # 1628 # correct
+length(unique(all.aggr.insects$Plot_ID)) # 1628 # now 1416 SE FW
 
 all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name + Unit +  
                           Year + Period + Date  + Country + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
-#  54781 # seems correct - 50.000 obs from UK ecn moths
+#  54781 # seems correct - 50.000 obs from UK ecn moths  # now 52736 with SE fW stdzd
 dim(all.aggr.arth)
-length(unique(all.aggr.arth$Plot_ID)) # 1628
+length(unique(all.aggr.arth$Plot_ID)) # 1628   now 1416 SEFW
 
 
 
@@ -670,11 +670,11 @@ anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
 # fixes: Utah FW: added 0 insects to three dates with no insects in 1994
 # Russia FW2: zooplankton should have been removed: are now marked as taxonredundant
 # Russia FW:  zooplankton should have been removed: are now marked as taxonredundant
-
+# 20 sites in Sweden missing
 
 
 # numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
-library(plyr)  
+#library(plyr)  
 completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                       function(myData){
                         #expand grid to include NAs
@@ -714,7 +714,7 @@ completeDataArth <- ddply(all.aggr.arth,.(Realm,Continent,Datasource_ID),
                             myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
                                              by=c("Year","Plot_ID"),all=T)
                             # add descriptors
-                            myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Stratum" )]),  #"classes",
+                            myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "Stratum" )]),  #"classes",
                                             by="Plot_ID",all=T)
                             
                             #fit in missing values for period with random sample
@@ -752,7 +752,7 @@ addIndicies <- function(myData){
   myData$Country_State_4INLA <- as.numeric(factor(myData$Country_State))
   
   # This is now a crossed random effect: accounting for datasets that were collected at the same location
-  myData$Location[is.na(myData$Location)] <- 1#dummy value
+#  myData$Location[is.na(myData$Location)] <- 1#dummy value
  # myData$Location_4INLA <- interaction(myData$Datasource_ID,myData$Location) # this is not necessary anymore
   myData$Location_4INLA <- as.numeric(factor(myData$Location))
   
