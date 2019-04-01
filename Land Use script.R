@@ -9,11 +9,19 @@ head(LU)
 
 # ESA Land Cover State products
 LU2<-read.table("LU_CCIESA_1992on.txt", header = T)
+LU2nbrs<- read.table("LU_CCIESA_neighbours_1992on.txt", header = T)
 hist(LU2$X2015, breaks=seq(5,225,by=1)) # distribution of sites over different categories 
 # were there any changes in landcover in this period? 
-changed<- (LU2[(LU2$X1992 - LU2$X2015 != 0)   , c(1,24:26) ]) # 67 sites  have a  chage 
+changed<- (LU2[(LU2$X1992 - LU2$X2015 != 0)   , c(1,24:26) ]) # 67 sites  have a  change = 4%
 # which changes do we have 
 unique(changed[,1:2])
+
+
+
+
+
+
+
 
 
 LU$EndTotalLandCover<- rowSums(LU[, c(13,15,17,19)])
@@ -79,9 +87,60 @@ facet_wrap(~Continent)
 
 
 
+######################################################################
+
+#Prep ESA data for analysis (% of each LU type in final year)
+
+#1) combine the file for main cell and neighbor cells
+
+LU2nbrs<- LU2nbrs[, c(25,1:24)]
+LU2IDs<-LU2[, c(1,26,27)]
+LU2<- LU2[, 1:25]
+LU2<- unique(LU2) # keep only 1 value for each mainCell
+
+LU2<- rbind(LU2, LU2nbrs)
+dim(LU2)/9  # 1023 unique cells
+dim(LU2nbrs)
+
+fullLU2<-merge(LU2, LU2IDs) # doesnt work because of duplicate values in both tables
+dim(fullLU2)/9  #= 1661 plots! correct 
+# make matrix 
+
+#TRy out for 2015 values
+counts<- dcast(LU2, mainCell~X2015, length)
+counts$frcCrop<- (counts$`10` / 9) + (counts$`11`/9)  + (counts$`12`/9) + (counts$`30`*0.75)/9 + (counts$`40`*0.25)/9  
+counts$frcUrban<-counts$`190` / 9
+hist((counts$frcCrop))
+# works
 
 
 
+valueLastYr<-NULL
 
+
+for(i in 1: nrow(fullLU2)){
+plt<- fullLU2$Plot_ID[i]
+
+year<- metadata_per_plot$End_year[metadata_per_plot$Plot_ID == plt]
+
+if (length(year) == 0){year <-0} # if plotID is missing, replce year  by 0
+if(year>2015){  year<-2015} # for yrs after 2015 use 2015
+if (year<1992  & year >1986){year <- 1992} # for yrs between 1987 and 1991 use 1992
+
+yearx<- paste0( "X", year)
+value <- fullLU2[i, yearx]
+
+if(year < 1987){value <-NA} # for yrs before 1987 use NA
+
+valueLastYr[i]<- value
+}
+
+# calculate % cover for each plot
+fullLU2$valueLastYr<-valueLastYr
+
+counts<- dcast(fullLU2, Plot_ID~valueLastYr, length)
+counts$frcCrop<- (counts$`10` / 9) + (counts$`11`/9)  + (counts$`12`/9) + (counts$`30`*0.75)/9 + (counts$`40`*0.25)/9  
+counts$frcUrban<-counts$`190` / 9
+hist((counts$frcCrop))
 
 
