@@ -143,4 +143,4 @@ counts$frcCrop<- (counts$`10` / 9) + (counts$`11`/9)  + (counts$`12`/9) + (count
 counts$frcUrban<-counts$`190` / 9
 hist((counts$frcCrop))
 
-
+# 250 plots have no values
