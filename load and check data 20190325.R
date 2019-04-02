@@ -1061,6 +1061,102 @@ sum(metadata_per_plot$PA == "no")
 
 
 
+# which countries to test separately? 
+
+load("metadata_per_plot.RData")
+
+
+
+metadata_per_country<- metadata_per_plot %>% 
+  group_by(Country_State, Realm) %>%
+  summarise(
+    Country = unique(Country),
+    NumberPlots = length(unique(Plot_ID)), 
+    NumberStudies = length(unique(Datasource_ID)))
+
+subset(metadata_per_country, NumberStudies >2)
+
+
+#countrywide datasets:
+# Sweden Freshwater 
+# new zealand freshwater
+# Japan Ground beetles 
+
+# pooled: 
+# Germany Terrestrial
+# Russia Freshwater  
+# Russia Terrestrial 15 
+# UK terrestrial 
+# USA west FW
+# USA West Terr
+# USA Midwest terr
+# (USA midwest FW)
+# USA South FW
+
+# us regions:
+             # Terr                #FW
+#West:        AZ MT    NM           AZ, CA , CO ID UT
+#Midwest       KS  MI  MN   WI          MI WI
+#USA_Northeast     MS NH                NY, Ontario, Penn
+#USA_south:           GA                KY  AR, GA NC TN
+
+metadata_per_plot$region<- metadata_per_plot$Country
+levels(metadata_per_plot$region) <- c(levels(metadata_per_plot$region), "USA West", "USA Midwest", "USA Northeast", "USA South",
+                                      "Russia Northwest", "Russia Volga", "Russia Siberia", "Russia Ural", "Russia Central", "Russia Far East", 
+                                      "Russia Central & Volga", "Russia Siberia & Ural")
+metadata_per_plot$region[metadata_per_plot$Country_State == "Arizona"]<-"USA West"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Montana"]<-"USA West"
+metadata_per_plot$region[metadata_per_plot$Country_State == "New Mexico"]<-"USA West"
+metadata_per_plot$region[metadata_per_plot$Country_State == "California"]<-"USA West"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Colorado"]<-"USA West"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Idaho"]<-"USA West"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Utah"]<-"USA West"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Kansas"]<-"USA Midwest"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Michigan"]<-"USA Midwest"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Minnesota"]<-"USA Midwest"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Wisconsin"]<-"USA Midwest"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Massachusetts"]<-"USA Northeast"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Ontario"]<-"USA Northeast"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Pennsylvania"]<-"USA Northeast"
+metadata_per_plot$region[metadata_per_plot$Country_State == "New York"]<-"USA Northeast"
+metadata_per_plot$region[metadata_per_plot$Country_State == "New Hampshire"]<-"USA Northeast"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Georgia"]<-"USA South"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Kentucky"]<-"USA South"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Arkansas"]<-"USA South"
+metadata_per_plot$region[metadata_per_plot$Country_State == "North Carolina"]<-"USA South"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Tennessee"]<-"USA South"
+metadata_per_plot$region[metadata_per_plot$Country_State == "Georgia"]<-"USA South"
+
+#Regions in Russian Federation: 
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1391]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1393]<- "Russia Central & Volga" #   "Russia Volga"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1400]<-"Russia Siberia & Ural"   #    "Russia Siberia"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1400]<-"Russia Siberia & Ural"   #    "Russia Siberia"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1401]<-"Russia Central & Volga" #   "Russia Central"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1402]<-"Russia Siberia & Ural"   #    "Russia Siberia"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1403]<-"Russia Siberia & Ural"   #    "Russia Ural"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1406]<-"Russia Central & Volga" #   "Russia Volga"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1407]<-"Russia Central & Volga" #   "Russia Central"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1446]<-"Russia Central & Volga" #   "Russia Central"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1448]<-"Russia Siberia & Ural"   #    "Russia Ural"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1449]<-"Russia Siberia & Ural"   #    "Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1451]<-"Russia Central & Volga" #   "Russia Volga"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1452]<-"Russia Central & Volga" #   "Russia Volga"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1453]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1454]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1455]<-"Russia Siberia & Ural"   #    "Russia Ural"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1456]<-"Russia Central & Volga" #   "Russia Volga"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1457]<-"Russia Central & Volga" #   "Russia Volga"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1458]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1459]<-"Russia Central & Volga" #   "Russia Central"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1460]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1461]<-"Russia Far East"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1462]<-"Russia Far East"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1507]<-"Russia Central & Volga" #   "Russia Volga"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1508]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1509]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1510]<-"Russia Northwest"
+metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1511]<-"Russia Siberia & Ural"   #    "Russia Siberia"
 
 
 
@@ -1073,6 +1169,14 @@ sum(metadata_per_plot$PA == "no")
 
 
 
+metadata_per_country<- metadata_per_plot %>% 
+  group_by(region, Realm) %>%
+  summarise(
+    Country = unique(Country),
+    NumberPlots = length(unique(Plot_ID)), 
+    NumberStudies = length(unique(Datasource_ID)))
+
+print(subset(metadata_per_country, NumberStudies >3 | NumberPlots >20), n = Inf)
 
 
 
