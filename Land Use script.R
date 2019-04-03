@@ -30,8 +30,9 @@ LU$SCend_urbanArea<- LU$End_urbanArea/LU$EndTotalLandCover
 LU$SCend_forestArea<- LU$End_forestArea/LU$EndTotalLandCover
 LU$SCend_pastureArea<- LU$End_pastureArea/LU$EndTotalLandCover
 
-
-test<- merge(results.per.plot, LU, by = "Plot_ID")
+load("RandEfPlot.RData")
+test<- merge(RandEfPlot, LU, by = "Plot_ID")
+test<- merge(metadata_per_plot, test, by = "Plot_ID")
 dim(test)
 
 save(LU, file = "LU")
@@ -46,20 +47,28 @@ sample_n(subset(LU, EndTotalLandCover < 0.4 ), 10)
 head(test)
 
 library(gridExtra)
-p1<-ggplot(test, aes(x= End_urbanArea, y= slope, color = Realm)) + 
-  geom_point()       + ggtitle("Urban gebiet") + 
+p1<-ggplot(test, aes(x= sqrt(End_urbanArea), y= slope, color = Realm)) + 
+  geom_point()       + ggtitle("Urban area") + 
   scale_color_manual(values = col.scheme.realm)
-p2<-ggplot(test, aes(x= End_cropArea, y= slope, color = Realm)) + 
-  geom_point()       + ggtitle( "Ackerflaeche")+ 
-  scale_color_manual(values = col.scheme.realm)
-p3<- ggplot(test, aes(x= End_pastureArea, y= slope, color = Realm)) + 
-  geom_point() + ggtitle( "Weidegebiet")       + 
-  scale_color_manual(values = col.scheme.realm)
-p4<- ggplot(test, aes(x= End_forestArea, y= slope, color = Realm)) + 
-  geom_point()  + ggtitle("Wald")     + 
+p2<-ggplot(test, aes(x= sqrt(End_cropArea), y= slope, color = Realm)) + 
+  geom_point()       + ggtitle( "Crop area")+ 
   scale_color_manual(values = col.scheme.realm)
 
-grid.arrange(p1,p2,p3,p4, nrow = 2)
+grid.arrange(p1,p2, nrow = 2)
+
+
+# only random plot slope (bc these are corrected for dataset effects? )
+p1<-ggplot(test, aes(x= sqrt(End_urbanArea), y= test$`Plot_slp_ mean`, color = Realm)) + 
+  geom_point()       + ggtitle("Urban area") + 
+  scale_color_manual(values = col.scheme.realm)
+p2<-ggplot(test, aes(x= sqrt(End_cropArea), y= `Plot_slp_ mean`, color = Realm)) + 
+  geom_point()       + ggtitle( "Crop area")+ 
+  scale_color_manual(values = col.scheme.realm)
+
+grid.arrange(p1,p2, nrow = 2)
+
+
+
 
 
 

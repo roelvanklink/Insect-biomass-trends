@@ -143,33 +143,51 @@ save(inla1, file = "inla1.1.RData")
 
 ############################################################
 #Pull out the random effects and slopes from the grand model
-load("E:/inla1.RData")
+load("inla1.RData")
 #get list of unique plots and datasourceID
 summary_df <- unique(completeData[,c("Plot_ID","Datasource_ID",
                                      "Plot_ID_4INLA","Datasource_ID_4INLA",
                                      "Plot_ID_4INLAR","Datasource_ID_4INLAR")])
 
-datasource_random_ef<-unique(completeData[,c("Datasource_ID", "Datasource_ID_4INLA", "Datasource_ID_4INLAR")])
-
+RandEfDataset<-unique(completeData[,c("Datasource_ID", "Datasource_ID_4INLA", "Datasource_ID_4INLAR")])
+RandEfPlot<-unique(completeData[,c("Datasource_ID", "Datasource_ID_4INLA", "Datasource_ID_4INLAR",
+                                      "Location",       "Location_4INLA",      "Location_4INLAR", 
+                                      "Plot_ID",        "Plot_ID_4INLA",       "Plot_ID_4INLAR" )])
 #pull out random intercepts and slopes:
 
 #data source ID
 intercepts <- inla1$summary.random$Datasource_ID_4INLA
-slopes <- inla1$summary.random$Datasource_ID_4INLAR
-names(intercepts)[2:8] <- paste("DataID_Intercept_", names(intercepts)[2:8])
-names(slopes)[2:8] <- paste("DataID_Slope_", names(slopes)[2:8])
-summary_df <- merge(datasource_random_ef,intercepts, by.x="Datasource_ID_4INLA", by.y="ID")
-summary_df <- merge(summary_df,slopes, by.x="Datasource_ID_4INLAR", by.y="ID")
+slopes         <- inla1$summary.random$Datasource_ID_4INLAR
+slopes_Location<-inla1$summary.random$Locatio_4INLAR
+slopes_plot    <-inla1$summary.random$Plot_ID_4INLAR
+names(intercepts)[2:8] <- paste("DataID_Intercept_", names(intercepts)[2:8]) # names for dataset intercepts
+names(slopes)[2:8] <- paste("DataID_Slope_", names(slopes)[2:8])             # names for dataset slopes
+names(slopes_Location)[2:8] <-paste("Loc_slp_", names(slopes_Location)[2:8]) # names for Location slopes
+names(slopes_plot)[2:8] <-paste("Plot_slp_", names(slopes_plot)[2:8])        # names for plot slopes
 
-# add up ovrall slope and random slopes
+# datasource level slopes for Fig 1
+RandEfDataset <- merge(RandEfDataset,intercepts, by.x="Datasource_ID_4INLA", by.y="ID")
+RandEfDataset <- merge(RandEfDataset,slopes, by.x="Datasource_ID_4INLAR", by.y="ID")
+
+# add up fixed slope and random slopes
 metadata_per_dataset<- read.csv(file = "metadata per dataset.csv", header =T)
-RandEfDataset<- merge(summary_df, metadata_per_dataset, by = "Datasource_ID")
+RandEfDataset<- merge(RandEfDataset, metadata_per_dataset, by = "Datasource_ID")
 RandEfDataset$fixedSlp<- inla1$summary.fixed$mean[2]
 RandEfDataset$fixedIntercept<- inla1$summary.fixed$mean[1]
 RandEfDataset$slope <- RandEfDataset$'DataID_Slope_ mean'+ RandEfDataset$fixedSlp # sum of fixed and random slopes  
 RandEfDataset$intercept <- RandEfDataset$'DataID_Intercept_ mean'+ RandEfDataset$fixedIntercept # sum of fixed and random slopes  
-
 save(RandEfDataset, file = "RandEfDataset.RData")
+
+
+# plot level random effects for Fig 4: merge together all elements
+RandEfPlot <- merge(RandEfPlot,intercepts, by.x="Datasource_ID_4INLA", by.y="ID") # not really needed here
+RandEfPlot <- merge(RandEfPlot,slopes,          by.x="Datasource_ID_4INLAR", by.y="ID")
+#RandEfPlot <- merge(RandEfPlot,slopes_Location, by.x="Location_4INLAR", by.y="ID")
+RandEfPlot <- merge(RandEfPlot,slopes_plot, by.x="Plot_ID_4INLAR", by.y="ID")
+
+# add up fixed slope, dataset random + location Random, + plot random 
+RandEfPlot$fixedSlp<- inla1$summary.fixed$mean[2]
+RandEfPlot$slope <- RandEfPlot$fixedSlp +  RandEfPlot$'DataID_Slope_ mean'  + RandEfPlot$'Plot_slp_ mean' #+RandEfPlot$'Loc_slp_ mean' 
 
 
 # plot spagetti plot (Dornelas)
@@ -189,16 +207,17 @@ ggplot(data = randomFits, aes(x= Year, y=abun,   colour = Realm)) +
   scale_y_log10() +  
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"), 
-        strip.background = element_blank(),  strip.text = element_blank())+
+        strip.background = element_blank(),  strip.text = element_blank(),legend.key=element_blank())+
   labs(x = "", y = "Insect abundance / biomass") +
   geom_line(data=pframe, aes(x= Year, y=unlog, group = Datasource_ID,  colour = Realm), size =0.6, alpha = 0.8)+
-  scale_colour_manual(values = col.scheme.realm)+
+  scale_colour_manual(values = col.scheme.realm, name = "Dataset trends")+
+  
   new_scale_color()+
-   geom_line(data = randomFits,    aes(x=Year,  y=abun, colour=Realm), size = 1.2)+
-  scale_colour_manual(values = col.scheme.realm2) +
+   geom_line(data = randomFits,    aes(x=Year,  y=abun, colour=Realm2), size = 1.2)+
+  scale_colour_manual(values = col.scheme.realm2, name = "Random walk model") +
   geom_ribbon(data = randomFits, aes(x=Year, ymin = 10^(intercept + RW.0.025quant),  
-                                    ymax = 10^(intercept+RW.0.975quant), fill=Realm),alpha=0.4, color = NA)+
-  scale_fill_manual (values = col.scheme.realm)+
+                                    ymax = 10^(intercept+RW.0.975quant), fill=Realm2),alpha=0.4, color = NA)+
+  scale_fill_manual (values = col.scheme.realm, name = "Random walk model")+
   facet_grid(Realm~.)
  
 
@@ -220,10 +239,11 @@ pts.wgs$slope.scal[pts.wgs$slope.scal>(0.02)]<- 0.02
 p.wgs+
  # geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data, pch = 21, 
  #            size = 1.3, aes(x = mean_long, y = mean_lat, group = NULL),  colour = 1) +
-  geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data , size = 1.3, pch = 21,
+  geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data , color = "grey30", size = 1.8, pch = 21,
              aes(x = mean_long,   y = mean_lat,  fill = slope.scal, group = NULL), 
              position=position_jitter(h=1, w=1)) +  #
-  scale_fill_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , 
+  scale_fill_viridis_c(space = "Lab" ,
+  #scale_fill_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , 
                        limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal)), name = 'Abundance trend') +# "PuBuGn"
   ggtitle("Freshwater fauna") 
 
@@ -232,10 +252,11 @@ p.wgs+
 # terrestrial
 p.wgs+
 ##  geom_point(data = subset(pts.wgs, Realm =="Terrestrial")@data, size = 1.3, aes(x = mean_long, y = mean_lat, group = NULL),  colour = 1) +
- geom_point(data = subset(pts.wgs, Realm =="Terrestrial")@data, size = 1.3, pch = 21,
+ geom_point(data = subset(pts.wgs, Realm =="Terrestrial")@data, color = "grey30" ,size = 1.8, pch = 21,
             aes(x = mean_long,   y = mean_lat,  fill = slope.scal, group = NULL) , 
             position=position_jitter(h=1, w=1)) +
-  scale_fill_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , 
+  scale_fill_viridis_c(space = "Lab" ,
+#  scale_fill_gradient2(low = "#d7191c", mid = "#ffffbf", high = "#2c7bb6", space = "Lab" , 
                        limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal)), name = 'Abundance trend') +# "PuBuGn"
   ggtitle("Terrestrial fauna") 
 
