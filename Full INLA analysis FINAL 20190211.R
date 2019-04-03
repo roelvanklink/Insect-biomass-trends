@@ -188,7 +188,7 @@ RandEfPlot <- merge(RandEfPlot,slopes_plot, by.x="Plot_ID_4INLAR", by.y="ID")
 # add up fixed slope, dataset random + location Random, + plot random 
 RandEfPlot$fixedSlp<- inla1$summary.fixed$mean[2]
 RandEfPlot$slope <- RandEfPlot$fixedSlp +  RandEfPlot$'DataID_Slope_ mean'  + RandEfPlot$'Plot_slp_ mean' #+RandEfPlot$'Loc_slp_ mean' 
-
+save(RandEfPlot, file = "RandEfSlope.RData")
 
 # plot spagetti plot (Dornelas)
 load("randomFitsFullPer.RData") # wiggly line
