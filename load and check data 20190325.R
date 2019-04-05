@@ -18,6 +18,11 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
 #studies <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies)
 levels(studies$Continent)[levels(studies$Continent) == "South America"]  <- "Latin America"
 levels(studies$Continent)[levels(studies$Continent) == "Central America"]  <- "Latin America"
+levels(studies$Region)[levels(studies$Region) == "Russia Volga"]  <- "Russia Central & Volga"
+levels(studies$Region)[levels(studies$Region) == "Russia Central"]  <- "Russia Central & Volga"
+levels(studies$Region)[levels(studies$Region) == "Russia Ural"]  <- "Russia Ural & Siberia"
+levels(studies$Region)[levels(studies$Region) == "Russia Siberia"]  <- "Russia Ural & Siberia"
+
 
 
 # remove repeated column names
@@ -63,47 +68,7 @@ ecn.but<- read.csv(file = "ECN butterflies final.csv", header = T)
 ecn.gb<- read.csv(file ="ECN ground beetles final nw.csv", header = T)
 ecn.m2<-  read.csv(file ="ECN moths final_2.csv", header = T)
 ecn.m<-  read.csv(file ="ECN moths final.csv", header = T)
-Sweden2<- read.csv("SEstandardized.final2019.csv", header = T) # this file is more careful regarding standardizaTION
-Sweden2$Plot_name<- as.factor(Sweden2$Plot_name)
-Sweden<-read.csv("SEall.final2019.csv", header = T); Sweden$Plot_name<- as.factor(Sweden$Plot_name)
-  # Sweden: add lines with 0 insects:
-SwedenZeros<- as.data.frame( rbind(
- c(88678, "Sweden freshwater"  ,1358, 697, 304, 1986,  5,  "8-5-1986",  "Chironomidae", NA, "abundance" ,0, NA,   0,    NA),
-  c(88678, "Sweden freshwater"  ,1358, 697 ,304, 1986,  8, "13-8-1986",  "Chironomidae", NA, "abundance" ,0, NA,   0,    NA),
- c(88496, "Sweden freshwater",  1358, 697 ,303, 1977,  7, "12-7-1977",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA),
- c(88496, "Sweden freshwater",  1358, 697 ,304, 1977,  7, "12-7-1977",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA),
- c(886921, "Sweden freshwater", 1358, 697 ,304, 1987,  8, "15-8-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA),
- c(88053 , "Sweden freshwater", 1368, 692 ,304, 1987,  8, "15-8-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA),
- c(146410 , "Sweden freshwater", 1393, 23005 ,306, 2007,  7, "2-7-2007",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA),
- c(876651 , "Sweden freshwater", 1482, 688,   304, 1987, 5, "14-5-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA),
- c(876651 , "Sweden freshwater", 1482, 688,   304, 1986, 8, "12-8-1987",  "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA)),
- c(2000000,  "Sweden freshwater", 1283, 34898,     , 1971, 5, "8-5-1971", "Chironomidae", NA, "abundance"  ,0, NA, 0,  NA)  )
- Datasource_ID   Datasource_name         Location Stratum Plot_ID Plot_name      Unit Year Period       Date Country Country_State      Realm
- 1           1488 Sweden freshwater              Hjo   Water    1283     34898 abundance 1971      5   8-5-1971  Sweden        Sweden Freshwater
- 2           1488 Sweden freshwater              Hjo   Water    1283     34898 abundance 1972      8  23-8-1972  Sweden        Sweden Freshwater
- 3           1488 Sweden freshwater              Hjo   Water    1283     34898 abundance 1971      8  24-8-1971  Sweden        Sweden Freshwater
- 4           1488 Sweden freshwater          Vättern   Water    1541     22812 abundance 1971      5   8-5-1971  Sweden        Sweden Freshwater
- 5           1488 Sweden freshwater      Megrundet N   Water    1368       692 abundance 1975      7  17-7-1975  Sweden        Sweden Freshwater
- 6           1488 Sweden freshwater          Vättern   Water    1541     22812 abundance 1972      8  23-8-1972  Sweden        Sweden Freshwater
- 7           1488 Sweden freshwater     St. Aspön SO   Water    1453      2910 abundance 1971      8  26-8-1971  Sweden        Sweden Freshwater
- 8           1488 Sweden freshwater     St. Aspön SO   Water    1453      2910 abundance 1972      8  24-8-1972  Sweden        Sweden Freshwater
- 9           1488 Sweden freshwater          Vättern   Water    1540     22811 abundance 1972      8  22-8-1972  Sweden        Sweden Freshwater
- 10          1488 Sweden freshwater          Vättern   Water    1540     22811 abundance 1971      8  23-8-1971  Sweden        Sweden Freshwater
- 11          1488 Sweden freshwater          Vättern   Water    1541     22812 abundance 1971      8  24-8-1971  Sweden        Sweden Freshwater
- 12          1488 Sweden freshwater Strutsholms Kl O   Water    1482       688 abundance 1974     10 14-10-1974  Sweden        Sweden Freshwater
- 13          1488 Sweden freshwater Strutsholms Kl O   Water    1482       688 abundance 1986      8  12-8-1986  Sweden        Sweden Freshwater 
- 
- 
- 
- 
- 
- 
- 
- 
- )
-names(SwedenZeros)<- names(Sweden)
-write.csv(SwedenZeros, file = "SwedenZeros.csv") ; SwedenZeros<-read.csv("SwedenZeros.csv", header = T )
-Sweden<-rbind(Sweden, SwedenZeros[, -1])
+Sweden<-read.csv("SEFW fnal 201904.csv", header = T) ; Sweden$Plot_name<- as.factor(Sweden$Plot_name)
 NZ<- read.csv(file = "NZ river monitoring final.csv", header = T)
 Kellogg<- read.csv(file = "Kellogg final.csv", header = T)
 Ireland<- read.csv(file = "IRfinal1.csv", header = T)
@@ -193,11 +158,11 @@ test <- rbind(
   sev.gh[, -(1)], 
   sev.pf[, -(1)], 
   Schuch[, -(1:2)],
-  Sweden2 [, -(1)],  
+  Sweden [, -(1)],  
   Swengel.workfile, 
   Wijster[, -(1)], 
   database[, -c(1,6, 17,18)]  )
-dim(test)   # 815047    -> 661955 with standardized SE-FW data 
+dim(test)   # 815047    -> 678569 with standardized SE-FW data 
 #
 
 
@@ -395,7 +360,7 @@ dim(merge1) # all there
 # merge with samples
 merge2<-(merge(merge1, samples, by = "Sample_ID"))
 dim(merge2) # all there. 
-length(unique(merge2$Datasource_ID)) #156
+length(unique(merge2$Datasource_ID)) #158
 
 # merge with plot # mind that column 'Datasource ID is in both 
 merge3<- merge(merge2, plots)#, by = "Plot_ID"
@@ -450,20 +415,22 @@ metadata_per_plot<-  merge4 %>%
     Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
     Start_year = min(Year, na.rm = T),
     End_year = max(Year, na.rm = T),
-    Latitude = unique(Latitude),
     Country_State = unique(Country_State),
     Country = unique(Country),
+    Region = unique(Region),
     Realm = unique(Realm),
     Longitude = unique(Longitude),
+    Latitude = unique(Latitude),
+    AbundanceBiomass = unique(Abundance.Biomass),
     NUMBER_OF_PLOTS =  length(unique(Plot_ID)), # should be 1
     NUMBER_OF_SAMPLES = length(unique(paste(Year, Period))),
     NUMBER_OF_YEARS = length(unique(Year)),
     NUMBER_OF_TAXA = length(unique(Taxon)),
     TOTAL_N = sum(Number, na.rm = T)
   )
-dim(metadata_per_plot) # 1661
+dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
 newest<- metadata_per_plot
-write.csv(metadata_per_plot, "metadata per plot 20190331.csv")
+write.csv(metadata_per_plot, "metadata per plot 20190405.csv")
 save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 new<- read.csv("New metadata per plot 20190206.csv")
@@ -471,9 +438,6 @@ old<-read.csv("metadata per plot 20190122.csv")   #1509
 older<-read.csv("metadata per plot 20181123.csv") #1486
 
 
-
-new.data<- anti_join(new, old, by = "Datasource_ID")
-new.data<- rbind(new.data, subset(new, Plot_ID >155 & Plot_ID< 180)) # plots Finland and Lauwersmeer
 
 
 
@@ -508,7 +472,7 @@ merge4$duration.ok<- ! merge4$Plot_ID %in% short.plots # length = ok
 
 # only select plots that have sufficient duration
 merge4.1<- subset(merge4, duration.ok == T)
-dim(merge4.1)# 812397 on 31-3-19       659305 with stdzd SE FW data 
+dim(merge4.1)# 675919 on 5-4-19 
 
 
 
@@ -583,7 +547,7 @@ save(ABcomparison.arthr, file = "ABcomparison.arthr.RData")
 
 
 # deselect redundant taxa
-redund<- subset(merge4.4, Taxon_redundancy != "");dim(redund) # some 43000
+redund<- subset(merge4.4, Taxon_redundancy != "");dim(redund) # some 22500
 merge5.ins<-subset(merge4.5, Taxon_redundancy == "") # deselect redundant data 
 merge5.arth<-subset(merge4.4, Taxon_redundancy == "") # deselect redundant data 
 
@@ -630,13 +594,13 @@ load( "all.selectedArth.RData")
 
 
 all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
-                   Year + Period + Date  + Realm + Country_State +  Country+Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
- #  104096 # 54761 with ecn.m means   52716 with SE-FW stdzd
+                   Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
+ #  104096 # 54761 with ecn.m means   52390 with SE-FW stdzd
 dim(all.aggr.insects)
-length(unique(all.aggr.insects$Plot_ID)) # 1628 # now 1416 SE FW
+length(unique(all.aggr.insects$Plot_ID)) # 1628 # now 1416 SE FW 1533
 
 all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name + Unit +  
-                          Year + Period + Date  + Country + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
+                          Year + Period + Date  + Country + Region + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
 #  54781 # seems correct - 50.000 obs from UK ecn moths  # now 52736 with SE fW stdzd
 dim(all.aggr.arth)
 length(unique(all.aggr.arth$Plot_ID)) # 1628   now 1416 SEFW
@@ -665,7 +629,9 @@ load("all.aggr.insects.RData")
 load("all.aggr.arth.RData")
 
 
-# why do these df's have different dims? 
+# do these df's have different dims? 
+dim(all.aggr.arth); dim(all.aggr.insects) # same
+sum(all.aggr.arth$Number) ; sum(all.aggr.insects$Number) # 1.5mln difference is possible
 anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
 # fixes: Utah FW: added 0 insects to three dates with no insects in 1994
 # Russia FW2: zooplankton should have been removed: are now marked as taxonredundant
@@ -674,7 +640,7 @@ anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
 
 
 # numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
-#library(plyr)  
+require(plyr)  
 completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                       function(myData){
                         #expand grid to include NAs
@@ -687,7 +653,7 @@ completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                         myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
                                          by=c("Year","Plot_ID"),all=T)
                         # add descriptors
-                        myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "Stratum" )]),
+                        myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "Region", "Stratum" )]),
                                         by="Plot_ID",all=T)
                         
                         #fit in missing values for period with random sample
@@ -714,7 +680,7 @@ completeDataArth <- ddply(all.aggr.arth,.(Realm,Continent,Datasource_ID),
                             myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
                                              by=c("Year","Plot_ID"),all=T)
                             # add descriptors
-                            myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "Stratum" )]),  #"classes",
+                            myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Region", "Country_State", "Stratum" )]),  #"classes",
                                             by="Plot_ID",all=T)
                             
                             #fit in missing values for period with random sample
@@ -832,8 +798,8 @@ completeDataArth$cDuration <- completeDataArth$Duration - median(completeDataArt
 load("completeData.RData")
 
 biomes<- read.csv( "biomesEdited 2019.csv", header = T)
-dim(all.aggr.insects)
-dim(all.aggr.arth)
+dim(completeData)
+dim(completeDataArth)
 
 #check all plots are in the biomes file
 unique(completeData$Plot_ID)[!unique(completeData$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
@@ -1130,7 +1096,6 @@ metadata_per_plot$region[metadata_per_plot$Country_State == "Georgia"]<-"USA Sou
 #Regions in Russian Federation: 
 metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1391]<-"Russia Northwest"
 metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1393]<- "Russia Central & Volga" #   "Russia Volga"
-metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1400]<-"Russia Siberia & Ural"   #    "Russia Siberia"
 metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1400]<-"Russia Siberia & Ural"   #    "Russia Siberia"
 metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1401]<-"Russia Central & Volga" #   "Russia Central"
 metadata_per_plot$region[metadata_per_plot$Datasource_ID == 1402]<-"Russia Siberia & Ural"   #    "Russia Siberia"
