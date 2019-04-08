@@ -17,8 +17,8 @@ load("completeDataArth.RData")
 load("completeDataClim.RData")
 load("completeDataClimPrec.RData")
 load("inla1.RData")
-completeData$Stratum[completeData$Stratum == "air"]<-"Air"
-completeData$Stratum[completeData$Plot_ID == 930 ]<- "Soil surface"
+#completeData$Stratum[completeData$Stratum == "air"]<-"Air"
+#completeData$Stratum[completeData$Plot_ID == 930 ]<- "Soil surface"
 
 
 col.scheme.cont<-c( "Europe"="green3", "Latin America"= "magenta", "North America"= "orange","Asia" = "purple3", 
@@ -38,28 +38,43 @@ inla1.2RS <- inla(log10(Number+1) ~ cYear+
                     f(Datasource_ID_4INLA,model='iid')+
                     f(Period_4INLA,model='iid')+
                     f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
+                  control.compute = list(dic=TRUE,waic=TRUE),
+                  data=completeData); beep(2)
+save(inla1.2RS, file = "inla1.2RS.RData")
+
+
+inla1.3RS <- inla(log10(Number+1) ~ cYear+
+                    f(Period_4INLA,model='iid')+
+                    f(Plot_ID_4INLA,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData); beep(2)
 
 
+
 # additions 2019.03: add country and location level random slopes? 
 inla1.4RS <- inla(log10(Number+1) ~ cYear+
-                  f(Period_4INLA,model='iid')+
-                  f(Location_4INLA,model='iid')+
-                  f(Plot_ID_4INLA,model='iid')+
-                  f(Datasource_ID_4INLA,model='iid')+
-                  f(Country_State_4INLA) 
-                     f(Plot_ID_4INLAR,iYear,copy='Plot_ID_4INLA')+
-                     f(Location_4INLAR)                      +
-                     f(Datasource_ID_4INLAR,iYear,copy='Datasource_ID_4INLA')+
-                     f(Country_State_4INLAR)  +
-                  f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
-                control.compute = list(dic=TRUE,waic=TRUE),
-                data=completeData); beep(2)
-save(E:/inla1.4RS)
+                    f(Period_4INLA,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Plot_ID_4INLA,model='iid')+
+                    f(Datasource_ID_4INLA,model='iid')+
+                    f(Country_State_4INLA) +
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(Country_State_4INLAR,iYear,model='iid')  +
+                    f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
+                  control.compute = list(dic=TRUE,waic=TRUE), verbose = T,
+                  data=completeData); beep(2)
+save("inla1.4RS.RData")
 
 
 #load outputs of the 3 models: 
@@ -88,7 +103,7 @@ inla2 <- inla(log10(Number+1) ~ cYear+
                 f(Plot_ID_4INLA,model='iid2d',n=2*max.plots)+
                 f(Datasource_ID_4INLA,model='iid2d',n=2*max.datasourceId)+
                 f(Plot_ID_4INLAR,iYear,copy='Plot_ID_4INLA')+
-                f(Datasource_ID_4INLAR,iYear,copy='Datasource_ID_4INLA')+
+                f(Datasource_ID_4INLAR,iYear,copy='Datasource_ID_4INLA')+ # what is this for? 
                 f(iYear,model='ar1',replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData); beep(2)
@@ -112,30 +127,32 @@ inla2 <- inla(log10(Number+1) ~ cYear+
 
 inla1 <- inla(log10(Number+1) ~ cYear + 
                 f(Period_4INLA,model='iid')+
-                f(Location_4INLA,model='iid')+
                 f(Plot_ID_4INLA,model='iid')+
+                f(Location_4INLA,model='iid')+
                 f(Datasource_ID_4INLA,model='iid')+
-                f(Plot_ID_4INLAR,iYear,model='iid')+
-                f(Datasource_ID_4INLAR,iYear,model='iid')+
+                 f(Plot_ID_4INLAR,iYear,model='iid')+
+                 f(Location_4INLAR,iYear,model='iid')                      +
+                 f(Datasource_ID_4INLAR,iYear,model='iid')+
                 f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData) # has lower WAIC and DIC than inlaF2
-save(inla1, file = "inla1.RData")
+save(inla1, file = "/data/Roel/inla1.RData")
 
 
 # Check for confounding factors####
 
 inla1.1 <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration + cYear:Country_state
                 f(Period_4INLA,model='iid')+
-                f(Location_4INLA,model='iid')+
-                f(Plot_ID_4INLA,model='iid')+
-                f(Datasource_ID_4INLA,model='iid')+
-                f(Plot_ID_4INLAR,iYear,model='iid')+
-                 f(Datasource_ID_4INLAR,iYear,model='iid')+
-                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                  f(Plot_ID_4INLA,model='iid')+
+                  f(Location_4INLA,model='iid')+
+                  f(Datasource_ID_4INLA,model='iid')+
+                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                  f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData) # has lower WAIC and DIC than inlaF2
-save(inla1, file = "inla1.1.RData")
+save(inla1, file = "/data/Roel/inla1.1.RData")
 
 
 
@@ -345,7 +362,7 @@ vars<-data.frame(do.call(rbind, strsplit(rownames(stratSlope), split = ":")))
 stratSlope<-cbind(stratSlope, vars)
 stratSlope$X1<-gsub("Stratum", "", stratSlope$X1)
 stratSlope<- merge(stratSlope, metadata_strata, by.x = "X1", by.y = "Stratum")
-stratSlope$text = paste0("(", stratSlope$Datasources, " / ", stratSlope$Plots, ")")
+stratSlope$text = paste0("(", stratSlope$Datasources, " | ", stratSlope$Plots, ")")
 
 # reorder for graph
 rownames(stratSlope)<-stratSlope$X1
@@ -395,7 +412,7 @@ vars<-data.frame(do.call(rbind, strsplit(rownames(contSlope), split = ":")))
 contSlope<-cbind(contSlope, vars)
 contSlope$Realm<-gsub("Realm", "", contSlope$X1);  contSlope$Continent<-gsub("Continent", "", contSlope$X2)
 contSlope<- merge(contSlope, metadata_cont)
-contSlope$text = paste0("(", contSlope$Datasources, " / ", contSlope$Plots, ")")
+contSlope$text = paste0("(", contSlope$Datasources, " | ", contSlope$Plots, ")")
 contSlope$Continent<- ordered(contSlope$Continent, levels = rev(c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" )))
 
 
@@ -486,6 +503,68 @@ inlaFcont2.1 <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continen
 
 
 
+# Geographic Regions ##### 
+
+inlaFregions <- inla(log10(Number+1) ~ cYear: Realm:Region + Realm + Region + 
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                        f(Location_4INLAR,model='iid')+   
+                        f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data=completeData)
+save(inlaFregions,  file = "/data/Roel/inlaFregions.RData")
+
+metadata_region<-  completeData %>% 
+  group_by(Region, Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)),
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T)) 
+print(metadata_region, n = Inf)
+
+regionSlope<- inlaFregions$summary.fixed[27:76,]
+vars<-data.frame(do.call(rbind, strsplit(rownames(regionSlope), split = ":")))
+regionSlope<-cbind(regionSlope, vars)
+regionSlope$Realm<-gsub("Realm", "", regionSlope$X1);  regionSlope$Region<-gsub("Region", "", regionSlope$X2)
+regionSlope<- merge(regionSlope, metadata_region)
+regionSlope$text = paste0("(", regionSlope$Datasources, " | ", regionSlope$Plots, ")")
+regionSlope$Region<- ordered(regionSlope$Region, 
+          levels = rev(c("United Kingdom", "Germany" , "Europe rest West",
+                         "Sweden", "Russia Northwest","Europe rest North", 
+                         "Russia Central & Volga",   "Europe rest East ", 
+                         "Europe rest South", 
+                         "USA West", "USA Midwest"  , "USA Northeast","USA South", 
+                         "New Zealand" ,"Australia",
+                          "Asia southeast"  ,  "Central America", "Asia Central", "Africa", 
+                         "Canada" , "High Arctic" , "Middle east", "South America",  "Russia Far East" ,  "Russia Ural & Siberia" )))
+regionSlope$plots.ok<- regionSlope$Plots > 20
+regionSlope$dataset.ok<- regionSlope$Datasources >4
+regionSlope$ok <- regionSlope$plots.ok + regionSlope$dataset.ok 
+
+ggplot(data.frame(subset(regionSlope, ok >0 )))+ # only use >20plots or >4 datasets 
+  geom_crossbar(aes(x=Region,   y=mean, fill = Realm, 
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  geom_hline(yintercept=0,linetype="dashed") +
+  xlab ("")+ ylab("Trend slope")+
+  geom_text(aes(x = Region , y = 0.05, label = text, fill = Realm),  
+            position = position_dodge(width = 1), size = 3, color = 1) +
+  coord_flip()+
+ # scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
+ # ylim(-0.025, 0.03)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  theme(legend.key=element_blank())
+
+
+
+
+
 
 # biomes Coarse#####
 #(tropical/ drylands / temperate / boreal-alpine )
@@ -519,7 +598,7 @@ biomSlope<-cbind(biomSlope, vars)
 biomSlope$Realm<-gsub("Realm", "", biomSlope$X1);  biomSlope$BiomeCoarse<-gsub("BiomeCoarse", "", biomSlope$X2)
 biomSlope$Biome <-biomSlope$BiomeCoarse
 biomSlope<- merge(biomSlope, metadata_biom)
-biomSlope$text = paste0("(", biomSlope$Datasources, " / ", biomSlope$Plots, ") ")
+biomSlope$text = paste0("(", biomSlope$Datasources, " | ", biomSlope$Plots, ") ")
 
 biomSlope$Biome<- ordered(biomSlope$Biome, levels = rev(c("Boreal/Alpine", "Temperate" , "Drylands", "Tropical"  )))
 
@@ -735,7 +814,7 @@ ggplot(windowFits10)+
 # Random walk model #####
 
 #continent
-
+require(plyr)
 randomFits <- ddply(subset(completeData, Year < 2016 ),.
                         (Realm),
                         function(myData){

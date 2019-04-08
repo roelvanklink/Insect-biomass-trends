@@ -779,9 +779,8 @@ confounders<- completeData %>%
     Start_year = min(Year, na.rm = T),
     End_year = max(Year, na.rm = T))
     
-completeData<- merge(completeData, confounders)
-completeDataArth<-merge(completeDataArth, confounders
-                        )
+completeData<- merge(completeData, confounders, by= "Plot_ID")
+completeDataArth<-merge(completeDataArth, confounders, by= "Plot_ID")
 
 # center yrs for INLA
 completeData$cStartYear <- completeData$Start_year - median(completeData$Start_year)
