@@ -16,12 +16,18 @@ database <-read.csv( file = "Data.csv"); dim(database)
 database<- subset(database, Note != "remove");dim(database)
 studies<-read.csv(file = "studies.csv", header = T); dim(studies)
 #studies <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies)
+
+# some changes to groupings
 levels(studies$Continent)[levels(studies$Continent) == "South America"]  <- "Latin America"
 levels(studies$Continent)[levels(studies$Continent) == "Central America"]  <- "Latin America"
 levels(studies$Region)[levels(studies$Region) == "Russia Volga"]  <- "Russia Central & Volga"
 levels(studies$Region)[levels(studies$Region) == "Russia Central"]  <- "Russia Central & Volga"
 levels(studies$Region)[levels(studies$Region) == "Russia Ural"]  <- "Russia Ural & Siberia"
 levels(studies$Region)[levels(studies$Region) == "Russia Siberia"]  <- "Russia Ural & Siberia"
+# manual groupings of some datasets
+studies$Region[(studies$Region == "Germany" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
+studies$Region[(studies$Region == "United Kingdom" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
+studies$Region[(studies$Region == "Russia Northwest" & studies$Realm == "Terrestrial" ) ] <- "Europe rest North"
 
 
 
