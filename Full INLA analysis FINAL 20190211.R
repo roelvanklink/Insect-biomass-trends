@@ -302,6 +302,7 @@ inlaF <- inla(log10(Number+1) ~ cYear:Realm+ Realm +
                 f(Plot_ID_4INLA,model='iid')+
                 f(Datasource_ID_4INLA,model='iid')+
                 f(Plot_ID_4INLAR,iYear,model='iid')+
+                f(Location_4INLAR,iYear,model='iid')                      +
                 f(Datasource_ID_4INLAR,iYear,model='iid')+
                 f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
@@ -351,6 +352,7 @@ inlaFstrat <- inla(log10(Number+1) ~ cYear:Stratum + Stratum +
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
@@ -392,6 +394,7 @@ inlaFcont <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent +
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
@@ -450,9 +453,10 @@ inlaFeur <- inla(log10(Number+1) ~ cYear: Realm: E_W + Realm + E_W +
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=eur)
 
@@ -479,10 +483,11 @@ inlaFcont2.0 <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continen
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
-                    f(Country4INLA,model='iid')+   # new coutnrly level random slope 
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    #f(Country4INLA,model='iid')+   # new coutnrly level random slope ???
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData)
 
@@ -574,6 +579,7 @@ inlaFbiom <- inla(log10(Number+1) ~ cYear: Realm:BiomeCoarse + Realm + BiomeCoar
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
@@ -628,8 +634,9 @@ inlaFbiom2 <- inla(log10(Number+1) ~ cYear: Realm:biome + Realm + biome +
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=selectedData)
@@ -950,6 +957,7 @@ inlaFpaInt <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
@@ -967,6 +975,7 @@ inlaFpa <- inla(log10(Number+1) ~ cYear: PA + cYear:Realm +
                   f(Plot_ID_4INLA,model='iid')+
                   f(Datasource_ID_4INLA,model='iid')+
                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                  f(Location_4INLAR,iYear,model='iid')                      +
                   f(Datasource_ID_4INLAR,iYear,model='iid')+
                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                 control.compute = list(dic=TRUE,waic=TRUE),
@@ -983,9 +992,10 @@ inlaFpa2 <- inla(log10(Number+1) ~ cYear:Realm +PA +
                   f(Location_4INLA,model='iid')+
                   f(Plot_ID_4INLA,model='iid')+
                   f(Datasource_ID_4INLA,model='iid')+
-                  f(Plot_ID_4INLAR,iYear,model='iid')+
-                  f(Datasource_ID_4INLAR,iYear,model='iid')+
-                  f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                 control.compute = list(dic=TRUE,waic=TRUE),
                 data=completeData, verbose = F, num.threads = 2)
 
@@ -1012,6 +1022,7 @@ inlaFpaIntTemp <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                          f(Plot_ID_4INLA,model='iid')+
                          f(Datasource_ID_4INLA,model='iid')+
                          f(Plot_ID_4INLAR,iYear,model='iid')+
+                         f(Location_4INLAR,iYear,model='iid')                      +
                          f(Datasource_ID_4INLAR,iYear,model='iid')+
                          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                        control.compute = list(dic=TRUE,waic=TRUE),
@@ -1030,6 +1041,7 @@ inlaFpaSize <- inla(log10(Number+1) ~ cYear* log10(REP_AREA) *Realm  +
                       f(Plot_ID_4INLA,model='iid')+
                       f(Datasource_ID_4INLA,model='iid')+
                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
                       f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
@@ -1041,6 +1053,7 @@ inlaFpaSizeSEL <- inla(log10(Number+1) ~ cYear* log10(REP_AREA) *Realm  +
                          f(Plot_ID_4INLA,model='iid')+
                          f(Datasource_ID_4INLA,model='iid')+
                          f(Plot_ID_4INLAR,iYear,model='iid')+
+                         f(Location_4INLAR,iYear,model='iid')                      +
                          f(Datasource_ID_4INLAR,iYear,model='iid')+
                          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                        control.compute = list(dic=TRUE,waic=TRUE),
@@ -1058,6 +1071,7 @@ inlaFpaSize1 <- inla(log10(Number+1) ~ cYear* log10(REP_AREA)  + log10(REP_AREA)
                        f(Plot_ID_4INLA,model='iid')+
                        f(Datasource_ID_4INLA,model='iid')+
                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
                        f(Datasource_ID_4INLAR,iYear,model='iid')+
                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                      control.compute = list(dic=TRUE,waic=TRUE),
@@ -1118,9 +1132,10 @@ inlaFurban<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_urbanArea) + cYear*
           f(Location_4INLA,model='iid')+
           f(Plot_ID_4INLA,model='iid')+
           f(Datasource_ID_4INLA,model='iid')+
-          f(Plot_ID_4INLAR,iYear,model='iid')+
-          f(Datasource_ID_4INLAR,iYear,model='iid')+
-          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+            f(Plot_ID_4INLAR,iYear,model='iid')+
+            f(Location_4INLAR,iYear,model='iid')                      +
+            f(Datasource_ID_4INLAR,iYear,model='iid')+
+            f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
         control.compute = list(dic=TRUE,waic=TRUE),
         data=completeData, verbose = T, num.threads = 2)
 
@@ -1135,9 +1150,10 @@ inlaFurban1<- inla(log10(Number+1) ~ Realm * cYear + cYear* sqrt(End_urbanArea) 
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData, verbose = T, num.threads = 2)
 
@@ -1153,6 +1169,7 @@ inlaFurban2<- inla(log10(Number+1) ~ Realm * cYear + sqrt(End_urbanArea)+
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
@@ -1176,9 +1193,10 @@ inlaFurbanT<- inla(log10(Number+1) ~  cYear* sqrt(End_urbanArea) +
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data= subset(completeData, Realm == "Terrestrial"), 
                   verbose = T, num.threads = 2)
@@ -1188,9 +1206,10 @@ inlaFurbanT2<- inla(log10(Number+1) ~  cYear + sqrt(End_urbanArea) +
                      f(Location_4INLA,model='iid')+
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data= subset(completeData, Realm == "Terrestrial"), 
                    verbose = T, num.threads = 2)
@@ -1202,9 +1221,10 @@ inlaFurbanFW<- inla(log10(Number+1) ~  cYear* sqrt(End_urbanArea) +
                      f(Location_4INLA,model='iid')+
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data= subset(completeData, Realm == "Freshwater"), 
                     num.threads = 2)#verbose = T,
@@ -1214,9 +1234,10 @@ inlaFurbanFW2<- inla(log10(Number+1) ~  cYear+ sqrt(End_urbanArea) +
                       f(Location_4INLA,model='iid')+
                       f(Plot_ID_4INLA,model='iid')+
                       f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
                     data= subset(completeData, Realm == "Freshwater"), 
                     num.threads = 2)#verbose = T,
@@ -1238,6 +1259,7 @@ inlaFcrop<- inla(log10(Number+1) ~   cYear* Realm* sqrt(End_cropArea)  +   #cYea
                    f(Plot_ID_4INLA,model='iid')+
                    f(Datasource_ID_4INLA,model='iid')+
                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
                    f(Datasource_ID_4INLAR,iYear,model='iid')+
                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                  control.compute = list(dic=TRUE,waic=TRUE),
@@ -1255,9 +1277,10 @@ inlaFcrop1<- inla(log10(Number+1) ~   cYear* Realm + cYear* sqrt(End_cropArea)  
                    f(Location_4INLA,model='iid')+
                    f(Plot_ID_4INLA,model='iid')+
                    f(Datasource_ID_4INLA,model='iid')+
-                   f(Plot_ID_4INLAR,iYear,model='iid')+
-                   f(Datasource_ID_4INLAR,iYear,model='iid')+
-                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                  control.compute = list(dic=TRUE,waic=TRUE),
                  data=completeData,   num.threads = 2) #verbose = T,
 
@@ -1272,6 +1295,7 @@ inlaFcrop2<- inla(log10(Number+1) ~   cYear* Realm +  sqrt(End_cropArea)  +   #c
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
@@ -1295,9 +1319,10 @@ inlaFcropT<- inla(log10(Number+1) ~  cYear* sqrt(End_cropArea) +
                      f(Location_4INLA,model='iid')+
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data= subset(completeData, Realm == "Terrestrial"), 
                     num.threads = 2) #verbose = T,
@@ -1307,9 +1332,10 @@ inlaFcropT1<- inla(log10(Number+1) ~  cYear+ sqrt(End_cropArea) +
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data= subset(completeData, Realm == "Terrestrial"), 
                   num.threads = 2) #verbose = T,
@@ -1319,9 +1345,10 @@ inlaFcropFW<- inla(log10(Number+1) ~  cYear* sqrt(End_cropArea) +
                       f(Location_4INLA,model='iid')+
                       f(Plot_ID_4INLA,model='iid')+
                       f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
                     data= subset(completeData, Realm == "Freshwater"), 
                     num.threads = 2)#verbose = T,
@@ -1331,9 +1358,10 @@ inlaFcropFW1<- inla(log10(Number+1) ~  cYear+ sqrt(End_cropArea) +
                      f(Location_4INLA,model='iid')+
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data= subset(completeData, Realm == "Freshwater"), 
                    num.threads = 2)#verbose = T,
@@ -1351,9 +1379,10 @@ inlaFpasture<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_pastureArea) + cY
                    f(Location_4INLA,model='iid')+
                    f(Plot_ID_4INLA,model='iid')+
                    f(Datasource_ID_4INLA,model='iid')+
-                   f(Plot_ID_4INLAR,iYear,model='iid')+
-                   f(Datasource_ID_4INLAR,iYear,model='iid')+
-                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                  control.compute = list(dic=TRUE,waic=TRUE),
                  data=completeData, verbose = T, num.threads = 2)
 
@@ -1365,6 +1394,7 @@ inlaFpastureT<- inla(log10(Number+1) ~  cYear: sqrt(End_pastureArea)  +
                        f(Plot_ID_4INLA,model='iid')+
                        f(Datasource_ID_4INLA,model='iid')+
                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
                        f(Datasource_ID_4INLAR,iYear,model='iid')+
                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                      control.compute = list(dic=TRUE,waic=TRUE),
@@ -1376,6 +1406,7 @@ inlaFpastureT1<- inla(log10(Number+1) ~  cYear+ sqrt(End_pastureArea)  +
                         f(Plot_ID_4INLA,model='iid')+
                         f(Datasource_ID_4INLA,model='iid')+
                         f(Plot_ID_4INLAR,iYear,model='iid')+
+                        f(Location_4INLAR,iYear,model='iid')                      +
                         f(Datasource_ID_4INLAR,iYear,model='iid')+
                         f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                       control.compute = list(dic=TRUE,waic=TRUE),
@@ -1389,9 +1420,10 @@ inlaFforest<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_forestArea) + cYea
                       f(Location_4INLA,model='iid')+
                       f(Plot_ID_4INLA,model='iid')+
                       f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
                     data=completeData, verbose = T, num.threads = 2)
 
@@ -1428,9 +1460,10 @@ inlaFmeanT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmea
                      f(Location_4INLA,model='iid')+
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data=completeData, verbose = F, num.threads = 2)
 
@@ -1446,9 +1479,10 @@ inlaFmeanT1<- inla(log10(Number+1) ~ cYear * relDeltaTmean +   cYear* Realm   +
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                        control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData, verbose = F, num.threads = 2)
 
@@ -1464,6 +1498,7 @@ inlaFmeanT2<- inla(log10(Number+1) ~ relDeltaTmean +   cYear* Realm   +
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
@@ -1490,6 +1525,7 @@ inlaFmeanTT<- inla(log10(Number+1) ~ cYear * relDeltaTmean    +
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
@@ -1502,6 +1538,7 @@ inlaFmeanTT1<- inla(log10(Number+1) ~ cYear + relDeltaTmean    +
                       f(Plot_ID_4INLA,model='iid')+
                       f(Datasource_ID_4INLA,model='iid')+
                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
                       f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
@@ -1514,6 +1551,7 @@ inlaFmeanTFW<- inla(log10(Number+1) ~ cYear * relDeltaTmean    +
                       f(Plot_ID_4INLA,model='iid')+
                       f(Datasource_ID_4INLA,model='iid')+
                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
                       f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
@@ -1526,6 +1564,7 @@ inlaFmeanTFW1<- inla(log10(Number+1) ~ cYear + relDeltaTmean    +
                        f(Plot_ID_4INLA,model='iid')+
                        f(Datasource_ID_4INLA,model='iid')+
                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
                        f(Datasource_ID_4INLAR,iYear,model='iid')+
                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                      control.compute = list(dic=TRUE,waic=TRUE),
@@ -1556,6 +1595,7 @@ inlaFmeanP<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaPrec
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
@@ -1568,6 +1608,7 @@ inlaFmeanP1<- inla(log10(Number+1) ~ cYear * Realm +  cYear* relDeltaPrec  +
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
@@ -1580,6 +1621,7 @@ inlaFmeanP2<- inla(log10(Number+1) ~ cYear * Realm +  relDeltaPrec  +
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
