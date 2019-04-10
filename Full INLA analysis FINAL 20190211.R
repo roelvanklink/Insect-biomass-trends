@@ -911,17 +911,24 @@ randomFitsCont <- ddply(subset(completeData,Year>1960 & Year < 2016 ),.
                       #return model summary
                       return(data.frame(
                         Year=sort(unique(myData$Year)),
-                        RW=inla1$summary.random$iYear))
+                        RW=inla1$summary.random$iYear,
+                        RW.mean.sc = inla1$summary.random$iYear$mean - inla1$summary.random$iYear$mean[1] , 
+                        RW.0.025quant.sc = inla1$summary.random$iYear$`0.025quant`- inla1$summary.random$iYear$mean[1], 
+                        RW.0.975quant.sc = inla1$summary.random$iYear$`0.975quant`- inla1$summary.random$iYear$mean[1] 
+                        
+                      ))
                       
                     }); beep(1)
 
 randomFitsCont$Continent<- ordered(randomFitsCont$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
+
 save(randomFitsCont, file = "randomFitsCont.RData")
 
+
 ggplot(randomFitsCont)+
-  geom_line(aes(x=Year,y=RW.mean,colour=Realm))+
+  geom_line(aes(x=Year,y=RW.mean.sc, colour=Realm))+
   scale_colour_manual(values = col.scheme.realm)+
-  geom_ribbon(aes(x=Year, ymin = RW.0.025quant,ymax = RW.0.975quant,fill=Realm),alpha=0.5)+
+  geom_ribbon(aes(x=Year, ymin = RW.0.025quant.sc,ymax = RW.0.975quant.sc, fill=Realm), alpha=0.5)+
   scale_fill_manual (values = col.scheme.realm)+
   geom_hline(yintercept = 0, linetype="dashed") +  theme_bw()+
   facet_wrap(~Continent)+
