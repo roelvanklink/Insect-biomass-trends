@@ -892,23 +892,21 @@ save(completeData, file = "completeData.RData")
 # merge in land use data  ESA and LUH2
 
 
- load("LU") # LUH2
+ load("LU.RData") # LUH2
 
-head(LU)
+head(LU); tail(LU)
 
 # all there? 
-unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% LU$Plot_ID]
-
-anti_join(lutest[, c(2:5,19:26)], LU[, c(2:5,19:26)]) # only sweden and the new datasets have differing values
+unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% LU$Plot_ID] # looks like it 
 
 
-LU<- LU[, -c(1,3:13)]
-completeData<- merge(completeData, LU, by = "Plot_ID")
-completeDataArth<- merge(completeDataArth, LU, by = "Plot_ID")
+LU<- LU[, -c(2, 19:28)]
+completeData <- merge(completeData, LU[, c(2, 19:28)], by = "Plot_ID"); dim(completeData)
+completeDataArth <- merge(completeDataArth, LU[, c(2, 19:28)], by = "Plot_ID"); dim(completeDataArth)
 
 
-hist(LU$End_cropArea) # somewhat biased
-hist(subset(LU$End_urbanArea, Realm == "Terrestrial")) # somewhat biased
+hist(completeData$End_cropArea) # somewhat biased
+hist(subset(completeData, Realm == "Terrestrial")$End_urbanArea) # somewhat biased
 
 
 
@@ -921,12 +919,13 @@ dim(completeData) ; length(unique(completeData$Plot_ID))
 unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% percCover900m$Plot_ID]
 
 completeData<- merge(completeData, percCover900m [, c(1,32,33) ], by = "Plot_ID", all.x=T)
+dim(completeData)
 sum(is.na(completeData$frcCrop900m) ) 
 # 509 obs missing 
 
 
-
-
+save(completeData, file = "completeData.RData")
+save(completeDataArth, file = "completeDataArth.RData")
 
 
 
