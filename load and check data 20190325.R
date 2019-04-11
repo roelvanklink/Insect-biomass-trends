@@ -620,7 +620,8 @@ arth<- as.data.frame(table(all.aggr.arth$Datasource_name))
 m1<-merge(old, new, by = "Var1", all.y = T)
 merge(m1, arth, by = "Var1", all.y = T)
 
-
+save(all.aggr.insects, file = "all.aggr.insects.RData")
+save(all.aggr.arth, file = "all.aggr.arth.RData")
 
 
 
@@ -646,7 +647,7 @@ anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
 
 
 # numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
-require(plyr)  
+#require(plyr)  
 completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                       function(myData){
                         #expand grid to include NAs
@@ -673,6 +674,49 @@ completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                         return(myData)
                         
                       })
+
+#1533 plots 
+allData<- NULL
+for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
+  
+  plt<- unique(all.aggr.insects$Plot_ID)[i]
+  myData<- all.aggr.insects[all.aggr.insects$Plot_ID == plt , ]
+  
+  #expand grid to include NAs  
+  constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
+  allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                         Year= min(myData$Year):max(myData$Year))
+  allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
+  
+  #add observed data
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+                   by=c("Year","Plot_ID"),all=T)
+  # add descriptors
+  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm",
+                                            "Continent", "Country", "Country_State", "Region", "Stratum" )]),
+                  by="Plot_ID",all=T)
+  if(!all(is.na(myData$Period))){
+    myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
+                                                length(myData$Period[is.na(myData$Period)]),
+                                                replace=T) }
+  print(plt)
+  allData<-rbind (allData,myData)
+  
+}
+
+confounders<- allData %>% 
+     group_by(Plot_ID) %>%
+     summarise(
+         Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
+         Start_year = min(Year, na.rm = T),
+         End_year = max(Year, na.rm = T))
+ head(confounders)
+
+
+
+
+
+
 
 completeDataArth <- ddply(all.aggr.arth,.(Realm,Continent,Datasource_ID),
                           function(myData){
@@ -744,6 +788,7 @@ save(completeData, file = "completeData.RData")
 
 
 #checks: 
+
 sum(is.na(completeData$Continent))  # should be 0 
 sum(is.na(completeData$Number)) # 25000
 sum(is.na(completeData$Location))
@@ -843,10 +888,10 @@ save(completeData, file = "completeData.RData")
 
 # merge in climate data
 
-# merge in land use data 
+# merge in land use data  ESA and LUH2
 
 
- load("LU")
+ load("LU") # LUH2
 
 head(LU)
 LU<- LU[, -c(1,3:13)]
@@ -857,6 +902,21 @@ completeDataArth<- merge(completeDataArth, LU, by = "Plot_ID")
 
 hist(LU$End_cropArea) # somewhat biased
 hist(subset(LU$End_urbanArea, Realm == "Terrestrial")) # somewhat biased
+
+
+
+# ESA CCI data 
+load("percCover900m.RData")
+
+  percCover900m.RData
+
+
+test<- merge(completeData, percCover900m [, c(1,32,33) ], by = "Plot_ID")
+, all.x=T
+
+
+
+
 
 
 
