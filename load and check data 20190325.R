@@ -437,9 +437,9 @@ metadata_per_plot<-  merge4 %>%
 dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
 newest<- metadata_per_plot
 write.csv(metadata_per_plot, "metadata per plot 20190405.csv")
-save(metadata_per_plot, file ="metadata_per_plot.RData")
+#save(metadata_per_plot, file ="metadata_per_plot.RData")
 
-new<- read.csv("New metadata per plot 20190206.csv")
+new<- read.csv("metadata per plot 20190405.csv")
 old<-read.csv("metadata per plot 20190122.csv")   #1509
 older<-read.csv("metadata per plot 20181123.csv") #1486
 
@@ -647,7 +647,7 @@ anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
 
 
 # numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
-#require(plyr)  
+#require(plyr)    OBSOLETE
 completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                       function(myData){
                         #expand grid to include NAs
@@ -676,7 +676,7 @@ completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                       })
 
 #1533 plots 
-allData<- NULL
+completeData<- NULL
 for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
   
   plt<- unique(all.aggr.insects$Plot_ID)[i]
@@ -700,10 +700,10 @@ for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
                                                 length(myData$Period[is.na(myData$Period)]),
                                                 replace=T) }
   print(plt)
-  allData<-rbind (allData,myData)
+  completeData<-rbind (completeData,myData)
   
 }
-
+dim(completeData)
 confounders<- allData %>% 
      group_by(Plot_ID) %>%
      summarise(
@@ -711,40 +711,41 @@ confounders<- allData %>%
          Start_year = min(Year, na.rm = T),
          End_year = max(Year, na.rm = T))
  head(confounders)
+hist(confounders$End_year)
+dim(confounders) #1533 plots
 
 
 
 
 
-
-
-completeDataArth <- ddply(all.aggr.arth,.(Realm,Continent,Datasource_ID),
-                          function(myData){
-                            #expand grid to include NAs
-                            constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
-                            allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                                                   Year= min(myData$Year):max(myData$Year))
-                            allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
-                            
-                            #add observed data
-                            myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
-                                             by=c("Year","Plot_ID"),all=T)
-                            # add descriptors
-                            myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Region", "Country_State", "Stratum" )]),  #"classes",
-                                            by="Plot_ID",all=T)
-                            
-                            #fit in missing values for period with random sample
-                            if(!all(is.na(myData$Period))){
-                              myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
-                                                                          length(myData$Period[is.na(myData$Period)]),
-                                                                          replace=T)
-                            }
-                            
-                            #return dataset
-                            return(myData)
-                            
-                          })
-
+completeDataArth <- NULL
+for(i in 1:length(unique(all.aggr.arth $Plot_ID))){
+  
+  plt<- unique(all.aggr.arth$Plot_ID)[i]
+  myData<- all.aggr.arth[all.aggr.arth$Plot_ID == plt , ]
+  
+  #expand grid to include NAs  
+  constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
+  allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                         Year= min(myData$Year):max(myData$Year))
+  allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
+  
+  #add observed data
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+                   by=c("Year","Plot_ID"),all=T)
+  # add descriptors
+  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm",
+                                            "Continent", "Country", "Country_State", "Region", "Stratum" )]),
+                  by="Plot_ID",all=T)
+  if(!all(is.na(myData$Period))){
+    myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
+                                                length(myData$Period[is.na(myData$Period)]),
+                                                replace=T) }
+  print(plt)
+  completeDataArth<-rbind (completeDataArth,myData)
+  
+}
+dim(completeDataArth)
 
 
 
@@ -790,7 +791,7 @@ save(completeData, file = "completeData.RData")
 #checks: 
 
 sum(is.na(completeData$Continent))  # should be 0 
-sum(is.na(completeData$Number)) # 25000
+sum(is.na(completeData$Number)) # 25000 now 8895
 sum(is.na(completeData$Location))
 sum(is.na(completeData$Datasource_ID))
 sum(is.na(completeData$Stratum)) # looks good
@@ -894,8 +895,14 @@ save(completeData, file = "completeData.RData")
  load("LU") # LUH2
 
 head(LU)
-LU<- LU[, -c(1,3:13)]
 
+# all there? 
+unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% LU$Plot_ID]
+
+anti_join(lutest[, c(2:5,19:26)], LU[, c(2:5,19:26)]) # only sweden and the new datasets have differing values
+
+
+LU<- LU[, -c(1,3:13)]
 completeData<- merge(completeData, LU, by = "Plot_ID")
 completeDataArth<- merge(completeDataArth, LU, by = "Plot_ID")
 
@@ -907,13 +914,15 @@ hist(subset(LU$End_urbanArea, Realm == "Terrestrial")) # somewhat biased
 
 # ESA CCI data 
 load("percCover900m.RData")
+ dim(percCover900m)
+dim(completeData) ; length(unique(completeData$Plot_ID))
 
-  percCover900m.RData
+# which are missing? These are all old plots 
+unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% percCover900m$Plot_ID]
 
-
-test<- merge(completeData, percCover900m [, c(1,32,33) ], by = "Plot_ID")
-, all.x=T
-
+completeData<- merge(completeData, percCover900m [, c(1,32,33) ], by = "Plot_ID", all.x=T)
+sum(is.na(completeData$frcCrop900m) ) 
+# 509 obs missing 
 
 
 
@@ -1053,8 +1062,8 @@ metadata_per_plot<- completeData %>%
     TOTAL_N = sum(Number, na.rm = T),
     PA = unique(PA)
       )
-
-completeData<- merge(completeData, metadata_per_plot[, c("Plot_ID", "Duration", "Start_year", "End_year", "NUMBER_OF_PLOTS")], by = "Plot_ID")
+save(metadata_per_plot, file = "metadata_per_plot.RData")
+#completeData<- merge(completeData, metadata_per_plot[, c("Plot_ID", "Duration", "Start_year", "End_year", "NUMBER_OF_PLOTS")], by = "Plot_ID")
 
 
 
