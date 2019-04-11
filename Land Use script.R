@@ -9,7 +9,39 @@ load("metadata_per_plot.RData")
 LU<-read.table("landuseData (2).txt", header = T)
 dim(LU)
 head(LU)
+tail(LU)
 
+
+# LUH2
+
+#how much changed?
+(sum(LU$End_forestArea) - sum(LU$Start_forestArea)) / sum(LU$Start_forestArea) # forest: +0.039%
+(sum(LU$End_cropArea) - sum(LU$Start_cropArea)) / sum(LU$Start_cropArea) # crop: -0.09%
+(sum(LU$End_pastureArea) - sum(LU$Start_pastureArea)) / sum(LU$Start_pastureArea) # pasture: -0.045
+(sum(LU$End_urbanArea) - sum(LU$Start_urbanArea)) / sum(LU$Start_urbanArea) # urban: +0.19%
+
+# that's not insubstantial, potentially interesting
+
+# how many locations experienced urbanization over the sampling period?
+LU$urbanization<- (LU$End_urbanArea - LU$Start_urbanArea) 
+hist((unique(LU$urbanization)), xlab = "urbanization")
+
+LU$cropification<- LU$End_cropArea - LU$Start_cropArea
+hist((LU$cropification))
+
+save(LU, file = "LU.RData")
+
+
+
+
+
+
+
+
+
+######################################################################
+
+#Prep ESA data for analysis (% of each LU type in final year)
 
 
 
@@ -24,37 +56,6 @@ nrow(changed) / nrow (metadata_per_plot) # 4.2%
 unique(changed[,1:2])
 
 
-
-
-
-
-
-# LUH2
-
-#how much changed?
-(sum(LU$End_forestArea) - sum(LU$Start_forestArea)) / sum(LU$Start_forestArea) # forest: +0.039%
-(sum(LU$End_cropArea) - sum(LU$Start_cropArea)) / sum(LU$Start_cropArea) # crop: -0.09%
-(sum(LU$End_pastureArea) - sum(LU$Start_pastureArea)) / sum(LU$Start_pastureArea) # pasture: -0.045
-(sum(LU$End_urbanArea) - sum(LU$Start_urbanArea)) / sum(LU$Start_urbanArea) # urban: +0.19%
-
-# that's not unsubstantial, potentially interesting
-
-# how many locations experienced urbanization over the sampling period?
-urbanization<- (LU$End_urbanArea - LU$Start_urbanArea) 
-hist(sqrt(unique(urbanization)), xlab = "urbanization")
-
-cropification<- LU$End_cropArea - LU$Start_cropArea
-hist(log(cropification))
-
-
-
-
-
-
-
-######################################################################
-
-#Prep ESA data for analysis (% of each LU type in final year)
 
 #1) combine the file for main cell and neighbor cells
 
@@ -83,12 +84,14 @@ hist((counts$frcCrop))
 # works
 
 
+# only take plots that are in completeData
+fullLU2<- fullLU2[fullLU2$Plot_ID %in%  metadata_per_plot$Plot_ID, ]
 
 valueLastYr<-NULL
 
 
 for(i in 1: nrow(fullLU2)){
-plt<- fullLU2$Plot_ID[i]
+plt<- fullLU2$Plot_ID[i] 
 
 year<- metadata_per_plot$End_year[metadata_per_plot$Plot_ID == plt]
 true.yr<-year
@@ -109,10 +112,10 @@ fullLU2$valueLastYr<-valueLastYr
 
 counts<- dcast(na.omit(fullLU2), Plot_ID~valueLastYr, length)
 dim(counts)  # 40 plots lost because too old
-counts$frcCrop<- (counts$`10` / 9) + (counts$`11`/9)  + (counts$`12`/9) + (counts$`30`*0.75)/9 + (counts$`40`*0.25)/9  
-counts$frcUrban<-counts$`190` / 9
-hist((counts$frcCrop))
-hist(counts$frcUrban)
+counts$frcCrop900m<- (counts$`10` / 9) + (counts$`11`/9)  + (counts$`12`/9) + (counts$`30`*0.75)/9 + (counts$`40`*0.25)/9  
+counts$frcUrban900m<-counts$`190` / 9
+hist((counts$frcCrop900m))
+hist(counts$frcUrban900m)
 
 
 percCover900m <-counts 
