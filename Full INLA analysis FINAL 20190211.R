@@ -4,7 +4,7 @@ library(INLA)
 library(ggplot2)
 library(ggnewscale)
 library(tidyverse)
-library(plyr)
+
 
 
 setwd("C:/Users/roelv/Dropbox/Insect Biomass Trends/csvs") # home
@@ -942,7 +942,7 @@ ggplot(randomFitsCont)+
 
 # DRiveRS #####
 
-# protected areas
+# protected areas #####
 metadata_pa<-  completeData %>% 
   group_by( Realm,PA) %>%
   summarise(
@@ -968,7 +968,35 @@ inlaFpaInt <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
-                   data=completeData, verbose = T, num.threads = 2)
+                   data=completeData, verbose = F, num.threads = 2)
+save(inlaFpaInt, file = "/data/Roel/inlaFpaInt.RData")
+
+10^(inlaFpaInt$summary.fixed[4:7,1] *10) # proportional changes
+
+paSlope<- inlaFpaInt$summary.fixed[4:7,]
+vars<-data.frame(do.call(rbind, strsplit(rownames(paSlope), split = ":")))
+paSlope<-cbind(paSlope, vars)
+paSlope$Realm<-gsub("Realm", "", paSlope$X2);  paSlope$PA<-gsub("PA", "", paSlope$X1)
+paSlope$PA <-paSlope$PA
+paSlope<- merge(paSlope, metadata_pa)
+paSlope$text = paste0("(", paSlope$Datasources, " | ", paSlope$Plots, ") ")
+
+
+ggplot(data.frame(paSlope))+
+  geom_crossbar(aes(x=PA,   y=mean, fill = Realm,
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  xlab ("")+ ylab ("Trend slope")+geom_hline(yintercept=0,linetype="dashed")+
+  coord_flip()+
+  scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
+  ylim(-0.01, 0.015)+  
+  geom_text(aes(x = PA , y = 0.014, fill = Realm,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black") , 
+        legend.key=element_blank())
+
+
+
 
   PAmodels[1,1]<- "3way"   
   PAmodels[1,2]<- "Year: PA:Realm"
@@ -1020,7 +1048,7 @@ PAmodels[4,4]<- summary(inlaF)$waic$waic
 
 
 
-
+# Protected areas in temperate zone
 
 completeDataTemp<-subset(completeData, BiomeCoarse == "Temperate")
 inlaFpaIntTemp <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
@@ -1054,6 +1082,7 @@ inlaFpaSize <- inla(log10(Number+1) ~ cYear* log10(REP_AREA) *Realm  +
                     control.compute = list(dic=TRUE,waic=TRUE),
                     data=completeData, verbose = F, num.threads = 2)
 
+#excluding not-PA's 
 inlaFpaSizeSEL <- inla(log10(Number+1) ~ cYear* log10(REP_AREA) *Realm  + 
                          f(Period_4INLA,model='iid')+
                          f(Location_4INLA,model='iid')+
@@ -1066,10 +1095,6 @@ inlaFpaSizeSEL <- inla(log10(Number+1) ~ cYear* log10(REP_AREA) *Realm  +
                        control.compute = list(dic=TRUE,waic=TRUE),
                        data= subset(completeData, REP_AREA>0), 
                        verbose = F, num.threads = 2)
-
-
-
-
 
 
 inlaFpaSize1 <- inla(log10(Number+1) ~ cYear* log10(REP_AREA)  + log10(REP_AREA) *Realm  + 
@@ -1088,17 +1113,25 @@ inlaFpaSize1 <- inla(log10(Number+1) ~ cYear* log10(REP_AREA)  + log10(REP_AREA)
 
 
 
-#  Land use at end of timeseries #####
+
+
+#  LAND USE  #####
+
+#  USing LUH2: cover of Urban and cropland in the surrounding of the sites
+# resolution : ???
+
 
 #land-use model:
 #log(Number+1)~Year*Driver + Year*Realm 
 
+# How are the values distributed?
 plotData<-unique(completeData[, c( "Plot_ID", "Realm", "Continent", "Datasource_ID", "Stratum", "Location",            
                                    "Datasource_name", "biome", "BiomeCoarse",   "End_forestArea",      
-                                   "End_cropArea" , "End_pastureArea" ,  "End_urbanArea"   ) ]) 
+                                   "End_cropArea" , "End_pastureArea" ,  "End_urbanArea", "urbanization", 
+                                   "cropification", "frcCrop900m", "frcUrban900m"   ) ]) 
 
 
-
+# crop and urban
  ggplot(plotData, aes(End_urbanArea)) + 
   geom_histogram( aes(x = End_urbanArea,   y = ..density..), fill="blue") +
    geom_histogram( aes(x = End_cropArea, y = -..density..), fill= "green")+
@@ -1111,19 +1144,17 @@ plotData<-unique(completeData[, c( "Plot_ID", "Realm", "Continent", "Datasource_
    facet_wrap(~Realm)
  # is a bit better
  
- ggplot(plotData, aes(End_pastureArea)) + 
-   geom_histogram( aes(x = (End_pastureArea),   y = ..density..), fill="blue") +
-   geom_histogram( aes(x = (End_forestArea), y = -..density..), fill= "green")+
+ # urbanization and cropification
+ ggplot(plotData, aes(urbanization)) + 
+   geom_histogram( aes(x = urbanization,   y = ..density..), fill="blue") +
+   geom_histogram( aes(x = urbanization, y = -..density..), fill= "green")+
    facet_wrap(~Realm)
  
- ggplot(plotData, aes(End_pastureArea)) + 
-   geom_histogram( aes(x = sqrt(End_pastureArea),   y = ..density..), fill="blue") +
-   geom_histogram( aes(x = sqrt(End_forestArea), y = -..density..), fill= "green")+
-   facet_wrap(~Realm) # a bit better
+
  
  
  
- 
+# 1) land use at end of sampling period:  
  
 ################################################
  #Urban area #####
@@ -1145,6 +1176,23 @@ inlaFurban<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_urbanArea) + cYear*
             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
         control.compute = list(dic=TRUE,waic=TRUE),
         data=completeData, verbose = T, num.threads = 2)
+
+
+# o should we test: 
+inlaFurban<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_urbanArea) + cYear: Realm : sqrt(End_urbanArea) +
+                    f(Period_4INLA,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Plot_ID_4INLA,model='iid')+
+                    f(Datasource_ID_4INLA,model='iid')+
+                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                  control.compute = list(dic=TRUE,waic=TRUE),
+                  data=completeData, verbose = T, num.threads = 2)
+
+
+
 
 urbanModels[1,1] <-"3way"
 urbanModels[1,2] <- "Realm*cYear*urbanArea"
@@ -1381,72 +1429,65 @@ inlaFcropFW1<- inla(log10(Number+1) ~  cYear+ sqrt(End_cropArea) +
 
 
 
-inlaFpasture<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_pastureArea) + cYear*Realm * sqrt(End_pastureArea)  +
-                   f(Period_4INLA,model='iid')+
-                   f(Location_4INLA,model='iid')+
-                   f(Plot_ID_4INLA,model='iid')+
-                   f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                 control.compute = list(dic=TRUE,waic=TRUE),
-                 data=completeData, verbose = T, num.threads = 2)
-
-# surprisingly there might be an effect here in terrestrial
-
-inlaFpastureT<- inla(log10(Number+1) ~  cYear: sqrt(End_pastureArea)  +
-                       f(Period_4INLA,model='iid')+
-                       f(Location_4INLA,model='iid')+
-                       f(Plot_ID_4INLA,model='iid')+
-                       f(Datasource_ID_4INLA,model='iid')+
-                       f(Plot_ID_4INLAR,iYear,model='iid')+
-                       f(Location_4INLAR,iYear,model='iid')                      +
-                       f(Datasource_ID_4INLAR,iYear,model='iid')+
-                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                     control.compute = list(dic=TRUE,waic=TRUE),
-                     data=subset(completeData, Realm == "Terrestrial")  , verbose = F, num.threads = 2)
-
-inlaFpastureT1<- inla(log10(Number+1) ~  cYear+ sqrt(End_pastureArea)  +
-                        f(Period_4INLA,model='iid')+
-                        f(Location_4INLA,model='iid')+
-                        f(Plot_ID_4INLA,model='iid')+
-                        f(Datasource_ID_4INLA,model='iid')+
-                        f(Plot_ID_4INLAR,iYear,model='iid')+
-                        f(Location_4INLAR,iYear,model='iid')                      +
-                        f(Datasource_ID_4INLAR,iYear,model='iid')+
-                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                      control.compute = list(dic=TRUE,waic=TRUE),
-                      data=subset(completeData, Realm == "Terrestrial")  , verbose = F, num.threads = 2)
-
-
-
-
-inlaFforest<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_forestArea) + cYear* Realm * sqrt(End_forestArea)  +
-                      f(Period_4INLA,model='iid')+
-                      f(Location_4INLA,model='iid')+
-                      f(Plot_ID_4INLA,model='iid')+
-                      f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                    control.compute = list(dic=TRUE,waic=TRUE),
-                    data=completeData, verbose = T, num.threads = 2)
-
-
-
-
 
 #where Driver is Urban, crop, or CC, or Protected Area
 #Explain continental effects with drivers
 #Maybe include continental effects as a random intercept and slopes
 
 
+# LAND USE CHANGE #####
+#models (only use LUH2  = LANDSCAPE change) 
+
+inlaFurbanChange<- inla(log10(Number+1) ~ cYear + Realm + urbanization + cYear* Realm * urbanization +
+                    f(Period_4INLA,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Plot_ID_4INLA,model='iid')+
+                    f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                  control.compute = list(dic=TRUE,waic=TRUE),
+                  data=completeData, verbose = F, num.threads = 2)
+
+
+
+inlaFcropChange<- inla(log10(Number+1) ~ cYear + Realm + cropification + cYear* Realm * cropification +
+                          f(Period_4INLA,model='iid')+
+                          f(Location_4INLA,model='iid')+
+                          f(Plot_ID_4INLA,model='iid')+
+                          f(Datasource_ID_4INLA,model='iid')+
+                           f(Plot_ID_4INLAR,iYear,model='iid')+
+                           f(Location_4INLAR,iYear,model='iid')                      +
+                           f(Datasource_ID_4INLAR,iYear,model='iid')+
+                          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                        control.compute = list(dic=TRUE,waic=TRUE),
+                        data=completeData, verbose = F, num.threads = 2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Climate change models ######
+#: CRU (whole period, low resolustion) & CHELSA 1979-2013 high resolution
+# test for delta Tmean and delta Prec AND for RELATIVE delta Tmean and Delta Prec 
 
 load("TmeanSlopesWholePeriod.Rdata")
 
-test<- merge(completeData, TmeanSlopesWholePeriod, by.x = "Plot_ID", by.y = "plt") 
+test<- merge(completeData, TmeanSlopesWholePeriod, by = "Plot_ID") 
 
 
 
@@ -1646,4 +1687,73 @@ save(inlaFmeanP2, file = "inlaFmeanP2.RData")
 
 
 
-#adding a test line
+# thrash
+
+# not used: forest and passture land 
+ggplot(plotData, aes(End_pastureArea)) + 
+  geom_histogram( aes(x = (End_pastureArea),   y = ..density..), fill="blue") +
+  geom_histogram( aes(x = (End_forestArea), y = -..density..), fill= "green")+
+  facet_wrap(~Realm)
+
+ggplot(plotData, aes(End_pastureArea)) + 
+  geom_histogram( aes(x = sqrt(End_pastureArea),   y = ..density..), fill="blue") +
+  geom_histogram( aes(x = sqrt(End_forestArea), y = -..density..), fill= "green")+
+  facet_wrap(~Realm) # a bit better
+
+
+
+
+
+inlaFpasture<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_pastureArea) + cYear*Realm * sqrt(End_pastureArea)  +
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
+                    data=completeData, verbose = T, num.threads = 2)
+
+# surprisingly there might be an effect here in terrestrial
+
+inlaFpastureT<- inla(log10(Number+1) ~  cYear: sqrt(End_pastureArea)  +
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data=subset(completeData, Realm == "Terrestrial")  , verbose = F, num.threads = 2)
+
+inlaFpastureT1<- inla(log10(Number+1) ~  cYear+ sqrt(End_pastureArea)  +
+                        f(Period_4INLA,model='iid')+
+                        f(Location_4INLA,model='iid')+
+                        f(Plot_ID_4INLA,model='iid')+
+                        f(Datasource_ID_4INLA,model='iid')+
+                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                        f(Location_4INLAR,iYear,model='iid')                      +
+                        f(Datasource_ID_4INLAR,iYear,model='iid')+
+                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      control.compute = list(dic=TRUE,waic=TRUE),
+                      data=subset(completeData, Realm == "Terrestrial")  , verbose = F, num.threads = 2)
+
+
+
+
+inlaFforest<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_forestArea) + cYear* Realm * sqrt(End_forestArea)  +
+                     f(Period_4INLA,model='iid')+
+                     f(Location_4INLA,model='iid')+
+                     f(Plot_ID_4INLA,model='iid')+
+                     f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   control.compute = list(dic=TRUE,waic=TRUE),
+                   data=completeData, verbose = T, num.threads = 2)
+
