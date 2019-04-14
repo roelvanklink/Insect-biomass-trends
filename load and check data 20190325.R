@@ -647,33 +647,6 @@ anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
 
 
 # numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
-#require(plyr)    OBSOLETE
-completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
-                      function(myData){
-                        #expand grid to include NAs
-                        constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
-                        allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                                               Year= min(myData$Year):max(myData$Year))
-                        allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
-                        
-                        #add observed data
-                        myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
-                                         by=c("Year","Plot_ID"),all=T)
-                        # add descriptors
-                        myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "Region", "Stratum" )]),
-                                        by="Plot_ID",all=T)
-                        
-                        #fit in missing values for period with random sample
-                        if(!all(is.na(myData$Period))){
-                          myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
-                                                                      length(myData$Period[is.na(myData$Period)]),
-                                                                      replace=T)
-                        }
-                        
-                        #return dataset
-                        return(myData)
-                        
-                      })
 
 #1533 plots 
 completeData<- NULL
@@ -704,15 +677,6 @@ for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
   
 }
 dim(completeData)
-confounders<- allData %>% 
-     group_by(Plot_ID) %>%
-     summarise(
-         Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
-         Start_year = min(Year, na.rm = T),
-         End_year = max(Year, na.rm = T))
- head(confounders)
-hist(confounders$End_year)
-dim(confounders) #1533 plots
 
 
 
@@ -803,10 +767,6 @@ unique(completeData$Stratum)
 #step 2 add indicies to the dataset for INLA
 
 completeDataArth <- addIndicies(completeDataArth)
-save(completeDataArth, file = "completeDataArth.RData")
-
-
-
 
 
 dim(completeData) # old: 129203    new: 129649 # don;t know what's wrong with the old one 
@@ -841,6 +801,8 @@ completeDataArth$cStartYear <- completeDataArth$Start_year - median(completeData
 completeDataArth$cDuration <- completeDataArth$Duration - median(completeDataArth$Duration)
 
 
+save(completeDataArth, file = "completeDataArth.RData")
+save(completeData, file = "completeData.RData")
 
 
 
@@ -850,7 +812,7 @@ load("completeData.RData")
 
 biomes<- read.csv( "biomesEdited 2019.csv", header = T)
 dim(completeData)
-dim(completeDataArth)
+dim(completeDataArth) #31 cols
 
 #check all plots are in the biomes file
 unique(completeData$Plot_ID)[!unique(completeData$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
@@ -865,7 +827,7 @@ dim(completeDataArth)
 
 
 #set Europe as the reference level
-all.aggr.insects$Continent<- relevel(all.aggr.insects$Continent, ref = "Europe")
+completeData$Continent<- relevel(completeData$Continent, ref = "Europe")
 
 save(completeData,file="completeData.RData") 
 save(completeDataArth,file="completeData.RData") 
@@ -875,21 +837,22 @@ save(completeDataArth,file="completeData.RData")
 
 
 
-# merge in PA data
+# protected areas #####
 # only in insect data for now 
 PA<- read.csv("ProtectedAreasEdited.csv", header = T)
 
 dim(PA)
 dim(completeData)
 completeData<- merge(completeData, PA[, c("NAME", "ORIG_NAME", "DESIG_ENG", "REP_AREA",  "GIS_AREA", "Plot_ID", "PA")], by = "Plot_ID")
+completeDataArth<- merge(completeDataArth, PA[, c("NAME", "ORIG_NAME", "DESIG_ENG", "REP_AREA",  "GIS_AREA", "Plot_ID", "PA")], by = "Plot_ID")
+
 dim(completeData)
 
 save(completeData, file = "completeData.RData")
 
 
-# merge in climate data
 
-# merge in land use data  ESA and LUH2
+# land use data  ESA and LUH2 #####
 
 
  load("LU.RData") # LUH2
@@ -900,10 +863,10 @@ head(LU); tail(LU)
 unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% LU$Plot_ID] # looks like it 
 
 
-LU<- LU[, -c(2, 19:28)]
+
 completeData <- merge(completeData, LU[, c(2, 19:28)], by = "Plot_ID"); dim(completeData)
 completeDataArth <- merge(completeDataArth, LU[, c(2, 19:28)], by = "Plot_ID"); dim(completeDataArth)
-
+head(completeData)
 
 hist(completeData$End_cropArea) # somewhat biased
 hist(subset(completeData, Realm == "Terrestrial")$End_urbanArea) # somewhat biased
@@ -919,6 +882,7 @@ dim(completeData) ; length(unique(completeData$Plot_ID))
 unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% percCover900m$Plot_ID]
 
 completeData<- merge(completeData, percCover900m [, c(1,32,33) ], by = "Plot_ID", all.x=T)
+completeDataArth<- merge(completeDataArth, percCover900m [, c(1,32,33) ], by = "Plot_ID", all.x=T)
 dim(completeData)
 sum(is.na(completeData$frcCrop900m) ) 
 # 509 obs missing 
@@ -926,6 +890,27 @@ sum(is.na(completeData$frcCrop900m) )
 
 save(completeData, file = "completeData.RData")
 save(completeDataArth, file = "completeDataArth.RData")
+
+
+
+# climate data #####
+
+#load CRU
+load( "CRUtpSlopes.RData")
+
+dim(CRUtpSlopes)
+
+completeData<- merge(completeData, CRUtpSlopes)
+
+save(completeData, file = "completeData.RData")
+
+
+# CHELSA
+
+
+
+
+
 
 
 
@@ -1049,11 +1034,11 @@ metadata_per_plot<- completeData %>%
     Start_year = min(Year, na.rm = T),
     End_year = max(Year, na.rm = T),
     Continent = unique(Continent), 
-    #Latitude = unique(Latitude),
+    Latitude = unique(Latitude),
     Country_State = unique(Country_State),
-    #Country = unique(Country),
+    Country = unique(Country),
     Realm = unique(Realm),
-    #Longitude = unique(Longitude),
+    Longitude = unique(Longitude),
     NUMBER_OF_PLOTS =  length(unique(Plot_ID)), # should be 1
     NUMBER_OF_SAMPLES = length(unique(paste(Year, Period))),
     NUMBER_OF_YEARS = length(unique(Year)),
@@ -1240,3 +1225,32 @@ print(subset(metadata_per_country, NumberStudies >3 | NumberPlots >20), n = Inf)
 
 
 
+#thrash
+
+#require(plyr)    OBSOLETE
+completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
+                      function(myData){
+                        #expand grid to include NAs
+                        constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
+                        allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                                               Year= min(myData$Year):max(myData$Year))
+                        allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
+                        
+                        #add observed data
+                        myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+                                         by=c("Year","Plot_ID"),all=T)
+                        # add descriptors
+                        myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Country", "Country_State", "Region", "Stratum" )]),
+                                        by="Plot_ID",all=T)
+                        
+                        #fit in missing values for period with random sample
+                        if(!all(is.na(myData$Period))){
+                          myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
+                                                                      length(myData$Period[is.na(myData$Period)]),
+                                                                      replace=T)
+                        }
+                        
+                        #return dataset
+                        return(myData)
+                        
+                      })
