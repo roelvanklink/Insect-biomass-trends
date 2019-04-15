@@ -254,7 +254,7 @@ pts.wgs <- SpatialPointsDataFrame(coords = data.frame(lon = pts.wgs$mean_long,
                                   proj4string = CRS(WGS84),
                                   data = pts.wgs)
 
-source("map_preparation.R")
+source("map_preparation.Rreparation.R")
 # scale slopes 
 pts.wgs$slope.scal[pts.wgs$slope.scal<(-0.02)]<- -0.02 # 
 pts.wgs$slope.scal[pts.wgs$slope.scal>(0.02)]<- 0.02
@@ -1459,6 +1459,13 @@ inlaFurbanChange<- inla(log10(Number+1) ~ cYear + Realm + urbanization + cYear* 
                         data=completeData, verbose = F, num.threads = 2)
 save(inlaFurbanChange, file = "/data/Roel/inlaFurbanChange.RData")
 
+urbanizationPlot<- merge(RandEfPlot,  LU )
+ggplot(urbanizationPlot, aes(x=urbanization, y = `Plot_slp_ mean`))+
+geom_point ()+
+    facet_wrap(~Realm)
+
+
+
 inlaFurbanChangeTerr<- inla(log10(Number+1) ~ cYear + urbanization + cYear * urbanization +
                               f(Period_4INLA,model='iid')+
                               f(Location_4INLA,model='iid')+
@@ -1529,13 +1536,89 @@ save(inlaFurbanChangeFW, file = "/data/Roel/inlaFurbanChange.RData")
 
 
 
+# small scale land use models: 900 * 900 m #####
+
+
+inlaFcropESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m + 
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
+                    data= completeData, 
+                    num.threads = 2)#verbose = T,
+
+inlaFcropESAterr<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop900m
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
+                    data= subset(completeData, Realm == "Terrestrial"), 
+                    num.threads = 2)#verbose = T,
+
+inlaFcropESAfw<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop900m
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
+                    data= subset(completeData, Realm == "Freshwater"), 
+                    num.threads = 2)#verbose = T,
 
 
 
 
+inlaFurbanESA<- inla(log10(Number+1) ~  cYear* Realm* frcUrban900m + 
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
+                    data= completeData, 
+                    num.threads = 2)#verbose = T,
 
+inlaFurbanESAterr<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
+                        f(Period_4INLA,model='iid')+
+                          f(Location_4INLA,model='iid')+
+                          f(Plot_ID_4INLA,model='iid')+
+                          f(Datasource_ID_4INLA,model='iid')+
+                          f(Plot_ID_4INLAR,iYear,model='iid')+
+                          f(Location_4INLAR,iYear,model='iid')                      +
+                          f(Datasource_ID_4INLAR,iYear,model='iid')+
+                          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                        control.compute = list(dic=TRUE,waic=TRUE),
+                        data= subset(completeData, Realm == "Terrestrial"), 
+                        num.threads = 2)#verbose = T,
 
-
+inlaFurbanESAfw<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
+                      f(Period_4INLA,model='iid')+
+                        f(Location_4INLA,model='iid')+
+                        f(Plot_ID_4INLA,model='iid')+
+                        f(Datasource_ID_4INLA,model='iid')+
+                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                        f(Location_4INLAR,iYear,model='iid')                      +
+                        f(Datasource_ID_4INLAR,iYear,model='iid')+
+                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      control.compute = list(dic=TRUE,waic=TRUE),
+                      data= subset(completeData, Realm == "Freshwater"), 
+                      num.threads = 2)#verbose = T,
 
 
 
@@ -1550,9 +1633,80 @@ save(inlaFurbanChangeFW, file = "/data/Roel/inlaFurbanChange.RData")
 # test for delta Tmean and delta Prec AND for RELATIVE delta Tmean and Delta Prec 
 
 # CRU data
-load("CRUtpSlopes.RData")
 
-completeData<-merge(completeData, CRUtpSlopes, by = "Plot_ID")
+# absolute change in T
+inlaFcruT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * deltaTmean  +
+                    f(Period_4INLA,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Plot_ID_4INLA,model='iid')+
+                    f(Datasource_ID_4INLA,model='iid')+
+                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                  control.compute = list(dic=TRUE,waic=TRUE),
+                  data=completeData, verbose = F, num.threads = 2)
+
+inlaFcruTrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  +
+                   f(Period_4INLA,model='iid')+
+                   f(Location_4INLA,model='iid')+
+                   f(Plot_ID_4INLA,model='iid')+
+                   f(Datasource_ID_4INLA,model='iid')+
+                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 control.compute = list(dic=TRUE,waic=TRUE),
+                 data=completeData, verbose = F, num.threads = 2)
+
+inlaFcruTrelTerr<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  +
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
+                    data=subset(completeData, Realm == "Terrestrial") , verbose = F, num.threads = 2)
+
+inlaFcruTrelFW<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  +
+                          f(Period_4INLA,model='iid')+
+                          f(Location_4INLA,model='iid')+
+                          f(Plot_ID_4INLA,model='iid')+
+                          f(Datasource_ID_4INLA,model='iid')+
+                          f(Plot_ID_4INLAR,iYear,model='iid')+
+                          f(Location_4INLAR,iYear,model='iid')                      +
+                          f(Datasource_ID_4INLAR,iYear,model='iid')+
+                          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                        control.compute = list(dic=TRUE,waic=TRUE),
+                        data=subset(completeData, Realm == "Freshwater") , verbose = F, num.threads = 2)
+
+inlaFmeanP<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * DeltaPrec  +
+                    f(Period_4INLA,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Plot_ID_4INLA,model='iid')+
+                    f(Datasource_ID_4INLA,model='iid')+
+                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                  control.compute = list(dic=TRUE,waic=TRUE),
+                  data=completeData, verbose = F, num.threads = 2)
+
+
+inlaFmeanPrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaPrec  +
+                    f(Period_4INLA,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Plot_ID_4INLA,model='iid')+
+                    f(Datasource_ID_4INLA,model='iid')+
+                    f(Plot_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                  control.compute = list(dic=TRUE,waic=TRUE),
+                  data=completeData, verbose = F, num.threads = 2)
 
 
 
