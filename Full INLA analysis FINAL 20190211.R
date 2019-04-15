@@ -160,7 +160,7 @@ save(inla1, file = "/data/Roel/inla1.1.RData")
 
 ############################################################
 #Pull out the random effects and slopes from the grand model
-load("inla1.RData")
+load("E:/inla1.RData")
 #get list of unique plots and datasourceID
 summary_df <- unique(completeData[,c("Plot_ID","Datasource_ID",
                                      "Plot_ID_4INLA","Datasource_ID_4INLA",
@@ -173,9 +173,9 @@ RandEfPlot<-unique(completeData[,c("Datasource_ID", "Datasource_ID_4INLA", "Data
 #pull out random intercepts and slopes:
 
 #data source ID
-intercepts <- inla1$summary.random$Datasource_ID_4INLA
+intercepts     <- inla1$summary.random$Datasource_ID_4INLA
 slopes         <- inla1$summary.random$Datasource_ID_4INLAR
-slopes_Location<-inla1$summary.random$Locatio_4INLAR
+slopes_Location<-inla1$summary.random$Location_4INLAR
 slopes_plot    <-inla1$summary.random$Plot_ID_4INLAR
 names(intercepts)[2:8] <- paste("DataID_Intercept_", names(intercepts)[2:8]) # names for dataset intercepts
 names(slopes)[2:8] <- paste("DataID_Slope_", names(slopes)[2:8])             # names for dataset slopes
@@ -187,7 +187,7 @@ RandEfDataset <- merge(RandEfDataset,intercepts, by.x="Datasource_ID_4INLA", by.
 RandEfDataset <- merge(RandEfDataset,slopes, by.x="Datasource_ID_4INLAR", by.y="ID")
 
 # add up fixed slope and random slopes
-metadata_per_dataset<- read.csv(file = "metadata per dataset.csv", header =T)
+load("metadata_per_dataset.RData")
 RandEfDataset<- merge(RandEfDataset, metadata_per_dataset, by = "Datasource_ID")
 RandEfDataset$fixedSlp<- inla1$summary.fixed$mean[2]
 RandEfDataset$fixedIntercept<- inla1$summary.fixed$mean[1]
@@ -199,12 +199,12 @@ save(RandEfDataset, file = "RandEfDataset.RData")
 # plot level random effects for Fig 4: merge together all elements
 RandEfPlot <- merge(RandEfPlot,intercepts, by.x="Datasource_ID_4INLA", by.y="ID") # not really needed here
 RandEfPlot <- merge(RandEfPlot,slopes,          by.x="Datasource_ID_4INLAR", by.y="ID")
-#RandEfPlot <- merge(RandEfPlot,slopes_Location, by.x="Location_4INLAR", by.y="ID")
+RandEfPlot <- merge(RandEfPlot,slopes_Location, by.x="Location_4INLAR", by.y="ID")
 RandEfPlot <- merge(RandEfPlot,slopes_plot, by.x="Plot_ID_4INLAR", by.y="ID")
 
 # add up fixed slope, dataset random + location Random, + plot random 
 RandEfPlot$fixedSlp<- inla1$summary.fixed$mean[2]
-RandEfPlot$slope <- RandEfPlot$fixedSlp +  RandEfPlot$'DataID_Slope_ mean'  + RandEfPlot$'Plot_slp_ mean' #+RandEfPlot$'Loc_slp_ mean' 
+RandEfPlot$slope <- RandEfPlot$fixedSlp +  RandEfPlot$'DataID_Slope_ mean'  + RandEfPlot$'Plot_slp_ mean' +RandEfPlot$'Loc_slp_ mean' 
 save(RandEfPlot, file = "RandEfSlope.RData")
 
 # plot spagetti plot (Dornelas)
@@ -826,43 +826,69 @@ ggplot(windowFits10)+
 
 #################################################################################################
 # Random walk model #####
+completeData4RW<- completeData
+completeData4RW$Terrestrial<- as.numeric(completeData4RW$Realm == "Terrestrial")
+completeData4RW$Freshwater<- as.numeric(completeData4RW$Realm == "Freshwater")
+completeData4RW$iYear2<- completeData4RW$iYear
+completeData4RW$iYear3<- completeData4RW$iYear
+completeData4RW$iYear4<- completeData4RW$iYear
+completeData4RW$iYear5<- completeData4RW$iYear
+completeData4RW$iYear6<- completeData4RW$iYear
 
-#continent
-require(plyr)
-randomFits <- ddply(subset(completeData, Year < 2016 ),.
-                        (Realm),
-                        function(myData){
-                          
-                        #fit model
-                          inlaRW <- inla(
-                            log10(Number+1)~f(iYear,model='rw1') + 
-                              f(Datasource_ID_4INLAR,iYear,model='iid')+
-                              f(Location_4INLA,model='iid')+
-                              f(Plot_ID,model='iid')+
-                              f(Period_4INLA,model='iid'),
-                            data=myData)
-                          
-                          #return model summary
-                          return(data.frame(
-                            Year=sort(unique(myData$Year)),
-                            RW=inlaRW$summary.random$iYear, 
-                            intercept = as.numeric(inlaRW$summary.fixed[1]))
-                          )
-                        }); beep(1)
 
-save(randomFits,file="randomFitsFullPer.RData") 
 
-load("randomFitsFullPer.RData")
+inlaRW <- inla( log10(Number+1) ~ Realm +
+                  f(iYear, Terrestrial, model='rw1') +
+                  f(iYear2, Freshwater, model='rw1') +
+                    f(Datasource_ID_4INLAR,iYear,model='iid')+
+                    f(Location_4INLA,model='iid')+
+                    f(Plot_ID,model='iid')+
+                    f(Period_4INLA,model='iid') +
+                  , 
+                control.compute = list(dic=TRUE,waic=TRUE),     
+  data=completeData4RW)
 
-randomFits$abun<- randomFits$RW.mean+ randomFits$intercept
-ggplot(randomFits)+
-  geom_line(aes(x=Year,y=abun, colour=Realm))+
-  scale_colour_manual(values = col.scheme.realm)+
-  geom_ribbon(aes(x=Year, ymin = intercept + RW.0.025quant,  ymax = intercept+RW.0.975quant, fill=Realm),alpha=0.5)+
-  scale_fill_manual (values = col.scheme.realm)+
+# check what this does 
+inlaRW2 <- inla( log10(Number+1) ~ Realm +
+                   f(iYear, Terrestrial, model='rw1') +
+                   f(iYear2, Freshwater, model='rw1') +
+                   
+                   f(Datasource_ID_4INLA,model='iid')+
+                   f(Location_4INLA,model='iid')+
+                   f(Plot_ID,model='iid')+
+                   f(Period_4INLA,model='iid')+ 
+                   f(Plot_ID_4INLAR,iYear3,model='iid')+
+                   f(Location_4INLAR,iYear4,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear5,model='iid'),
+                 #                  f(iYear6,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 
+                 control.compute = list(dic=TRUE,waic=TRUE),     
+                 data=completeData4RW)
+
+rwTerr<- inlaRW$summary.random$iYear
+rwFW  <- inlaRW$summary.random$iYear2
+
+RW<-data.frame(
+  Year=sort(unique(completeData$Year)),
+  TerrInt = (inlaRW$summary.fixed[1,1] + inlaRW$summary.fixed[2,1]),
+  FwInt =   (inlaRW$summary.fixed[1,1]),
+  TerrMn = rwTerr$mean,
+  TerrMin= rwTerr$`0.025quant`,
+  TerrMax= rwTerr$`0.975quant` ,
+  FwMn   = rwFW$mean,
+  FwMin  = rwFW$`0.025quant`,
+  FwMax  = rwFW$`0.975quant`)
+
+ggplot(RW )+
+  geom_line(aes(x=Year,y=TerrMn), color = 'brown') +
+  geom_line(aes(x=Year,y=FwMn), color = 'blue') +
+  geom_ribbon(aes(x=Year, ymin = FwMin,  ymax = FwMax), fill='dodgerblue2',alpha=0.5)+
+  geom_ribbon(aes(x=Year, ymin = TerrMin,  ymax = TerrMax), fill='brown',alpha=0.5)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))+
   labs(y = "Arthropod abundance")
+
+
 
 # plot on top of lines: 
 
@@ -1459,10 +1485,27 @@ inlaFurbanChange<- inla(log10(Number+1) ~ cYear + Realm + urbanization + cYear* 
                         data=completeData, verbose = F, num.threads = 2)
 save(inlaFurbanChange, file = "/data/Roel/inlaFurbanChange.RData")
 
+
 urbanizationPlot<- merge(RandEfPlot,  LU )
-ggplot(urbanizationPlot, aes(x=urbanization, y = `Plot_slp_ mean`))+
+ggplot(urbanizationPlot, aes(x=urbanization, y = slope))+  #`Plot_slp_ mean`
 geom_point ()+
     facet_wrap(~Realm)
+# is it at the level of datasets?
+
+LU_per_dataset<- LU %>%    group_by(Datasource_ID) %>%
+  summarise(mnUrbanization = mean(urbanization), 
+            sdUrbanization = sd(urbanization))
+urbanizationPlot2<-merge(RandEfDataset,  LU_per_dataset )
+urbanizationPlot2$sdUrbanization[is.na(urbanizationPlot2$sdUrbanization)] <-0
+
+ggplot(urbanizationPlot2, aes(x=mnUrbanization, y = `DataID_Slope_ mean`))+
+geom_point ()+
+geom_errorbar(aes(ymin =`DataID_Slope_ 0.025quant`  , ymax = `DataID_Slope_ 0.975quant`  ), alpha = 0.3) +
+geom_errorbarh(aes(xmin=mnUrbanization-sdUrbanization, xmax=mnUrbanization+sdUrbanization), alpha = 0.3)+
+facet_wrap(~Realm)+ 
+theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+  panel.background = element_blank(), axis.line = element_line(colour = "black") , 
+  legend.key=element_blank() )  
 
 
 
@@ -1997,3 +2040,38 @@ inlaFforest<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_forestArea) + cYea
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data=completeData, verbose = T, num.threads = 2)
 
+# OBSOLETE
+randomFits <- ddply(subset(completeData, Year < 2016 ),.
+                    (Realm),
+                    function(myData){
+                      
+                      #fit model
+                      inlaRW <- inla(
+                        log10(Number+1)~f(iYear,model='rw1') + 
+                          f(Datasource_ID_4INLAR,iYear,model='iid')+
+                          f(Location_4INLA,model='iid')+
+                          f(Plot_ID,model='iid')+
+                          f(Period_4INLA,model='iid'),
+                        data=myData)
+                      
+                      #return model summary
+                      return(data.frame(
+                        Year=sort(unique(myData$Year)),
+                        RW=inlaRW$summary.random$iYear, 
+                        intercept = as.numeric(inlaRW$summary.fixed[1]))
+                      )
+                    }); beep(1)
+
+save(randomFits,file="randomFitsFullPer.RData") 
+
+load("randomFitsFullPer.RData")
+
+randomFits$abun<- randomFits$RW.mean+ randomFits$intercept
+ggplot(randomFits)+
+  geom_line(aes(x=Year,y=abun, colour=Realm))+
+  scale_colour_manual(values = col.scheme.realm)+
+  geom_ribbon(aes(x=Year, ymin = intercept + RW.0.025quant,  ymax = intercept+RW.0.975quant, fill=Realm),alpha=0.5)+
+  scale_fill_manual (values = col.scheme.realm)+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+  labs(y = "Arthropod abundance")
