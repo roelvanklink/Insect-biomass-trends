@@ -941,6 +941,37 @@ save(metadata_per_dataset, file = "metadata_per_dataset.RData")
 
 
 
+# metadata per plot
+
+metadata_per_plot<- completeData %>% 
+  group_by(Plot_ID) %>%
+  summarise(
+    #Plot_name = length(unique(Plot_name)), 
+    Datasource_ID = unique(Datasource_ID),
+    Datasource_name = unique(Datasource_name), 
+    Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T),
+    Continent = unique(Continent), 
+#    Latitude = unique(Latitude),
+    Country_State = unique(Country_State),
+    Country = unique(Country),
+    Realm = unique(Realm),
+ #   Longitude = unique(Longitude),
+    NUMBER_OF_PLOTS =  length(unique(Plot_ID)), # should be 1
+    NUMBER_OF_SAMPLES = length(unique(paste(Year, Period))),
+    NUMBER_OF_YEARS = length(unique(Year)),
+    #NUMBER_OF_TAXA = length(unique(Taxon)),
+    TOTAL_N = sum(Number, na.rm = T),
+    PA = unique(PA)
+  )
+metadata_per_plot <- merge(metadata_per_plot, plots[, c(1, 7,8,9,10, 16,17, 18)]   , by = "Plot_ID")
+save(metadata_per_plot, file = "metadata_per_plot.RData")
+
+
+
+
+
 
 
 # select countries
@@ -1022,32 +1053,6 @@ ggplot(summ.data, aes(x=Area, y=mean)) +
 completeDataPest<- merge(completeData, full.data, by.x = "")
 
 
-# merge in metadata per plot for checking confounding effects #####
-
-metadata_per_plot<- completeData %>% 
-  group_by(Plot_ID) %>%
-  summarise(
-    #Plot_name = length(unique(Plot_name)), 
-    Datasource_ID = unique(Datasource_ID),
-     Datasource_name = unique(Datasource_name), 
-    Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
-    Start_year = min(Year, na.rm = T),
-    End_year = max(Year, na.rm = T),
-    Continent = unique(Continent), 
-    Latitude = unique(Latitude),
-    Country_State = unique(Country_State),
-    Country = unique(Country),
-    Realm = unique(Realm),
-    Longitude = unique(Longitude),
-    NUMBER_OF_PLOTS =  length(unique(Plot_ID)), # should be 1
-    NUMBER_OF_SAMPLES = length(unique(paste(Year, Period))),
-    NUMBER_OF_YEARS = length(unique(Year)),
-    #NUMBER_OF_TAXA = length(unique(Taxon)),
-    TOTAL_N = sum(Number, na.rm = T),
-    PA = unique(PA)
-      )
-save(metadata_per_plot, file = "metadata_per_plot.RData")
-#completeData<- merge(completeData, metadata_per_plot[, c("Plot_ID", "Duration", "Start_year", "End_year", "NUMBER_OF_PLOTS")], by = "Plot_ID")
 
 
 
