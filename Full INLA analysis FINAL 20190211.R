@@ -16,10 +16,15 @@ load("completeData.Rdata")
 load("completeDataArth.RData")
 load("completeDataClim.RData")
 load("completeDataClimPrec.RData")
-load("inla1.RData")
+load("E:/inla1.RData")
 #completeData$Stratum[completeData$Stratum == "air"]<-"Air"
 #completeData$Stratum[completeData$Plot_ID == 930 ]<- "Soil surface"
 
+theme_clean<- theme_grey() + theme(panel.grid.major = element_blank(), 
+                                 panel.grid.minor = element_blank(),
+                                 panel.background = element_blank(), 
+                                 axis.line = element_line(colour = "black") , 
+                                 legend.key=element_blank())
 
 col.scheme.cont<-c( "Europe"="green3", "Latin America"= "magenta", "North America"= "orange","Asia" = "purple3", 
                     "Africa" = "blue", "Australia" = "red")
@@ -27,6 +32,7 @@ col.scheme.realm<-c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "peru")
 col.scheme.strat<-c( "Air" = "peru", "Herb layer" = "peru", "Soil surface" = "peru", "Trees" = "peru", 
                      "Underground" = "peru"  ,"Water" = "dodgerblue2")
 col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "brown")
+col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "white")
 # 1) select most appropriate model
 
 #Decision 1: which random slopes to include?
@@ -201,11 +207,11 @@ RandEfPlot <- merge(RandEfPlot,intercepts, by.x="Datasource_ID_4INLA", by.y="ID"
 RandEfPlot <- merge(RandEfPlot,slopes,          by.x="Datasource_ID_4INLAR", by.y="ID")
 RandEfPlot <- merge(RandEfPlot,slopes_Location, by.x="Location_4INLAR", by.y="ID")
 RandEfPlot <- merge(RandEfPlot,slopes_plot, by.x="Plot_ID_4INLAR", by.y="ID")
-
+RandEfPlot <- merge(metadata_per_plot, RandEfPlot )
 # add up fixed slope, dataset random + location Random, + plot random 
 RandEfPlot$fixedSlp<- inla1$summary.fixed$mean[2]
 RandEfPlot$slope <- RandEfPlot$fixedSlp +  RandEfPlot$'DataID_Slope_ mean'  + RandEfPlot$'Plot_slp_ mean' +RandEfPlot$'Loc_slp_ mean' 
-save(RandEfPlot, file = "RandEfSlope.RData")
+save(RandEfPlot, file = "RandEfPlot.RData")
 
 # plot spagetti plot (Dornelas)
 load("randomFitsFullPer.RData") # wiggly line
@@ -294,6 +300,19 @@ new_scale_color()+
   geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data, size = 1.3, aes(x = mean_long, y = mean_lat, group = NULL),  colour = 1) +
   geom_point(data = subset(pts.wgs, Realm =="Freshwater")@data , size = 1, aes(x = mean_long,   y = mean_lat,  colour = slope.scal, group = NULL)) +
   scale_colour_distiller("Slope freshwater fauna", palette = "PuBuGn", direction = +1, limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal))) # ""
+
+
+# descriptive statistics of random effects #####
+sum(RandEfDataset$`DataID_Slope_ mean`>0) / 157 #51% positive
+sum(RandEfDataset$`DataID_Slope_ mean`<0) / 157 #49% negative
+
+sum(RandEfDataset$`DataID_Slope_ 0.025quant`>0)/157 # 10 datasets 6.5% positive 
+RandEfDataset[RandEfDataset$`DataID_Slope_ 0.025quant`>0, 18:21]
+
+sum(RandEfDataset$`DataID_Slope_ 0.975quant`<0)/157 # 15datasets,  9.5% positive 
+RandEfDataset[RandEfDataset$`DataID_Slope_ 0.975quant`<0, 18:21]
+
+
    
 ###################################################################################################################################################
 
@@ -1003,8 +1022,9 @@ inlaFpaInt <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data=completeData, verbose = F, num.threads = 2)
 save(inlaFpaInt, file = "/data/Roel/inlaFpaInt.RData")
+load("E:/inlaFpaInt.RData")
 
-10^(inlaFpaInt$summary.fixed[4:7,1] *10) # proportional changes
+10^(inlaFpaInt$summary.fixed[4:7,1] *10)-1 # proportional changes
 
 paSlope<- inlaFpaInt$summary.fixed[4:7,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(paSlope), split = ":")))
@@ -1016,69 +1036,22 @@ paSlope$text = paste0("(", paSlope$Datasources, " | ", paSlope$Plots, ") ")
 
 
 ggplot(data.frame(paSlope))+
-  geom_crossbar(aes(x=PA,   y=mean, fill = Realm,
+  geom_crossbar(aes(x=Realm,   y=mean, fill = PA,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
-  scale_fill_manual(values = col.scheme.realm)+
-  xlab ("")+ ylab ("Trend slope")+geom_hline(yintercept=0,linetype="dashed")+
+  xlab ("")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
   ylim(-0.01, 0.015)+  
-  geom_text(aes(x = PA , y = 0.014, fill = Realm,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black") , 
-        legend.key=element_blank())
+  geom_text(aes(x = Realm , y = 0.014, fill = PA,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
+  scale_fill_manual(name="Protected\nstatus",
+                    breaks=c("no", "yes"),
+                    labels=c("Unprotected", "Protected"), 
+                    values = col.scheme.PA) + 
+  theme_clean
 
 
-
-
-  PAmodels[1,1]<- "3way"   
-  PAmodels[1,2]<- "Year: PA:Realm"
-  PAmodels[1,3]<- summary(inlaFpaInt)$dic$dic
-  PAmodels[1,4]<- summary(inlaFpaInt)$waic$waic
-   
-
-inlaFpa <- inla(log10(Number+1) ~ cYear: PA + cYear:Realm + 
-                  f(Period_4INLA,model='iid')+
-                  f(Location_4INLA,model='iid')+
-                  f(Plot_ID_4INLA,model='iid')+
-                  f(Datasource_ID_4INLA,model='iid')+
-                  f(Plot_ID_4INLAR,iYear,model='iid')+
-                  f(Location_4INLAR,iYear,model='iid')                      +
-                  f(Datasource_ID_4INLAR,iYear,model='iid')+
-                  f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                control.compute = list(dic=TRUE,waic=TRUE),
-                data=completeData, verbose = T, num.threads = 2)
-
-PAmodels[2,1]<- "2way"   
-PAmodels[2,2]<- "Year: PA + PA:Realm"
-PAmodels[2,3]<- summary(inlaFpa)$dic$dic
-PAmodels[2,4]<- summary(inlaFpa)$waic$waic
-
-
-inlaFpa2 <- inla(log10(Number+1) ~ cYear:Realm +PA + 
-                  f(Period_4INLA,model='iid')+
-                  f(Location_4INLA,model='iid')+
-                  f(Plot_ID_4INLA,model='iid')+
-                  f(Datasource_ID_4INLA,model='iid')+
-                   f(Plot_ID_4INLAR,iYear,model='iid')+
-                   f(Location_4INLAR,iYear,model='iid')                      +
-                   f(Datasource_ID_4INLAR,iYear,model='iid')+
-                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                control.compute = list(dic=TRUE,waic=TRUE),
-                data=completeData, verbose = F, num.threads = 2)
-
-PAmodels[3,1]<- "additive"   
-PAmodels[3,2]<- "Year: Realm + PA"
-PAmodels[3,3]<- summary(inlaFpa2)$dic$dic
-PAmodels[3,4]<- summary(inlaFpa2)$waic$waic
-
-PAmodels[4,1]<- "none"   
-PAmodels[4,2]<- "Year: Realm "
-PAmodels[4,3]<- summary(inlaF)$dic$dic
-PAmodels[4,4]<- summary(inlaF)$waic$waic
-
-
-
+  
 
 
 # Protected areas in temperate zone
@@ -1188,7 +1161,7 @@ plotData<-unique(completeData[, c( "Plot_ID", "Realm", "Continent", "Datasource_
  
  
 # 1) land use at end of sampling period:  
- 
+ landusePlots<- merge(RandEfPlot,  LU ) 
 ################################################
  #Urban area #####
 
@@ -1225,6 +1198,17 @@ inlaFurbanTest<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_urbanArea) + cY
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData, verbose = T, num.threads = 2)
 
+
+urbanPlot<- ggplot(landusePlots, aes(x=(End_urbanArea), y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  scale_x_sqrt()+
+  xlab ("Urban cover at end of sampling period (%)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean + 
+  theme()
 
 
 
@@ -1290,6 +1274,8 @@ inlaFurbanT<- inla(log10(Number+1) ~  cYear* sqrt(End_urbanArea) +
                   data= subset(completeData, Realm == "Terrestrial"), 
                   verbose = T, num.threads = 2)
 
+
+
 inlaFurbanT2<- inla(log10(Number+1) ~  cYear + sqrt(End_urbanArea) +
                      f(Period_4INLA,model='iid')+
                      f(Location_4INLA,model='iid')+
@@ -1353,6 +1339,18 @@ inlaFcrop<- inla(log10(Number+1) ~   cYear* Realm* sqrt(End_cropArea)  +   #cYea
                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                  control.compute = list(dic=TRUE,waic=TRUE),
                  data=completeData,   num.threads = 2) #verbose = T,
+
+cropPlot<-ggplot(landusePlots, aes(x=(End_cropArea), y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_x_sqrt()+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Cropland at end of sampling period (%)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean + 
+  theme()
+
 
 cropModels[1,1] <-"3way"
 cropModels[1,2] <- "Realm*cYear*cropArea"
@@ -1486,26 +1484,15 @@ inlaFurbanChange<- inla(log10(Number+1) ~ cYear + Realm + urbanization + cYear* 
 save(inlaFurbanChange, file = "/data/Roel/inlaFurbanChange.RData")
 
 
-urbanizationPlot<- merge(RandEfPlot,  LU )
-ggplot(urbanizationPlot, aes(x=urbanization, y = slope))+  #`Plot_slp_ mean`
-geom_point ()+
-    facet_wrap(~Realm)
-# is it at the level of datasets?
 
-LU_per_dataset<- LU %>%    group_by(Datasource_ID) %>%
-  summarise(mnUrbanization = mean(urbanization), 
-            sdUrbanization = sd(urbanization))
-urbanizationPlot2<-merge(RandEfDataset,  LU_per_dataset )
-urbanizationPlot2$sdUrbanization[is.na(urbanizationPlot2$sdUrbanization)] <-0
-
-ggplot(urbanizationPlot2, aes(x=mnUrbanization, y = `DataID_Slope_ mean`))+
-geom_point ()+
-geom_errorbar(aes(ymin =`DataID_Slope_ 0.025quant`  , ymax = `DataID_Slope_ 0.975quant`  ), alpha = 0.3) +
-geom_errorbarh(aes(xmin=mnUrbanization-sdUrbanization, xmax=mnUrbanization+sdUrbanization), alpha = 0.3)+
-facet_wrap(~Realm)+ 
-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-  panel.background = element_blank(), axis.line = element_line(colour = "black") , 
-  legend.key=element_blank() )  
+urbanizationPlot<- ggplot(landusePlots, aes(x=urbanization*100, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Urbanization \n(Change in % urban cover over sampling period)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean + 
+  theme()
 
 
 
@@ -1578,9 +1565,25 @@ inlaFcropChangeFW<- inla(log10(Number+1) ~ cYear +  cropification + cYear * crop
 save(inlaFurbanChangeFW, file = "/data/Roel/inlaFurbanChange.RData")
 
 
+cropificationPlot<- ggplot(landusePlots, aes(x=cropification*100, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Change in % cropland over sampling period")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean + 
+  theme()
 
-# small scale land use models: 900 * 900 m #####
+library(gridExtra)
+grid.arrange(urbanizationPlot, cropificationPlot, urbanPlot,cropPlot, nrow = 2)
 
+
+# ESA CCI#####
+load("percCover900m.RData")
+# small scale land use models: 900 * 900 m 
+landusePlots900<- merge(RandEfPlot,  percCover900m )
+landusePlots900<- merge(landusePlots900, metadata_per_plot)
 
 inlaFcropESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m + 
                       f(Period_4INLA,model='iid')+
@@ -1592,8 +1595,18 @@ inlaFcropESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m +
                        f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
-                    data= completeData, 
+                    data= subset(completeData, !is.na(completeData$frcCrop900m)), 
                     num.threads = 2)#verbose = T,
+
+crop900mPlot<- ggplot(landusePlots900, aes(x=frcCrop900m*100, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Cropland in 1 km2 at end of sampling period (%)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
 
 inlaFcropESAterr<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop900m
                       f(Period_4INLA,model='iid')+
@@ -1605,7 +1618,7 @@ inlaFcropESAterr<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop90
                       f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeData, Realm == "Terrestrial"), 
+                    data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Terrestrial"), 
                     num.threads = 2)#verbose = T,
 
 inlaFcropESAfw<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop900m
@@ -1618,7 +1631,7 @@ inlaFcropESAfw<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop900m
                       f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeData, Realm == "Freshwater"), 
+                    data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Freshwater"), 
                     num.threads = 2)#verbose = T,
 
 
@@ -1634,8 +1647,19 @@ inlaFurbanESA<- inla(log10(Number+1) ~  cYear* Realm* frcUrban900m +
                       f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
-                    data= completeData, 
+                    data= subset(completeData, !is.na(completeData$frcCrop900m)), 
                     num.threads = 2)#verbose = T,
+
+urban900mPlot<- ggplot(landusePlots900, aes(x=frcUrban900m*100, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Urban cover in 1 km2 at end of sampling period (%)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
+
 
 inlaFurbanESAterr<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
                         f(Period_4INLA,model='iid')+
@@ -1647,7 +1671,7 @@ inlaFurbanESAterr<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrba
                           f(Datasource_ID_4INLAR,iYear,model='iid')+
                           f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                         control.compute = list(dic=TRUE,waic=TRUE),
-                        data= subset(completeData, Realm == "Terrestrial"), 
+                        data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Terrestrial"), 
                         num.threads = 2)#verbose = T,
 
 inlaFurbanESAfw<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
@@ -1660,10 +1684,15 @@ inlaFurbanESAfw<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban9
                         f(Datasource_ID_4INLAR,iYear,model='iid')+
                         f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                       control.compute = list(dic=TRUE,waic=TRUE),
-                      data= subset(completeData, Realm == "Freshwater"), 
+                      data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Freshwater"), 
                       num.threads = 2)#verbose = T,
 
 
+library(gridExtra)
+grid.arrange(urbanizationPlot, cropificationPlot, 
+             urbanPlot,cropPlot, 
+             urban900mPlot, crop900mPlot,
+             nrow = 3)
 
 
 
@@ -1676,7 +1705,9 @@ inlaFurbanESAfw<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban9
 # test for delta Tmean and delta Prec AND for RELATIVE delta Tmean and Delta Prec 
 
 # CRU data
-
+load("CRUtpSlopes.RData")
+RandEfPlot <- merge(metadata_per_plot, RandEfPlot )
+CCplots<- merge(RandEfPlot, CRUtpSlopes)
 # absolute change in T
 inlaFcruT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * deltaTmean  +
                     f(Period_4INLA,model='iid')+
@@ -1690,6 +1721,18 @@ inlaFcruT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * deltaTmean  +
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData, verbose = F, num.threads = 2)
 
+TmeanPlot<- ggplot(CCplots, aes(x=deltaTmean, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Change in mean temperature per decade")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
+
+
 inlaFcruTrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  +
                    f(Period_4INLA,model='iid')+
                    f(Location_4INLA,model='iid')+
@@ -1701,6 +1744,18 @@ inlaFcruTrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTm
                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                  control.compute = list(dic=TRUE,waic=TRUE),
                  data=completeData, verbose = F, num.threads = 2)
+
+TrelPlot<- ggplot(CCplots, aes(x=relDeltaTmean, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Relative change in mean temperature cover over sampling period\ndelta Temperature / mean temperature (K)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
+
 
 inlaFcruTrelTerr<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  +
                       f(Period_4INLA,model='iid')+
@@ -1738,6 +1793,16 @@ inlaFmeanP<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * DeltaPrec  +
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData, verbose = F, num.threads = 2)
 
+PPlot<- ggplot(CCplots, aes(x=deltaPrec, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Change in precipitation per decade (mm)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
 
 inlaFmeanPrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaPrec  +
                     f(Period_4INLA,model='iid')+
@@ -1752,33 +1817,77 @@ inlaFmeanPrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaP
                   data=completeData, verbose = F, num.threads = 2)
 
 
+PrelPlot<- ggplot(CCplots, aes(x=relDeltaPrec, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Relative change in precipitation per decade\ndelta Precipitation / mean Precipitation")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
 
+
+library(gridExtra)
+grid.arrange(TmeanPlot,PPlot,  TrelPlot,  PrelPlot, nrow = 2)
 
 
 # CHELSA data
 
 
-<- merge(completeData, TmeanSlopesWholePeriod, by = "Plot_ID") 
+load("CHELSATmeanSlopes.RData")
+load("CHELSAPrecSlopes.Rdata")
+CHELSA<- merge(CHELSATmeanSlopes[, c(1:3, 8,9) ], CHELSAPrecSlopes[, c(1:2, 7,8) ])
+
+CHELSA<- merge(RandEfPlot,  CHELSA )
+CHELSAplots<- merge(CHELSA, metadata_per_plot)
+
+
+CHELSAPrelPlot<- ggplot(CHELSAplots, aes(x=CHELSArelDeltaPrec, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Relative change in precipitation per decade\ndelta Precipitation / mean Precipitation")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
+CHELSApPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaPrec, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Absolute change in precipitation per decade (mm)")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
+CHELSATrelPlot<- ggplot(CHELSAplots, aes(x=CHELSArelDeltaTmean, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Relative change in mean Temperature per decade\ndelta mean Temperature / mean Temperature")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
+
+CHELSATmeanPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaTmean, y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm) )+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Absolute change in mean Temperature per decade")+ ylab ("Trend slope")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  geom_vline(xintercept=0,linetype="dashed")+
+  ylim(-0.04, 0.03)+
+  facet_wrap(~Realm , scales = "free") +
+  theme_clean 
 
 
 
+library(gridExtra)
+grid.arrange(CHELSATmeanPlot, CHELSApPlot,  CHELSATrelPlot,  CHELSAPrelPlot, nrow = 2)
 
-
-
-
-load("TmeanSlopesWholePeriod.Rdata")
-
-
-
-
-
-
-
-load("TmeanSlopes.Rdata")
-completeDataClim<- merge(completeData, TmeanSlopes )
-# what's missing 
-unique(completeData$Plot_ID)[! unique(completeData$Plot_ID) %in% unique(completeDataClim$Plot_ID)]
-# ould plots
 
 meanTModels <- data.frame(modelName=(character()),
                          fixedEffects=character(), 
@@ -2075,3 +2184,75 @@ ggplot(randomFits)+
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_line(colour = "black"))+
   labs(y = "Arthropod abundance")
+
+
+
+
+
+LU_per_dataset<- LU %>%    group_by(Datasource_ID) %>%
+  summarise(mnUrbanization = mean(urbanization), 
+            sdUrbanization = sd(urbanization))
+urbanizationPlot2<-merge(RandEfDataset,  LU_per_dataset )
+urbanizationPlot2$sdUrbanization[is.na(urbanizationPlot2$sdUrbanization)] <-0
+
+ggplot(urbanizationPlot2, aes(x=mnUrbanization, y = `DataID_Slope_ mean`))+
+  geom_point ()+
+  geom_errorbar(aes(ymin =`DataID_Slope_ 0.025quant`  , ymax = `DataID_Slope_ 0.975quant`  ), alpha = 0.3) +
+  geom_errorbarh(aes(xmin=mnUrbanization-sdUrbanization, xmax=mnUrbanization+sdUrbanization), alpha = 0.3)+
+  facet_wrap(~Realm)+ 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black") , 
+        legend.key=element_blank() )  
+
+
+
+
+
+
+PAmodels[1,1]<- "3way"   
+PAmodels[1,2]<- "Year: PA:Realm"
+PAmodels[1,3]<- summary(inlaFpaInt)$dic$dic
+PAmodels[1,4]<- summary(inlaFpaInt)$waic$waic
+
+
+inlaFpa <- inla(log10(Number+1) ~ cYear: PA + cYear:Realm + 
+                  f(Period_4INLA,model='iid')+
+                  f(Location_4INLA,model='iid')+
+                  f(Plot_ID_4INLA,model='iid')+
+                  f(Datasource_ID_4INLA,model='iid')+
+                  f(Plot_ID_4INLAR,iYear,model='iid')+
+                  f(Location_4INLAR,iYear,model='iid')                      +
+                  f(Datasource_ID_4INLAR,iYear,model='iid')+
+                  f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                control.compute = list(dic=TRUE,waic=TRUE),
+                data=completeData, verbose = T, num.threads = 2)
+
+PAmodels[2,1]<- "2way"   
+PAmodels[2,2]<- "Year: PA + PA:Realm"
+PAmodels[2,3]<- summary(inlaFpa)$dic$dic
+PAmodels[2,4]<- summary(inlaFpa)$waic$waic
+
+
+inlaFpa2 <- inla(log10(Number+1) ~ cYear:Realm +PA + 
+                   f(Period_4INLA,model='iid')+
+                   f(Location_4INLA,model='iid')+
+                   f(Plot_ID_4INLA,model='iid')+
+                   f(Datasource_ID_4INLA,model='iid')+
+                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 control.compute = list(dic=TRUE,waic=TRUE),
+                 data=completeData, verbose = F, num.threads = 2)
+
+PAmodels[3,1]<- "additive"   
+PAmodels[3,2]<- "Year: Realm + PA"
+PAmodels[3,3]<- summary(inlaFpa2)$dic$dic
+PAmodels[3,4]<- summary(inlaFpa2)$waic$waic
+
+PAmodels[4,1]<- "none"   
+PAmodels[4,2]<- "Year: Realm "
+PAmodels[4,3]<- summary(inlaF)$dic$dic
+PAmodels[4,4]<- summary(inlaF)$waic$waic
+
+
