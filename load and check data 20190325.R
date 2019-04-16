@@ -895,6 +895,16 @@ save(completeDataArth, file = "completeDataArth.RData")
 
 # climate data #####
 
+# CHELSA 
+load("CHELSATmeanSlopes.RData")
+load("CHELSAPrecSlopes.Rdata")
+CHELSA<- merge(CHELSATmeanSlopes[, c(1:3, 8,9) ], CHELSAPrecSlopes[, c(1:2, 7,8) ])
+dim(CHELSA)
+head(CHELSA)
+completeData <- merge(completeData, CHELSATmeanSlopes, all.x = T)
+
+
+
 #load CRU
 load( "CRUtpSlopes.RData")
 
@@ -905,7 +915,7 @@ completeData<- merge(completeData, CRUtpSlopes)
 save(completeData, file = "completeData.RData")
 
 
-# CHELSA
+
 
 
 
@@ -915,6 +925,8 @@ save(completeData, file = "completeData.RData")
 
 
 # metadata for suppl material #####
+load( "all.selectedIns.RData") # check version date
+
 
 metadata_per_dataset<-  all.selectedIns %>% 
   group_by(Datasource_ID) %>%
