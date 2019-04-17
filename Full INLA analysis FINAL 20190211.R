@@ -307,10 +307,10 @@ sum(RandEfDataset$`DataID_Slope_ mean`>0) / 157 #51% positive
 sum(RandEfDataset$`DataID_Slope_ mean`<0) / 157 #49% negative
 
 sum(RandEfDataset$`DataID_Slope_ 0.025quant`>0)/157 # 10 datasets 6.5% positive 
-RandEfDataset[RandEfDataset$`DataID_Slope_ 0.025quant`>0, 18:21]
+RandEfDataset[RandEfDataset$`DataID_Slope_ 0.025quant`>0, c(18:21,25, 30)]
 
 sum(RandEfDataset$`DataID_Slope_ 0.975quant`<0)/157 # 15datasets,  9.5% positive 
-RandEfDataset[RandEfDataset$`DataID_Slope_ 0.975quant`<0, 18:21]
+RandEfDataset[RandEfDataset$`DataID_Slope_ 0.975quant`<0, c(18:21,25, 30)]
 
 
    
