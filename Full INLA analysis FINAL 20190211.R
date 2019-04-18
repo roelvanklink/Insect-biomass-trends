@@ -158,7 +158,7 @@ inla1.1 <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration + cYear:C
                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData) # has lower WAIC and DIC than inlaF2
-save(inla1, file = "/data/Roel/inla1.1.RData")
+save(inla1.1, file = "/data/Roel/inla1.1.RData")
 
 
 
@@ -302,7 +302,31 @@ new_scale_color()+
   scale_colour_distiller("Slope freshwater fauna", palette = "PuBuGn", direction = +1, limits = c(min(pts.wgs$slope.scal), -min(pts.wgs$slope.scal))) # ""
 
 
-# descriptive statistics of random effects #####
+
+
+
+##########################################################################################
+# descriptive statistics #####
+median(metadata_per_plot$Duration) #16yrs median duration plot level 
+median(metadata_per_dataset$Duration) #19 yrs median duration dataset level 
+median(metadata_per_plot$Start_year) #1996 median start year plots
+median(metadata_per_dataset$Start) #1987 median start year datasets
+
+max(metadata_per_dataset$NUMBER_OF_PLOTS) #264
+max(metadata_per_plot$Duration) #80 
+
+
+sum(metadata_per_dataset$Realm == "Terrestrial") # 100
+sum(metadata_per_dataset$Realm == "Freshwater") # 57
+sum(metadata_per_plot$Realm == "Terrestrial") # 1000
+sum(metadata_per_plot$Realm == "Freshwater") # 533
+
+
+# of full dataset
+median(completeData$Year ) #2002 median year of all data
+hist(completeData$Year, las = 1)
+
+# slope trends: 
 sum(RandEfDataset$`DataID_Slope_ mean`>0) / 157 #51% positive
 sum(RandEfDataset$`DataID_Slope_ mean`<0) / 157 #49% negative
 
@@ -337,14 +361,14 @@ inlaF <- inla(log10(Number+1) ~ cYear:Realm+ Realm +
 load("E:/inlaF.RData")
 
 summary(inlaF)
-10^(-0.004*100) 
-1- (10^(summary(inlaF)$fixed[4] *10)) # 10 year % change terrestrial
-1- (10^(summary(inlaF)$fixed[12] *10)) # upper CI 10 year % change terrestrial
-1- (10^(summary(inlaF)$fixed[20] *10)) # lower CI 10 year % change terrestrial
+# percentage change per year and per decade
+ data.frame(
+   var =   c("FW 1 yr" ,"Terr 1 yr", "FW 10 yr", "Terr 10 yr"), 
+   CI2.5 =  c((10^(inlaF$summary.fixed  [3:4,3] )-1 ) *100, (10^(inlaF$summary.fixed  [3:4,3] *10)-1)  *100),#0.025 CI
+   mean =   c((10^(inlaF$summary.fixed  [3:4,1] )-1)  *100, (10^(inlaF$summary.fixed  [3:4,1] *10)-1)  *100), # proportional changes per year
+   CI97.5 = c((10^(inlaF$summary.fixed  [3:4,5] )-1 ) *100, (10^(inlaF$summary.fixed  [3:4,5] *10)-1)  *100)# 0.975
+   )
 
-(10^(summary(inlaF)$fixed[3] *10)) # 10 year % change FW
-(10^(summary(inlaF)$fixed[11] *10)) # upper CI 10 year % change fw
-(10^(summary(inlaF)$fixed[19] *10)) # lower CI 10 year % change fw
 
 
 
@@ -1024,7 +1048,15 @@ inlaFpaInt <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
 save(inlaFpaInt, file = "/data/Roel/inlaFpaInt.RData")
 load("E:/inlaFpaInt.RData")
 
-10^(inlaFpaInt$summary.fixed[4:7,1] *10)-1 # proportional changes
+data.frame(
+var =   rownames(inlaFpaInt$summary.fixed)[4:7], 
+mean = (10^(inlaFpaInt$summary.fixed[4:7,1] )-1)  *100, # proportional changes per year
+CI2.5 = (10^(inlaFpaInt$summary.fixed[4:7,3] )-1 ) *100,#0.025 CI
+CI97.5 = (10^(inlaFpaInt$summary.fixed[4:7,5] )-1 ) *100# 0.975
+)
+10^(inlaFpaInt$summary.fixed[4:7,1] *10)-1 # proportional changes per decade
+
+
 
 paSlope<- inlaFpaInt$summary.fixed[4:7,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(paSlope), split = ":")))
@@ -1704,7 +1736,7 @@ grid.arrange(urbanizationPlot, cropificationPlot,
 #: CRU (whole period, low resolustion) & CHELSA 1979-2013 high resolution
 # test for delta Tmean and delta Prec AND for RELATIVE delta Tmean and Delta Prec 
 
-# CRU data
+# CRU #####
 load("CRUtpSlopes.RData")
 RandEfPlot <- merge(metadata_per_plot, RandEfPlot )
 CCplots<- merge(RandEfPlot, CRUtpSlopes)
@@ -1832,9 +1864,9 @@ library(gridExtra)
 grid.arrange(TmeanPlot,PPlot,  TrelPlot,  PrelPlot, nrow = 2)
 
 
-# CHELSA data
+# CHELSA #####
 
-
+# graphs (SI)
 load("CHELSATmeanSlopes.RData")
 load("CHELSAPrecSlopes.Rdata")
 CHELSA<- merge(CHELSATmeanSlopes[, c(1:3, 8,9) ], CHELSAPrecSlopes[, c(1:2, 7,8) ])
@@ -1889,13 +1921,8 @@ library(gridExtra)
 grid.arrange(CHELSATmeanPlot, CHELSApPlot,  CHELSATrelPlot,  CHELSAPrelPlot, nrow = 2)
 
 
-meanTModels <- data.frame(modelName=(character()),
-                         fixedEffects=character(), 
-                         DIC=numeric(),
-                         WAIC=numeric(),
-                         stringsAsFactors=FALSE)
-
-inlaFmeanT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  +
+# models
+CHELSAinlaFmeanTrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * CHELSArelDeltaTmean  +
                      f(Period_4INLA,model='iid')+
                      f(Location_4INLA,model='iid')+
                      f(Plot_ID_4INLA,model='iid')+
@@ -1905,74 +1932,42 @@ inlaFmeanT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmea
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
-                   data=completeData, verbose = F, num.threads = 2)
-
-meanTModels[1,1] <-"3way"
-meanTModels[1,2] <- "Year*Realm*relDeltaTmean"
-meanTModels[1,3] <-summary(inlaFmeanT)$dic$dic
-meanTModels[1,4] <-summary(inlaFmeanT)$waic$waic
-
-
-
-inlaFmeanT1<- inla(log10(Number+1) ~ cYear * relDeltaTmean +   cYear* Realm   +
-                    f(Period_4INLA,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLA,model='iid')+
-                    f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                       control.compute = list(dic=TRUE,waic=TRUE),
-                  data=completeData, verbose = F, num.threads = 2)
-
-meanTModels[2,1] <-"2way"
-meanTModels[2,2] <- "Year*Realm*relDeltaTmean"
-meanTModels[2,3] <-summary(inlaFmeanT1)$dic$dic
-meanTModels[2,4] <-summary(inlaFmeanT1)$waic$waic
-
-
-inlaFmeanT2<- inla(log10(Number+1) ~ relDeltaTmean +   cYear* Realm   +
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
-                   data=completeData, verbose = F, num.threads = 2)
-
-meanTModels[3,1] <-"additive"
-meanTModels[3,2] <- "relDeltaTmean+cYear*Realm "
-meanTModels[3,3] <-summary(inlaFmeanT2)$dic$dic
-meanTModels[3,4] <-summary(inlaFmeanT2)$waic$waic
-
-# dic and waic for simplest model
-meanTModels[4,1] <-"none"
-meanTModels[4,2] <- "Year* Realm "
-meanTModels[4,3] <-summary(inlaF)$dic$dic
-meanTModels[4,4] <-summary(inlaF)$waic$waic
-
-
-# there might be stng there
-
-#split terr and FW
-inlaFmeanTT<- inla(log10(Number+1) ~ cYear * relDeltaTmean    +
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
-                   data= subset(completeDataClim, Realm == "Terrestrial")   , 
+                   data=subset(completeData, !is.na(CHELSAmnC) ), 
                    verbose = F, num.threads = 2)
 
-inlaFmeanTT1<- inla(log10(Number+1) ~ cYear + relDeltaTmean    +
+CHELSAinlaFmeanTabs<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * CHELSAdeltaTmean  +
+                             f(Period_4INLA,model='iid')+
+                             f(Location_4INLA,model='iid')+
+                             f(Plot_ID_4INLA,model='iid')+
+                             f(Datasource_ID_4INLA,model='iid')+
+                             f(Plot_ID_4INLAR,iYear,model='iid')+
+                             f(Location_4INLAR,iYear,model='iid')                      +
+                             f(Datasource_ID_4INLAR,iYear,model='iid')+
+                             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                           control.compute = list(dic=TRUE,waic=TRUE),
+                           data=subset(completeData, !is.na(CHELSAmnC) ), 
+                           verbose = F, num.threads = 2)
+
+
+
+
+#split terr and FW
+CHELSAinlaFmeanTT<- inla(log10(Number+1) ~ cYear * CHELSArelDeltaTmean    +
+                     f(Period_4INLA,model='iid')+
+                     f(Location_4INLA,model='iid')+
+                     f(Plot_ID_4INLA,model='iid')+
+                     f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   control.compute = list(dic=TRUE,waic=TRUE),
+                   data= subset(completeData, Realm == "Terrestrial" & !is.na(CHELSAmnC))   , 
+                   verbose = F, num.threads = 2)
+
+
+
+CHELSAinlaFmeanTFW<- inla(log10(Number+1) ~ cYear * CHELSArelDeltaTmean    +
                       f(Period_4INLA,model='iid')+
                       f(Location_4INLA,model='iid')+
                       f(Plot_ID_4INLA,model='iid')+
@@ -1982,34 +1977,9 @@ inlaFmeanTT1<- inla(log10(Number+1) ~ cYear + relDeltaTmean    +
                       f(Datasource_ID_4INLAR,iYear,model='iid')+
                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                     control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeDataClim, Realm == "Terrestrial")   , 
+                    data= subset(completeData, Realm == "Freshwater" & !is.na(CHELSAmnC))   , 
                     verbose = F, num.threads = 2)
 
-inlaFmeanTFW<- inla(log10(Number+1) ~ cYear * relDeltaTmean    +
-                      f(Period_4INLA,model='iid')+
-                      f(Location_4INLA,model='iid')+
-                      f(Plot_ID_4INLA,model='iid')+
-                      f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Location_4INLAR,iYear,model='iid')                      +
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                    control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeDataClim, Realm == "Freshwater")   , 
-                    verbose = F, num.threads = 2)
-
-inlaFmeanTFW1<- inla(log10(Number+1) ~ cYear + relDeltaTmean    +
-                       f(Period_4INLA,model='iid')+
-                       f(Location_4INLA,model='iid')+
-                       f(Plot_ID_4INLA,model='iid')+
-                       f(Datasource_ID_4INLA,model='iid')+
-                       f(Plot_ID_4INLAR,iYear,model='iid')+
-                       f(Location_4INLAR,iYear,model='iid')                      +
-                       f(Datasource_ID_4INLAR,iYear,model='iid')+
-                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                     control.compute = list(dic=TRUE,waic=TRUE),
-                     data= subset(completeDataClim, Realm == "Freshwater")   , 
-                     verbose = F, num.threads = 2)
 
 
 
@@ -2021,15 +1991,9 @@ inlaFmeanTFW1<- inla(log10(Number+1) ~ cYear + relDeltaTmean    +
 
 ##############################################################################################
 # precipitation #####
-load("PrecSlopes.RData")
-completeDataClimPrec<- merge(completeDataClim, PrecSlopes, by = "Plot_ID")
-dim(completeDataClimPrec) # lost a bit there
-unique(completeDataClim$Plot_ID)[! unique(completeDataClim$Plot_ID) %in% unique(completeDataClimPrec$Plot_ID)]
-save(completeDataClimPrec, file = "completeDataClimPrec.RData")
-# old plots and israel are missing 
 
 
-inlaFmeanP<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaPrec +
+CHELSAinlaFPrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * CHELSArelDeltaPrec +
                     f(Period_4INLA,model='iid')+
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
@@ -2039,35 +2003,54 @@ inlaFmeanP<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaPrec
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
-                  data=completeDataClimPrec, verbose = F, num.threads = 2)
-save(inlaFmeanP, file = "inlaFmeanP.RData")
+                  data=subset(completeData, !is.na(CHELSAmnC) ),
+                  verbose = F, num.threads = 2)
+save(CHELSAinlaFPrel, file = "CHELSAinlaFPrel.RData")
 
-inlaFmeanP1<- inla(log10(Number+1) ~ cYear * Realm +  cYear* relDeltaPrec  +
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
-                   data=completeDataClimPrec, verbose = F, num.threads = 2)
-save(inlaFmeanP1, file = "inlaFmeanP1.RData")
 
-inlaFmeanP2<- inla(log10(Number+1) ~ cYear * Realm +  relDeltaPrec  +
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
-                   data=completeDataClimPrec, verbose = F, num.threads = 2)
-save(inlaFmeanP2, file = "inlaFmeanP2.RData")
+CHELSAinlaFPabs<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * CHELSAdeltaPrec +
+                             f(Period_4INLA,model='iid')+
+                             f(Location_4INLA,model='iid')+
+                             f(Plot_ID_4INLA,model='iid')+
+                             f(Datasource_ID_4INLA,model='iid')+
+                             f(Plot_ID_4INLAR,iYear,model='iid')+
+                             f(Location_4INLAR,iYear,model='iid')                      +
+                             f(Datasource_ID_4INLAR,iYear,model='iid')+
+                             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                           control.compute = list(dic=TRUE,waic=TRUE),
+                           data=subset(completeData, !is.na(CHELSAmnC) ),
+                           verbose = F, num.threads = 2)
+save(CHELSAinlaFPabs, file = "CHELSAinlaFPabs.RData")
 
+
+
+CHELSAinlaFPrelTerr<- inla(log10(Number+1) ~  cYear*  CHELSArelDeltaPrec +
+                         f(Period_4INLA,model='iid')+
+                         f(Location_4INLA,model='iid')+
+                         f(Plot_ID_4INLA,model='iid')+
+                         f(Datasource_ID_4INLA,model='iid')+
+                         f(Plot_ID_4INLAR,iYear,model='iid')+
+                         f(Location_4INLAR,iYear,model='iid')                      +
+                         f(Datasource_ID_4INLAR,iYear,model='iid')+
+                         f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                       control.compute = list(dic=TRUE,waic=TRUE),
+                       data=subset(Realm == "Terrestrial" & completeData, !is.na(CHELSAmnC) ),
+                       verbose = F, num.threads = 2)
+save(CHELSAinlaFPrelTerr, file = "CHELSAinlaFPrelTerr.RData")
+
+CHELSAinlaFPrelFW<- inla(log10(Number+1) ~  cYear*  CHELSArelDeltaPrec +
+                             f(Period_4INLA,model='iid')+
+                             f(Location_4INLA,model='iid')+
+                             f(Plot_ID_4INLA,model='iid')+
+                             f(Datasource_ID_4INLA,model='iid')+
+                             f(Plot_ID_4INLAR,iYear,model='iid')+
+                             f(Location_4INLAR,iYear,model='iid')                      +
+                             f(Datasource_ID_4INLAR,iYear,model='iid')+
+                             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                           control.compute = list(dic=TRUE,waic=TRUE),
+                           data=subset(Realm == "Freshwater" & completeData, !is.na(CHELSAmnC) ),
+                           verbose = F, num.threads = 2)
+save(CHELSAinlaFPrelFW, file = "CHELSAinlaFPrelFW.RData")
 
 
 
