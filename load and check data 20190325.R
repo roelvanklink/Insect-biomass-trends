@@ -901,7 +901,7 @@ load("CHELSAPrecSlopes.Rdata")
 CHELSA<- merge(CHELSATmeanSlopes[, c(1:3, 8,9) ], CHELSAPrecSlopes[, c(1:2, 7,8) ])
 dim(CHELSA)
 head(CHELSA)
-completeData <- merge(completeData, CHELSATmeanSlopes, all.x = T)
+completeData <- merge(completeData, CHELSA, all.x = T)
 
 
 
