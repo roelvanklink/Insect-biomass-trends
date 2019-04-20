@@ -843,7 +843,7 @@ PA<- read.csv("ProtectedAreasEdited.csv", header = T)
 
 dim(PA)
 dim(completeData)
-completeData<- merge(completeData, PA[, c("NAME", "ORIG_NAME", "DESIG_ENG", "REP_AREA",  "GIS_AREA", "Plot_ID", "PA")], by = "Plot_ID")
+completeData<- merge(completeData, PA[, c("NAME", "ORIG_NAME", "DESIG_ENG", "STATUS_YR", "REP_AREA",  "GIS_AREA", "Plot_ID", "PA")], by = "Plot_ID")
 completeDataArth<- merge(completeDataArth, PA[, c("NAME", "ORIG_NAME", "DESIG_ENG", "REP_AREA",  "GIS_AREA", "Plot_ID", "PA")], by = "Plot_ID")
 
 dim(completeData)
@@ -975,7 +975,9 @@ metadata_per_plot<- completeData %>%
     NUMBER_OF_YEARS = length(unique(Year)),
     #NUMBER_OF_TAXA = length(unique(Taxon)),
     TOTAL_N = sum(Number, na.rm = T),
-    PA = unique(PA)
+    PA = unique(PA), 
+PAname = unique(NAME),    
+PAsince = unique(STATUS_YR)
   )
 metadata_per_plot <- merge(metadata_per_plot, plots[, c(1, 7,8,9,10, 16,17, 18)]   , by = "Plot_ID")
 save(metadata_per_plot, file = "metadata_per_plot.RData")
