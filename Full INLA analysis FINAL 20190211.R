@@ -81,7 +81,7 @@ inla1.4RS <- inla(log10(Number+1) ~ cYear+
                   control.compute = list(dic=TRUE,waic=TRUE), verbose = T,
                   data=completeData); beep(2)
 save("inla1.4RS.RData")
-
+# breaks down also on cluster
 
 #load outputs of the 3 models: 
 load("~/inla1.datasetRS.RData")
@@ -321,6 +321,8 @@ sum(metadata_per_dataset$Realm == "Freshwater") # 57
 sum(metadata_per_plot$Realm == "Terrestrial") # 1000
 sum(metadata_per_plot$Realm == "Freshwater") # 533
 
+# percentage plots in protected Areas
+sum(metadata_per_plot$PA == "yes")/nrow(metadata_per_plot)
 
 # of full dataset
 median(completeData$Year ) #2002 median year of all data
@@ -369,6 +371,7 @@ summary(inlaF)
    CI97.5 = c((10^(inlaF$summary.fixed  [3:4,5] )-1 ) *100, (10^(inlaF$summary.fixed  [3:4,5] *10)-1)  *100)# 0.975
    )
 
+ (10^(inlaF$summary.fixed  [4,1] *50)-1)  *100 # -33% in 50 years in terrestrial 
 
 
 
@@ -578,6 +581,7 @@ metadata_region<-  completeData %>%
   summarise(
     Datasources = length(unique(Datasource_ID)),
     Plots =  length(unique(Plot_ID)),
+    Protected = dim((unique(Plot_ID, PA)))[2],
     Start_year = min(Year, na.rm = T),
     End_year = max(Year, na.rm = T)) 
 print(metadata_region, n = Inf)
@@ -722,6 +726,7 @@ tauDatasource <-inlaF$marginals.hyperpar$`Precision for Datasource_ID_4INLA`
 tauPeriod <-inlaF$marginals.hyperpar$`Precision for Period_4INLA`
 tauLocation <-inlaF$marginals.hyperpar$`Precision for Location_4INLA`
 tauPlotR <-inlaF$marginals.hyperpar$`Precision for Plot_ID_4INLAR`
+tauLocationR<-inlaF$marginals.hyperpar$`Precision for Location_4INLAR`
 tauDatasourceR <-inlaF$marginals.hyperpar$`Precision for Datasource_ID_4INLAR`
 
 #convert to standard deviations
@@ -731,9 +736,16 @@ sigmaDatasource <- inla.emarginal(myfun,tauDatasource)
 sigmaPeriod <- inla.emarginal(myfun,tauPeriod)
 sigmaLocation <- inla.emarginal(myfun,tauLocation)
 sigmaPlotR <- inla.emarginal(myfun,tauPlotR)
+sigmaLocationR <- inla.emarginal(myfun,tauLocationR)
 sigmaDatasourceR <- inla.emarginal(myfun,tauDatasourceR)
 
-sigmaPlot;sigmaDatasource;sigmaLocation;sigmaPeriod;sigmaPlotR;sigmaDatasourceR
+data.frame(Plot_intercept = sigmaPlot, 
+           Dataset_intercept = sigmaDatasource,
+           Location_intercept = sigmaLocation,
+           Period_intercept = sigmaPeriod,
+           Site_slope = sigmaPlotR,
+           Location_slope = sigmaLocationR,
+           Dataset_slope = sigmaDatasourceR)
 
 
 
@@ -869,15 +881,14 @@ ggplot(windowFits10)+
 
 #################################################################################################
 # Random walk model #####
-completeData4RW<- completeData
-completeData4RW$Terrestrial<- as.numeric(completeData4RW$Realm == "Terrestrial")
-completeData4RW$Freshwater<- as.numeric(completeData4RW$Realm == "Freshwater")
-completeData4RW$iYear2<- completeData4RW$iYear
-completeData4RW$iYear3<- completeData4RW$iYear
-completeData4RW$iYear4<- completeData4RW$iYear
-completeData4RW$iYear5<- completeData4RW$iYear
-completeData4RW$iYear6<- completeData4RW$iYear
-
+compDat4RW<- completeData
+compDat4RW$Terrestrial<- as.numeric(compDat4RW$Realm == "Terrestrial")
+compDat4RW$Freshwater<- as.numeric(compDat4RW$Realm == "Freshwater")
+compDat4RW$iYear2<- compDat4RW$iYear
+compDat4RW$iYear3<- compDat4RW$iYear
+compDat4RW$iYear4<- compDat4RW$iYear
+compDat4RW$iYear5<- compDat4RW$iYear
+compDat4RW$iYear6<- compDat4RW$iYear
 
 
 inlaRW <- inla( log10(Number+1) ~ Realm +
@@ -886,11 +897,10 @@ inlaRW <- inla( log10(Number+1) ~ Realm +
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID,model='iid')+
-                    f(Period_4INLA,model='iid') +
-                  , 
+                    f(Period_4INLA,model='iid') , 
                 control.compute = list(dic=TRUE,waic=TRUE),     
-  data=completeData4RW)
-
+                data=compDat4RW)
+save(inlaRW, file =  "E:/inlaRW.RData")
 # check what this does 
 inlaRW2 <- inla( log10(Number+1) ~ Realm +
                    f(iYear, Terrestrial, model='rw1') +
@@ -903,11 +913,13 @@ inlaRW2 <- inla( log10(Number+1) ~ Realm +
                    f(Plot_ID_4INLAR,iYear3,model='iid')+
                    f(Location_4INLAR,iYear4,model='iid')                      +
                    f(Datasource_ID_4INLAR,iYear5,model='iid'),
-                 #                  f(iYear6,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 # f(iYear6,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                  
                  control.compute = list(dic=TRUE,waic=TRUE),     
-                 data=completeData4RW)
+                 data=compDat4RW)
 
+
+# exaclty the same
 rwTerr<- inlaRW$summary.random$iYear
 rwFW  <- inlaRW$summary.random$iYear2
 
@@ -952,49 +964,60 @@ p+
 
 
 
-#random fits per continent 
+#random fits per continent #####
+compDat4RW<- completeData
+compDat4RW$EuropeTerr<- as.numeric(compDat4RW$Continent == "Europe" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$EuropeFw<-   as.numeric(compDat4RW$Continent == "Europe" & compDat4RW$Realm == "Freshwater")
+compDat4RW$NATerr<- as.numeric(compDat4RW$Continent == "North America" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$NAFw<-   as.numeric(compDat4RW$Continent == "North America" & compDat4RW$Realm == "Freshwater")
+compDat4RW$AsiaTerr<- as.numeric(compDat4RW$Continent == "Asia" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$AsiaFw<-   as.numeric(compDat4RW$Continent == "Asia" & compDat4RW$Realm == "Freshwater")
+compDat4RW$LATerr<- as.numeric(compDat4RW$Continent == "Latin America" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$LAFw<-   as.numeric(compDat4RW$Continent == "Latin America" & compDat4RW$Realm == "Freshwater")
+compDat4RW$AusTerr<- as.numeric(compDat4RW$Continent == "Australia" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$AusFw<-   as.numeric(compDat4RW$Continent == "Australia" & compDat4RW$Realm == "Freshwater")
+compDat4RW$AfricaTerr<- as.numeric(compDat4RW$Continent == "Africa" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$AfricaFw<-   as.numeric(compDat4RW$Continent == "Africa" & compDat4RW$Realm == "Freshwater")
 
-randomFitsCont <- ddply(subset(completeData,Year>1960 & Year < 2016 ),.
-                    (Realm, Continent),
-                    function(myData){
-                    
-                      
-                      #write model formula
-                       #basic model 
-                      formula="log10(Number+1)~f(iYear,model='rw1') + f(Datasource_ID_4INLAR,iYear,model='iid')"#  random slope at dataset level
-                      # f(Datasource_ID_4INLA,model='iid')"
-                      
-                      #add period effect if multiple periods
-                      if(length(unique(myData$Period))>1){
-                        formula=paste(formula,"f(Period_4INLA,model='iid')",sep="+") # only random int
-                      }
-                      
-                      # add a layer for location s
-                      if(length(unique(myData$Location))>1){
-                        formula=paste(formula,"f(Location_4INLA,model='iid')",sep="+") # only random int
-                      }
-                      
-                      
-                      #add plot effect if multiple plots
-                      if(length(unique(myData$Plot_ID))>1){
-                        formula=paste(formula,"f(Plot_ID,model='iid')",sep="+")   #+
-                            #          f(Plot_ID_4INLAR,iYear,model='iid')  # here slope at plot level 
-                      }
-                      
-                      #fit model
-                      inla1 <- inla(as.formula(formula),data=myData)
-                      
-                      #return model summary
-                      return(data.frame(
-                        Year=sort(unique(myData$Year)),
-                        RW=inla1$summary.random$iYear,
-                        RW.mean.sc = inla1$summary.random$iYear$mean - inla1$summary.random$iYear$mean[1] , 
-                        RW.0.025quant.sc = inla1$summary.random$iYear$`0.025quant`- inla1$summary.random$iYear$mean[1], 
-                        RW.0.975quant.sc = inla1$summary.random$iYear$`0.975quant`- inla1$summary.random$iYear$mean[1] 
-                        
-                      ))
-                      
-                    }); beep(1)
+compDat4RW$iYear2<- compDat4RW$iYear
+compDat4RW$iYear3<- compDat4RW$iYear
+compDat4RW$iYear4<- compDat4RW$iYear
+compDat4RW$iYear5<- compDat4RW$iYear
+compDat4RW$iYear6<- compDat4RW$iYear
+compDat4RW$iYear7<- compDat4RW$iYear
+compDat4RW$iYear8<- compDat4RW$iYear
+compDat4RW$iYear9<- compDat4RW$iYear
+compDat4RW$iYear10<- compDat4RW$iYear
+compDat4RW$iYear11<- compDat4RW$iYear
+compDat4RW$iYear12<- compDat4RW$iYear
+
+
+inlaRWcont <- inla( log10(Number+1) ~ Realm +
+                  f(iYear,  EuropeTerr   , model='rw1') +
+                  f(iYear2, EuropeFw     , model='rw1') +
+                  f(iYear3, NATerr, model='rw1') +
+                  f(iYear4, NAFw, model='rw1') +
+                  f(iYear5, AsiaTerr, model='rw1') +
+                  f(iYear6, AsiaFw, model='rw1') +
+                  f(iYear7, LATerr, model='rw1') +
+                  f(iYear8, LAFw, model='rw1') +
+                  f(iYear9, AusTerr, model='rw1') +
+                  f(iYear10, AusFw, model='rw1') +
+                  f(iYear11, AfricaTerr, model='rw1') +
+                  f(iYear12, AfricaFw, model='rw1') +
+                  
+                  f(Datasource_ID_4INLAR,iYear,model='iid')+
+                  f(Location_4INLA,model='iid')+
+                  f(Plot_ID,model='iid')+
+                  f(Period_4INLA,model='iid') , 
+                control.compute = list(dic=TRUE,waic=TRUE),     
+                data=compDat4RW)
+
+save(inlaRWcont, file = "inlaRWcont.RData")
+# only from 1960?
+
+
+
 
 randomFitsCont$Continent<- ordered(randomFitsCont$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
 
@@ -1019,6 +1042,17 @@ ggplot(randomFitsCont)+
 # DRiveRS #####
 
 # protected areas #####
+# how many pa's changes status during the sampling period? and how many have missing data?
+dim(subset(metadata_per_plot, PA == "yes"))
+subset(metadata_per_plot, PAsince == 0) # 14, incl a couple that will be hard to find have mostly been fixed
+subset(metadata_per_plot, PA == "yes" & is.na(PAsince)) # have been fixed
+
+subset(metadata_per_plot, PAsince > Start_year & PAsince < End_year)[, c("Plot_ID", "Datasource_ID"  , 
+                                     "Datasource_name",  "Duration", "Start_year", "End_year", "PAsince", "PAname")]
+# 143 sites chenged protection status in sapling period
+subset(metadata_per_plot, PAsince > End_year) [, c("Plot_ID", "Datasource_ID"  , 
+                                                                         "Datasource_name",  "Duration", "Start_year", "End_year", "PAsince", "PAname")]
+# 63 attained status after sampling period
 metadata_pa<-  completeData %>% 
   group_by( Realm,PA) %>%
   summarise(
@@ -1100,7 +1134,7 @@ inlaFpaIntTemp <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                        control.compute = list(dic=TRUE,waic=TRUE),
                        data=completeDataTemp, verbose = T, num.threads = 2)
-
+load("/data/Roel/inlaFpaIntTemp.RData")
 
 
 
@@ -1741,7 +1775,7 @@ load("CRUtpSlopes.RData")
 RandEfPlot <- merge(metadata_per_plot, RandEfPlot )
 CCplots<- merge(RandEfPlot, CRUtpSlopes)
 # absolute change in T
-inlaFcruT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * deltaTmean  +
+inlaFcruT<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * deltaTmean  + 
                     f(Period_4INLA,model='iid')+
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
@@ -1765,7 +1799,7 @@ TmeanPlot<- ggplot(CCplots, aes(x=deltaTmean, y = slope))+  #`Plot_slp_ mean`
 
 
 
-inlaFcruTrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  +
+inlaFcruTrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaTmean  + cYear* Realm * relDeltaPrec
                    f(Period_4INLA,model='iid')+
                    f(Location_4INLA,model='iid')+
                    f(Plot_ID_4INLA,model='iid')+
