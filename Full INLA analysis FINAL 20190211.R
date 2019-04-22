@@ -17,6 +17,7 @@ load("completeDataArth.RData")
 load("completeDataClim.RData")
 load("completeDataClimPrec.RData")
 load("E:/inla1.RData")
+load("all.results.RData")
 #completeData$Stratum[completeData$Stratum == "air"]<-"Air"
 #completeData$Stratum[completeData$Plot_ID == 930 ]<- "Soil surface"
 
@@ -33,6 +34,11 @@ col.scheme.strat<-c( "Air" = "peru", "Herb layer" = "peru", "Soil surface" = "pe
                      "Underground" = "peru"  ,"Water" = "dodgerblue2")
 col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "brown")
 col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "white")
+
+
+
+
+
 # 1) select most appropriate model
 
 #Decision 1: which random slopes to include?
@@ -143,6 +149,7 @@ inla1 <- inla(log10(Number+1) ~ cYear +
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData) # has lower WAIC and DIC than inlaF2
 save(inla1, file = "/data/Roel/inla1.RData")
+all.results<- c(all.results, Empty_model_inla1 =  list(inla1$summary.fixed))
 
 
 # Check for confounding factors####
@@ -157,9 +164,15 @@ inla1.1 <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration + cYear:C
                    f(Datasource_ID_4INLAR,iYear,model='iid')+
                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
-              data=completeData) # has lower WAIC and DIC than inlaF2
+              data=completeData) # 
+# not working 
 save(inla1.1, file = "/data/Roel/inla1.1.RData")
+load("H:/inla1.1.1.RData")
+load("H:/inla1.1.2.RData")
 
+
+all.results<-c(all.results, confoundersStartYear = list(inla1.1.1$summary.fixed))
+all.results<-c(all.results, confoundersDuration = list(inla1.1.2$summary.fixed))
 
 
 
@@ -362,6 +375,8 @@ inlaF <- inla(log10(Number+1) ~ cYear:Realm+ Realm +
 
 load("E:/inlaF.RData")
 
+all.results<-c(all.results, Realm_model_InlaF =list(inlaF$summary.fixed))
+
 summary(inlaF)
 # percentage change per year and per decade
  data.frame(
@@ -412,6 +427,8 @@ inlaFstrat <- inla(log10(Number+1) ~ cYear:Stratum + Stratum +
                    data=completeData)
 
 load("E:/inlaFstrat.RData")
+all.results<-c(all.results, Strata_model = list(inlaFstrat$summary.fixed))
+
 stratSlope<- inlaFstrat$summary.fixed[9:14,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(stratSlope), split = ":")))
 stratSlope<-cbind(stratSlope, vars)
@@ -454,6 +471,9 @@ inlaFcont <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent +
                   data=completeData)
 
 load("E:/inlaFcont.RData")
+all.results<-c(all.results, Continents_model = list(inlaFcont$summary.fixed))
+
+
 metadata_cont<-  completeData %>% 
   group_by(Continent, Realm) %>%
   summarise(
@@ -947,10 +967,6 @@ ggplot(RW )+
 
 # plot on top of lines: 
 
-# first make script to get predicted lines
-load("RandEfDataset.RData")
-
-
 
 p<-ggplot(data = completeData, aes(x= Year, y=(Number+1))) + 
   scale_y_log10() +  
@@ -1014,26 +1030,50 @@ inlaRWcont <- inla( log10(Number+1) ~ Realm +
                 data=compDat4RW)
 
 save(inlaRWcont, file = "inlaRWcont.RData")
-# only from 1960?
 
 
 
+# grab all year random effects and realm and continent into 1 df
+Year<-rep(1925:2018, 12)
+Continent <- rep(c("Europe", "North America", "Asia", "Latin America", "Australia", "Africa" ), each = 2*94)
+Realm <-  rep(c("Terrestrial", "Freshwater"), each = 94) 
+RWs<-rbind(inlaRWcont$summary.random$iYear, inlaRWcont$summary.random$iYear2, inlaRWcont$summary.random$iYear3, inlaRWcont$summary.random$iYear4, inlaRWcont$summary.random$iYear5,
+           inlaRWcont$summary.random$iYear6, inlaRWcont$summary.random$iYear7,inlaRWcont$summary.random$iYear8, inlaRWcont$summary.random$iYear9, inlaRWcont$summary.random$iYear10,
+           inlaRWcont$summary.random$iYear11, inlaRWcont$summary.random$iYear12)
+RWcont<-cbind(Year, Continent, Realm, RWs)
+RWcont$Continent<- ordered(RWcont$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
 
-randomFitsCont$Continent<- ordered(randomFitsCont$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
 
-save(randomFitsCont, file = "randomFitsCont.RData")
+metadata_cont<-  completeData %>% # get start and end years  
+  group_by(Continent, Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)),
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T)) 
+  metadata_cont$value_startYear<-NA
+for (i in 1: nrow(metadata_cont)){
+year  <-  metadata_cont$Start_year[i] 
+if(year <1960){year = 1960}
+      metadata_cont$value_startYear[i]<-
+    RWcont$mean[RWcont$Continent == as.character(metadata_cont$Continent[i]) &
+                RWcont$Realm ==  as.character(metadata_cont$Realm[i]) &
+                RWcont$Year ==  year ]
+  }
 
+RWcont<- merge(RWcont, metadata_cont)
+RWcont$goodData<- RWcont$Year >= RWcont$Start_year &RWcont$Year <= RWcont$End_year # only select years with actual data 
 
-ggplot(randomFitsCont)+
-  geom_line(aes(x=Year,y=RW.mean.sc, colour=Realm))+
+ggplot(subset(RWcont, goodData == T ))+
+  geom_line(aes(x=Year,y=mean - value_startYear, color = Realm ))+
   scale_colour_manual(values = col.scheme.realm)+
-  geom_ribbon(aes(x=Year, ymin = RW.0.025quant.sc,ymax = RW.0.975quant.sc, fill=Realm), alpha=0.5)+
+  geom_ribbon(aes(x=Year, ymin = `0.025quant`- value_startYear ,ymax = `0.975quant`- value_startYear, fill=Realm), alpha=0.5)+
   scale_fill_manual (values = col.scheme.realm)+
+  xlim (1960, 2018)+
   geom_hline(yintercept = 0, linetype="dashed") +  theme_bw()+
-  facet_wrap(~Continent)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-  labs(y = "Standardized insect abundance")
+  facet_wrap(~Continent )+ #, scales = "free"
+  labs(y = "Standardized insect abundance") +
+  theme_clean
 
 
 
