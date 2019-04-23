@@ -868,8 +868,12 @@ ggplot(subset(RWcont, goodData == T ))+
   geom_hline(yintercept = 0, linetype="dashed") +  theme_bw()+
   facet_wrap(~Continent )+ #, scales = "free"
   labs(y = "Standardized insect abundance") +
-  theme_clean
-
+  theme_clean +
+  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)+
+  theme(strip.background =element_rect(fill="white"), 
+        strip.text.x = element_text(angle = 0, hjust = 0), 
+        axis.text.x  = element_text(angle=45, vjust=1, hjust = 1))
 
 
 ## # # # # # # # # # # # # # # ########################################################################## # 
