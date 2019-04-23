@@ -28,9 +28,11 @@ theme_clean<- theme_grey() + theme(panel.grid.major = element_blank(),
 col.scheme.cont<-c( "Europe"="green3", "Latin America"= "magenta", "North America"= "orange","Asia" = "purple3", 
                     "Africa" = "blue", "Australia" = "red")
 col.scheme.realm<-c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "peru")
+col.scheme.realm<- c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "chocolate4")  #coral4
+
 col.scheme.strat<-c( "Air" = "peru", "Herb layer" = "peru", "Soil surface" = "peru", "Trees" = "peru", 
                      "Underground" = "peru"  ,"Water" = "dodgerblue2")
-col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "brown")
+col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "")
 col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "white")
 
 
@@ -488,22 +490,30 @@ contSlope<- merge(contSlope, metadata_cont)
 contSlope$text = paste0("(", contSlope$Datasources, " | ", contSlope$Plots, ")")
 contSlope$Continent<- ordered(contSlope$Continent, levels = rev(c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" )))
 
+# link % change to slope in log space
+brks<- c(-0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04)
+perc<-(10^(brks )  *100) - 100
+l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
+e<- c("","","","","","","")
 
-
-ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude africa,bc it has too wide CI's 
+contPlot<- ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude africa,bc it has too wide CI's 
   geom_crossbar(aes(x=Continent,   y=mean, fill = Realm, 
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
   geom_hline(yintercept=0,linetype="dashed") +
-  xlab ("")+ ylab("Trend slope")+
-  geom_text(aes(x = Continent , y = 0.028, label = text, fill = Realm),  
-            position = position_dodge(width = 1), size = 3, color = 1) +
+  geom_text(aes(x = Continent , y = 0.032, label = text, fill = Realm),  
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
     coord_flip()+
-  scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
-ylim(-0.025, 0.03)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-theme(legend.key=element_blank())
+  scale_y_continuous(breaks = brks,labels = e, limits=c(-0.028,0.036))+
+  #ylim(-0.028,0.036)+
+  xlab ("")+ ylab("")+ #Trend slope | \n % change per year
+  theme_clean +
+theme(legend.key=element_blank(),
+      legend.position='none', 
+      axis.text.x=element_blank()) +
+  geom_text(aes(x = 5.3 , y = -0.025, label = "A"),  
+            size = 6, color = 1) 
+
   
 
 
@@ -560,7 +570,7 @@ ggplot(data.frame(subset(regionSlope, ok >0 )))+ # only use >20plots or >4 datas
   geom_hline(yintercept=0,linetype="dashed") +
   xlab ("")+ ylab("Trend slope")+
   geom_text(aes(x = Region , y = 0.05, label = text, fill = Realm),  
-            position = position_dodge(width = 1), size = 3, color = 1) +
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
   coord_flip()+
  # scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
  # ylim(-0.025, 0.03)+
@@ -587,6 +597,7 @@ inlaFbiom <- inla(log10(Number+1) ~ cYear: Realm:BiomeCoarse + Realm + BiomeCoar
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData)
 all.results<-c(all.results, Biome_model = list(inlaFbiom$summary.fixed))
+load("E:/inlaFbiom.RData")
 
 metadata_biom<-  completeData %>% 
   group_by(BiomeCoarse, Realm) %>%
@@ -599,7 +610,6 @@ metadata_biom
 
 
 
-load("E:/inlaFbiom.RData")
 biomSlope<- inlaFbiom$summary.fixed[6:13,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(biomSlope), split = ":")))
 biomSlope<-cbind(biomSlope, vars)
@@ -610,21 +620,32 @@ biomSlope$text = paste0("(", biomSlope$Datasources, " | ", biomSlope$Plots, ") "
 
 biomSlope$Biome<- ordered(biomSlope$Biome, levels = rev(c("Boreal/Alpine", "Temperate" , "Drylands", "Tropical"  )))
 
+brks<- c(-0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04)
+perc<-(10^(brks )  *100) - 100
+l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 
-ggplot(data.frame(biomSlope))+
+
+biomPlot<- ggplot(data.frame(biomSlope))+
   geom_crossbar(aes(x=Biome,   y=mean, fill = Realm,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
-    xlab ("")+ ylab ("Trend slope")+geom_hline(yintercept=0,linetype="dashed")+
+  geom_hline(yintercept=0,linetype="dashed") +
+  geom_text(aes(x = Biome , y = 0.032, label = text, fill = Realm),  
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
   coord_flip()+
-  scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
-  ylim(-0.03, 0.032)+  
-  geom_text(aes(x = Biome , y = 0.027, fill = Realm,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black") , 
-        legend.key=element_blank())
+  #ylim(-0.025, 0.035)+
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.028,0.036))+
+  xlab ("")+ ylab("Trend slope  \n % change per year")+
+  theme_clean +
+  theme(legend.key=element_blank(), 
+        legend.position="bottom")  + 
+  geom_text(aes(x = 4.3 , y = -0.025, label = "B"),  
+          size = 6, color = 1) 
+  
 
 
+library(gridExtra)
+grid.arrange(contPlot, biomPlot, nrow = 2, heights = c(4,5) )
 
 
 
@@ -806,7 +827,7 @@ inlaRWcont <- inla( log10(Number+1) ~ Realm +
 save(inlaRWcont, file = "inlaRWcont.RData")
 
 
-
+load("E:/inlaRWcont.RData")
 # grab all year random effects and realm and continent into 1 df
 Year<-rep(1925:2018, 12)
 Continent <- rep(c("Europe", "North America", "Asia", "Latin America", "Australia", "Africa" ), each = 2*94)
@@ -989,11 +1010,8 @@ inlaFpaSize1 <- inla(log10(Number+1) ~ cYear* log10(REP_AREA)  + log10(REP_AREA)
 #  LAND USE  #####
 
 #  USing LUH2: cover of Urban and cropland in the surrounding of the sites
-# resolution : ???
+# resolution : 25km
 
-
-#land-use model:
-#log(Number+1)~Year*Driver + Year*Realm 
 
 # How are the values distributed?
 plotData<-unique(completeData[, c( "Plot_ID", "Realm", "Continent", "Datasource_ID", "Stratum", "Location",            
@@ -1170,7 +1188,7 @@ load("percCover900m.RData")
 landusePlots900<- merge(RandEfPlot,  percCover900m )
 landusePlots900<- merge(landusePlots900, metadata_per_plot)
 
-inlaFcropESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m + 
+inlaFlanduseESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m + cYear* Realm* frcUrban900m +
                       f(Period_4INLA,model='iid')+
                       f(Location_4INLA,model='iid')+
                       f(Plot_ID_4INLA,model='iid')+
@@ -1182,7 +1200,37 @@ inlaFcropESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m +
                     control.compute = list(dic=TRUE,waic=TRUE),
                     data= subset(completeData, !is.na(completeData$frcCrop900m)), 
                     num.threads = 2)#verbose = T,
+save(inlaFlanduseESA, file = "/data/Roel/inlaFlanduseESA.RData")
 
+inlaFlanduseESAterr<- inla(log10(Number+1) ~  cYear* frcCrop900m + cYear* frcUrban900m
+                           f(Period_4INLA,model='iid')+
+                             f(Location_4INLA,model='iid')+
+                             f(Plot_ID_4INLA,model='iid')+
+                             f(Datasource_ID_4INLA,model='iid')+
+                             f(Plot_ID_4INLAR,iYear,model='iid')+
+                             f(Location_4INLAR,iYear,model='iid')                      +
+                             f(Datasource_ID_4INLAR,iYear,model='iid')+
+                             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                           control.compute = list(dic=TRUE,waic=TRUE),
+                           data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Terrestrial"), 
+                           num.threads = 2)#verbose = T,
+save(inlaFlanduseESAterr, file = "/data/Roel/inlaFlanduseESAterr.RData")
+
+inlaFlanduseESAfw<- inla(log10(Number+1) ~   cYear* frcCrop900m + cYear* frcUrban900m
+                         f(Period_4INLA,model='iid')+
+                           f(Location_4INLA,model='iid')+
+                           f(Plot_ID_4INLA,model='iid')+
+                           f(Datasource_ID_4INLA,model='iid')+
+                           f(Plot_ID_4INLAR,iYear,model='iid')+
+                           f(Location_4INLAR,iYear,model='iid')                      +
+                           f(Datasource_ID_4INLAR,iYear,model='iid')+
+                           f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                         control.compute = list(dic=TRUE,waic=TRUE),
+                         data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Freshwater"), 
+                         num.threads = 2)#verbose = T,
+save(inlaFlanduseESAfw, file = "/data/Roel/inlaFlanduseESAfw.RData")
+
+#plots
 crop900mPlot<- ggplot(landusePlots900, aes(x=frcCrop900m*100, y = slope))+  #`Plot_slp_ mean`
   geom_point (aes(color = Realm) )+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
@@ -1191,49 +1239,6 @@ crop900mPlot<- ggplot(landusePlots900, aes(x=frcCrop900m*100, y = slope))+  #`Pl
   ylim(-0.04, 0.03)+
   facet_wrap(~Realm , scales = "free") +
   theme_clean 
-
-
-inlaFcropESAterr<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop900m
-                      f(Period_4INLA,model='iid')+
-                      f(Location_4INLA,model='iid')+
-                      f(Plot_ID_4INLA,model='iid')+
-                      f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Location_4INLAR,iYear,model='iid')                      +
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                    control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Terrestrial"), 
-                    num.threads = 2)#verbose = T,
-
-inlaFcropESAfw<- inla(log10(Number+1) ~  cYear+ frcCrop900m + cYear: frcCrop900m
-                      f(Period_4INLA,model='iid')+
-                      f(Location_4INLA,model='iid')+
-                      f(Plot_ID_4INLA,model='iid')+
-                      f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Location_4INLAR,iYear,model='iid')                      +
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                    control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Freshwater"), 
-                    num.threads = 2)#verbose = T,
-
-
-
-
-inlaFurbanESA<- inla(log10(Number+1) ~  cYear* Realm* frcUrban900m + 
-                      f(Period_4INLA,model='iid')+
-                      f(Location_4INLA,model='iid')+
-                      f(Plot_ID_4INLA,model='iid')+
-                      f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Location_4INLAR,iYear,model='iid')                      +
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                    control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeData, !is.na(completeData$frcCrop900m)), 
-                    num.threads = 2)#verbose = T,
 
 urban900mPlot<- ggplot(landusePlots900, aes(x=frcUrban900m*100, y = slope))+  #`Plot_slp_ mean`
   geom_point (aes(color = Realm) )+
@@ -1244,40 +1249,17 @@ urban900mPlot<- ggplot(landusePlots900, aes(x=frcUrban900m*100, y = slope))+  #`
   facet_wrap(~Realm , scales = "free") +
   theme_clean 
 
-
-
-inlaFurbanESAterr<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
-                        f(Period_4INLA,model='iid')+
-                          f(Location_4INLA,model='iid')+
-                          f(Plot_ID_4INLA,model='iid')+
-                          f(Datasource_ID_4INLA,model='iid')+
-                          f(Plot_ID_4INLAR,iYear,model='iid')+
-                          f(Location_4INLAR,iYear,model='iid')                      +
-                          f(Datasource_ID_4INLAR,iYear,model='iid')+
-                          f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                        control.compute = list(dic=TRUE,waic=TRUE),
-                        data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Terrestrial"), 
-                        num.threads = 2)#verbose = T,
-
-inlaFurbanESAfw<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
-                      f(Period_4INLA,model='iid')+
-                        f(Location_4INLA,model='iid')+
-                        f(Plot_ID_4INLA,model='iid')+
-                        f(Datasource_ID_4INLA,model='iid')+
-                        f(Plot_ID_4INLAR,iYear,model='iid')+
-                        f(Location_4INLAR,iYear,model='iid')                      +
-                        f(Datasource_ID_4INLAR,iYear,model='iid')+
-                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                      control.compute = list(dic=TRUE,waic=TRUE),
-                      data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Freshwater"), 
-                      num.threads = 2)#verbose = T,
-
-
 library(gridExtra)
 grid.arrange(urbanizationPlot, cropificationPlot, 
              urbanPlot,cropPlot, 
              urban900mPlot, crop900mPlot,
              nrow = 3)
+
+
+
+
+
+
 
 
 
@@ -1328,6 +1310,39 @@ save(inlaFClimChangesFW, file = "/data/Roel/inlaFClimChangesFW.RData")
 load("E:/inlaFClimChangesFW.RData")
 all.results<-c(all.results, relClimate_Change_CRU_FW = list(inlaFClimChangesFW$summary.fixed)) # save fixed effects
 
+
+inlaFClimChangesTerrABS<- inla(log10(Number+1) ~ cYear + cYear *  DeltaTmean + cYear * DeltaPrec +# cYear*PA +
+                              f(Period_4INLA,model='iid')+
+                              f(Location_4INLA,model='iid')+
+                              f(Plot_ID_4INLA,model='iid')+
+                              f(Datasource_ID_4INLA,model='iid')+
+                              f(Plot_ID_4INLAR,iYear,model='iid')+
+                              f(Location_4INLAR,iYear,model='iid')                      +
+                              f(Datasource_ID_4INLAR,iYear,model='iid')+
+                              f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                            control.compute = list(dic=TRUE,waic=TRUE),
+                            control.inla = list(tolerance = 1e-10),
+                            data=subset(completeData, Realm == "Terrestrial"), verbose = T, num.threads = 2)
+save(inlaFClimChangesTerrABS, file = "/data/Roel/inlaFClimChangesTerrABS.RData")
+load("E:/inlaFClimChangesTerrABS.RData")
+all.results<-c(all.results, absClimate_Change_CRU_Terr = list(inlaFClimChangesTerrABS$summary.fixed)) # save fixed effects
+
+
+inlaFClimChangesFWabs<- inla(log10(Number+1) ~ cYear + cYear *  DeltaTmean + cYear * DeltaPrec + #cYear:PA +
+                            f(Period_4INLA,model='iid')+
+                            f(Location_4INLA,model='iid')+
+                            f(Plot_ID_4INLA,model='iid')+
+                            f(Datasource_ID_4INLA,model='iid')+
+                            f(Plot_ID_4INLAR,iYear,model='iid')+
+                            f(Location_4INLAR,iYear,model='iid')                      +
+                            f(Datasource_ID_4INLAR,iYear,model='iid')+
+                            f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                          control.compute = list(dic=TRUE,waic=TRUE),
+                          control.inla = list(tolerance = 1e-10),
+                          data=subset(completeData, Realm == "Freshwater"), verbose = F, num.threads = 2)
+save(inlaFClimChangesFWabs, file = "/data/Roel/inlaFClimChangesFWabs.RData")
+load("E:/inlaFClimChangesFWabs.RData")
+all.results<-c(all.results, absClimate_Change_CRU_FW = list(inlaFClimChangesFWabs$summary.fixed)) # save fixed effects
 
 
 
@@ -1386,6 +1401,78 @@ grid.arrange(TmeanPlot,PPlot,  TrelPlot,  PrelPlot, nrow = 2)
 
 # CHELSA #####
 
+inlaFCHELSAChangesTerr<- inla(log10(Number+1) ~ cYear + cYear *  CHELSArelDeltaTmean + cYear * CHELSArelDeltaPrec +# cYear*PA +
+                                f(Period_4INLA,model='iid')+
+                                f(Location_4INLA,model='iid')+
+                                f(Plot_ID_4INLA,model='iid')+
+                                f(Datasource_ID_4INLA,model='iid')+
+                                f(Plot_ID_4INLAR,iYear,model='iid')+
+                                f(Location_4INLAR,iYear,model='iid')                      +
+                                f(Datasource_ID_4INLAR,iYear,model='iid')+
+                                f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                              control.compute = list(dic=TRUE,waic=TRUE),
+                              control.inla = list(tolerance = 1e-10),
+                              data=subset(completeData, Realm == "Terrestrial" & !is.na(CHELSArelDeltaTmean) ), 
+                              verbose = F, num.threads = 2)
+save(inlaFCHELSAChangesTerr, file = "/data/Roel/inlaFCHELSAChangesTerr.RData")
+load( "E:/inlaFCHELSAChangesTerr.RData")
+all.results<-c(all.results, relClimate_Change_CHELSA_Terr = list(inlaFCHELSAChangesTerr$summary.fixed)) # save fixed effects
+
+inlaFCHELSAChangesFW<- inla(log10(Number+1) ~ cYear + cYear *  CHELSArelDeltaTmean + cYear * CHELSArelDeltaPrec + #cYear:PA +
+                              f(Period_4INLA,model='iid')+
+                              f(Location_4INLA,model='iid')+
+                              f(Plot_ID_4INLA,model='iid')+
+                              f(Datasource_ID_4INLA,model='iid')+
+                              f(Plot_ID_4INLAR,iYear,model='iid')+
+                              f(Location_4INLAR,iYear,model='iid')                      +
+                              f(Datasource_ID_4INLAR,iYear,model='iid')+
+                              f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                            control.compute = list(dic=TRUE,waic=TRUE),
+                            control.inla = list(tolerance = 1e-10),
+                            data=subset(completeData, Realm == "Freshwater" & !is.na(CHELSArelDeltaTmean)),
+                            verbose = F, num.threads = 2)
+save(inlaFCHELSAChangesFW, file = "/data/Roel/inlaFCHELSAChangesFW.RData")
+load( "E:/inlaFCHELSAChangesFW.RData")
+all.results<-c(all.results, relClimate_Change_CHELSA_FW = list(inlaFCHELSAChangesFW$summary.fixed)) # save fixed effects
+# positive effect of Tmean , # almost positibve effect of prec increase
+
+ABSinlaFCHELSAChangesTerr<- inla(log10(Number+1) ~ cYear + cYear *  CHELSAdeltaTmean + cYear * CHELSAdeltaPrec +# cYear*PA +
+                                f(Period_4INLA,model='iid')+
+                                f(Location_4INLA,model='iid')+
+                                f(Plot_ID_4INLA,model='iid')+
+                                f(Datasource_ID_4INLA,model='iid')+
+                                f(Plot_ID_4INLAR,iYear,model='iid')+
+                                f(Location_4INLAR,iYear,model='iid')                      +
+                                f(Datasource_ID_4INLAR,iYear,model='iid')+
+                                f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                              control.compute = list(dic=TRUE,waic=TRUE),
+                              control.inla = list(tolerance = 1e-10),
+                              data=subset(completeData, Realm == "Terrestrial" & !is.na(CHELSAdeltaTmean) ), 
+                              verbose = F, num.threads = 2)
+save(ABSinlaFCHELSAChangesTerr, file = "/data/Roel/ABSinlaFCHELSAChangesTerr.RData")
+load( "E:/ABSinlaFCHELSAChangesTerr.RData")
+all.results<-c(all.results, absClimate_Change_CHELSA_Terr = list(ABSinlaFCHELSAChangesTerr$summary.fixed)) # save fixed effects
+
+ABSinlaFCHELSAChangesFW<- inla(log10(Number+1) ~ cYear + cYear *  CHELSAdeltaTmean + cYear * CHELSAdeltaPrec + #cYear:PA +
+                              f(Period_4INLA,model='iid')+
+                              f(Location_4INLA,model='iid')+
+                              f(Plot_ID_4INLA,model='iid')+
+                              f(Datasource_ID_4INLA,model='iid')+
+                              f(Plot_ID_4INLAR,iYear,model='iid')+
+                              f(Location_4INLAR,iYear,model='iid')                      +
+                              f(Datasource_ID_4INLAR,iYear,model='iid')+
+                              f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                            control.compute = list(dic=TRUE,waic=TRUE),
+                            control.inla = list(tolerance = 1e-10),
+                            data=subset(completeData, Realm == "Freshwater" & !is.na(CHELSAdeltaTmean)),
+                            verbose = F, num.threads = 2)
+save(ABSinlaFCHELSAChangesFW, file = "/data/Roel/ABSinlaFCHELSAChangesFW.RData")
+load( "E:/ABSinlaFCHELSAChangesFW.RData")
+all.results<-c(all.results, absClimate_Change_CHELSA_FW = list(ABSinlaFCHELSAChangesFW$summary.fixed)) # save fixed effects
+
+
+
+
 # graphs (SI)
 load("CHELSATmeanSlopes.RData")
 load("CHELSAPrecSlopes.Rdata")
@@ -1442,44 +1529,45 @@ grid.arrange(CHELSATmeanPlot, CHELSApPlot,  CHELSATrelPlot,  CHELSAPrelPlot, nro
 
 
 
-inlaFCHELSAChangesTerr<- inla(log10(Number+1) ~ cYear + cYear *  CHELSArelDeltaTmean + cYear * CHELSArelDeltaPrec +# cYear*PA +
-                                f(Period_4INLA,model='iid')+
-                                f(Location_4INLA,model='iid')+
-                                f(Plot_ID_4INLA,model='iid')+
-                                f(Datasource_ID_4INLA,model='iid')+
-                                f(Plot_ID_4INLAR,iYear,model='iid')+
-                                f(Location_4INLAR,iYear,model='iid')                      +
-                                f(Datasource_ID_4INLAR,iYear,model='iid')+
-                                f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                              control.compute = list(dic=TRUE,waic=TRUE),
-                              control.inla = list(tolerance = 1e-10),
-                              data=subset(completeData, Realm == "Terrestrial" & !is.na(CHELSArelDeltaTmean) ), 
-                              verbose = F, num.threads = 2)
-save(inlaFCHELSAChangesTerr, file = "/data/Roel/inlaFCHELSAChangesTerr.RData")
-load( "E:/inlaFCHELSAChangesTerr.RData")
-all.results<-c(all.results, relClimate_Change_CHELSA_Terr = list(inlaFCHELSAChangesTerr$summary.fixed)) # save fixed effects
-
-inlaFCHELSAChangesFW<- inla(log10(Number+1) ~ cYear + cYear *  CHELSArelDeltaTmean + cYear * CHELSArelDeltaPrec + #cYear:PA +
-                              f(Period_4INLA,model='iid')+
-                              f(Location_4INLA,model='iid')+
-                              f(Plot_ID_4INLA,model='iid')+
-                              f(Datasource_ID_4INLA,model='iid')+
-                              f(Plot_ID_4INLAR,iYear,model='iid')+
-                              f(Location_4INLAR,iYear,model='iid')                      +
-                              f(Datasource_ID_4INLAR,iYear,model='iid')+
-                              f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                            control.compute = list(dic=TRUE,waic=TRUE),
-                            control.inla = list(tolerance = 1e-10),
-                            data=subset(completeData, Realm == "Freshwater" & !is.na(CHELSArelDeltaTmean)),
-                            verbose = F, num.threads = 2)
-save(inlaFCHELSAChangesFW, file = "/data/Roel/inlaFCHELSAChangesFW.RData")
-load( "E:/inlaFCHELSAChangesFW.RData")
-all.results<-c(all.results, relClimate_Change_CHELSA_FW = list(inlaFCHELSAChangesFW$summary.fixed)) # save fixed effects
-# positive effect of Tmean , # almost positibve effect of prec increase
 
 
 
 # absolute CC models? 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2378,3 +2466,44 @@ inlaFmeanPrel<- inla(log10(Number+1) ~ cYear + Realm +  cYear* Realm * relDeltaP
                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                      control.compute = list(dic=TRUE,waic=TRUE),
                      data=completeData, verbose = F, num.threads = 2)
+
+
+
+
+# REDUNDANT
+inlaFurbanESA<- inla(log10(Number+1) ~  cYear* Realm* frcUrban900m + 
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data= subset(completeData, !is.na(completeData$frcCrop900m)), 
+                     num.threads = 2)#verbose = T,
+inlaFurbanESAterr<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
+                         f(Period_4INLA,model='iid')+
+                           f(Location_4INLA,model='iid')+
+                           f(Plot_ID_4INLA,model='iid')+
+                           f(Datasource_ID_4INLA,model='iid')+
+                           f(Plot_ID_4INLAR,iYear,model='iid')+
+                           f(Location_4INLAR,iYear,model='iid')                      +
+                           f(Datasource_ID_4INLAR,iYear,model='iid')+
+                           f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                         control.compute = list(dic=TRUE,waic=TRUE),
+                         data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Terrestrial"), 
+                         num.threads = 2)#verbose = T,
+inlaFurbanESAfw<- inla(log10(Number+1) ~  cYear+ frcUrban900m + cYear: frcUrban900m
+                       f(Period_4INLA,model='iid')+
+                         f(Location_4INLA,model='iid')+
+                         f(Plot_ID_4INLA,model='iid')+
+                         f(Datasource_ID_4INLA,model='iid')+
+                         f(Plot_ID_4INLAR,iYear,model='iid')+
+                         f(Location_4INLAR,iYear,model='iid')                      +
+                         f(Datasource_ID_4INLAR,iYear,model='iid')+
+                         f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                       control.compute = list(dic=TRUE,waic=TRUE),
+                       data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Freshwater"), 
+                       num.threads = 2)#verbose = T,
