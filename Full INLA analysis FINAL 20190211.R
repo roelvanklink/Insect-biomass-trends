@@ -14,8 +14,6 @@ setwd("~/Dropbox/Insect Biomass Trends/csvs")#diana mac
 
 load("completeData.Rdata")
 load("completeDataArth.RData")
-load("completeDataClim.RData")
-load("completeDataClimPrec.RData")
 load("E:/inla1.RData")
 load("all.results.RData")
 #completeData$Stratum[completeData$Stratum == "air"]<-"Air"
@@ -457,7 +455,6 @@ theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
 
 # continents #####
 
-
 inlaFcont <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent + 
                     f(Period_4INLA,model='iid')+
                     f(Location_4INLA,model='iid')+
@@ -509,77 +506,6 @@ ylim(-0.025, 0.03)+
 theme(legend.key=element_blank())
   
 
-# politics:  east vs west europe
-eur<- subset(completeData, Continent == "Europe")
-eur$E_W[eur$Country == "Russia" | eur$Country == "Belarus"  | eur$Country == "Ukraine" ] <-"E"
-eur$E_W[eur$Country != "Russia" & eur$Country != "Belarus"  & eur$Country != "Ukraine" ] <-"W"
-eur$EMW<- "W"
-eur$EMW[eur$Country == "Russia" | eur$Country == "Belarus"  | eur$Country == "Ukraine" ] <-"E"
-eur$EMW[eur$Country == "Hungary" | eur$Country == "Czech Republic"  | eur$Country == "Slovakia" ] <-"FEB"
-
-unique(eur[, c("Country", "E_W")])
-unique(eur[, c("Country", "EMW")])
-
-
-inlaFeur <- inla(log10(Number+1) ~ cYear: Realm: E_W + Realm + E_W + 
-                    f(Period_4INLA,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLA,model='iid')+
-                    f(Datasource_ID_4INLA,model='iid')+
-                   f(Plot_ID_4INLAR,iYear,model='iid')+
-                   f(Location_4INLAR,iYear,model='iid')                      +
-                   f(Datasource_ID_4INLAR,iYear,model='iid')+
-                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                  control.compute = list(dic=TRUE,waic=TRUE),
-                  data=eur)
-
-eurSlope<- inlaFeur$summary.fixed[4:7,]
-ggplot(data.frame(eurSlope))+
-  geom_crossbar(aes(x=rownames(eurSlope),   y=mean,
-                    ymin=X0.025quant,ymax=X0.975quant),position="dodge")+
-  #scale_fill_manual(values = col.scheme.realm)+
-  coord_flip()+
-  geom_hline(yintercept=0,linetype="dashed")+
-  #ylim(-0.03, 0.03)+  xlab ("")+ ylab ("Slope")+
-  #geom_text(aes(x = Biome , y = 0.027, fill = Realm,  label = text), position = position_dodge(width = 1)) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))
-
-
-# using country as additional random intercept 
-
-completeData$Country4INLA<- interaction(completeData$Datasource_ID, completeData$Country)
-completeData$Country4INLA <- as.numeric(factor(completeData$Country4INLA))   
-
-inlaFcont2.0 <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent + 
-                    f(Period_4INLA,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLA,model='iid')+
-                    f(Datasource_ID_4INLA,model='iid')+
-                    #f(Country4INLA,model='iid')+   # new coutnrly level random slope ???
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Location_4INLAR,iYear,model='iid')                      +
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                  control.compute = list(dic=TRUE,waic=TRUE),
-                  data=completeData)
-
-# index for random slopes
-completeData$Country4INLAR<- completeData$Country4INLA+max(completeData$Country4INLA)
-inlaFcont2.1 <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent + 
-                       f(Period_4INLA,model='iid')+
-                       f(Location_4INLA,model='iid')+
-                       f(Plot_ID_4INLA,model='iid')+
-                       f(Datasource_ID_4INLA,model='iid')+
-                       f(Country4INLA,model='iid')+   # new country level random slope 
-                       f(Plot_ID_4INLAR,iYear,model='iid')+
-                       f(Datasource_ID_4INLAR,iYear,model='iid')+
-                       f(Country4INLAR,iYear,model='iid')+
-                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                     control.compute = list(dic=TRUE,waic=TRUE),
-                     data=completeData)
-
-
 
 # Geographic Regions ##### 
 
@@ -595,6 +521,8 @@ inlaFregions <- inla(log10(Number+1) ~ cYear: Realm:Region + Realm + Region +
                      control.compute = list(dic=TRUE,waic=TRUE),
                      data=completeData)
 save(inlaFregions,  file = "/data/Roel/inlaFregions.RData")
+all.results<-c(all.results, Regions_model = list(inlaFregions$summary.fixed))
+
 
 metadata_region<-  completeData %>% 
   group_by(Region, Realm) %>%
@@ -614,9 +542,9 @@ regionSlope<- merge(regionSlope, metadata_region)
 regionSlope$text = paste0("(", regionSlope$Datasources, " | ", regionSlope$Plots, ")")
 regionSlope$Region<- ordered(regionSlope$Region, 
           levels = rev(c("United Kingdom", "Germany" , "Europe rest West",
-                         "Sweden", "Russia Northwest","Europe rest North", 
+                         "Sweden", "Russia Northwest","Europe rest North", #
                          "Russia Central & Volga",   "Europe rest East ", 
-                         "Europe rest South", 
+                        # "Europe rest South", 
                          "USA West", "USA Midwest"  , "USA Northeast","USA South", 
                          "New Zealand" ,"Australia",
                           "Asia southeast"  ,  "Central America", "Asia Central", "Africa", 
@@ -645,7 +573,7 @@ ggplot(data.frame(subset(regionSlope, ok >0 )))+ # only use >20plots or >4 datas
 
 
 
-# biomes Coarse#####
+# biomes #####
 #(tropical/ drylands / temperate / boreal-alpine )
 inlaFbiom <- inla(log10(Number+1) ~ cYear: Realm:BiomeCoarse + Realm + BiomeCoarse + 
                     f(Period_4INLA,model='iid')+
@@ -658,7 +586,7 @@ inlaFbiom <- inla(log10(Number+1) ~ cYear: Realm:BiomeCoarse + Realm + BiomeCoar
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData)
-
+all.results<-c(all.results, Biome_model = list(inlaFbiom$summary.fixed))
 
 metadata_biom<-  completeData %>% 
   group_by(BiomeCoarse, Realm) %>%
@@ -697,36 +625,6 @@ ggplot(data.frame(biomSlope))+
         legend.key=element_blank())
 
 
-
-
-# biomes original wwf biomes
-selectedData<- subset(completeData, biome != "Tropical & Subtropical Dry Broadleaf Forests" & biome != "Tropical & Subtropical Grasslands, Savannas & Shrublands")
-selectedData$biome<- droplevels(selectedData$biome)
-
-inlaFbiom2 <- inla(log10(Number+1) ~ cYear: Realm:biome + Realm + biome + 
-                    f(Period_4INLA,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLA,model='iid')+
-                    f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                  control.compute = list(dic=TRUE,waic=TRUE),
-                  data=selectedData)
-
-biom2Slope<- inlaFbiom2$summary.fixed[c(13:26, 31:34),]
-vars<-data.frame(do.call(rbind, strsplit(rownames(biom2Slope), split = ":")))
-biom2Slope<-cbind(biom2Slope, vars)
-biom2Slope$X1<-gsub("Realm", "", biom2Slope$X1);  biom2Slope$X2<-gsub("biome", "", biom2Slope$X2)
-
-ggplot(data.frame(biom2Slope))+
-  geom_crossbar(aes(x=X2,   y=mean, fill = X1,
-                    ymin=X0.025quant,ymax=X0.975quant),position="dodge")+
-  scale_fill_manual(values = col.scheme.realm)+
-  coord_flip()+
-  geom_hline(yintercept=0,linetype="dashed")
-# does not provide much that we didn;t already know 
 
 
 
@@ -772,130 +670,6 @@ data.frame(Plot_intercept = sigmaPlot,
 
 
 
-
-
-#(3) moving 15-year window model #####
-
-# 10 or 15 year slices 
-  
-
-window = 10
-
-windowFits10 <- ddply(subset(completeData,Year>1959),
-                    .(Realm,Continent),
-                    function(df){
-                      
-                      
-        ldply(min(df$Year):(max(df$Year)-window),
-                       
-                            
-                                 function(x){
-                              
-                              myData <- subset(df, Year>=as.numeric(x) & 
-                                                 Year <= as.numeric(x+window)) 
-                             
-           # build dataframe exluding plots of less than half the period  in duration  
-              selectionDF<-myData %>% group_by(Plot_ID) %>%
-                summarize( length.ok = max(Year) - min(Year) > 0.5*window)          
-                myData<- merge(myData, selectionDF, by = "Plot_ID")
-                myData<- subset(myData, length.ok == T )            
-                            
-                              
-                              #write model formula
-                              
-                              #basic model 
-                              formula="log10(Number+1)~cYear"
-                              
-                              #if multiple datasets
-                              if(length(unique(myData$Datasource_ID))>1){
-                                formula=paste(formula,"f(Datasource_ID_4INLA,model='iid')+
-                                              f(as.numeric(Datasource_ID_4INLAR), iYear, model='iid')",sep="+")
-                              }
-                              
-                              #to this model, add a location effect if plots within a dataset are nested in sites 
-                              #add only random location intercept 
-                              if(length(unique(myData$Location))>1){
-                                formula=paste(formula,"f(Location_4INLA,model='iid')" ,sep="+")
-                              }
-                              
-                              #to this model, add a plot effect if a dataset sampled multiple plots
-                              #add both a random plot intercept and random plot slope
-                              #(if a dataset only sampled one plot, no plot effects are added)
-                              if(length(unique(myData$Plot_ID))>1){
-                                formula=paste(formula,"f(Plot_ID_4INLA,model='iid') +
-                                              f(Plot_ID_4INLAR,iYear,model='iid')",sep="+")
-                              }
-                              
-                              #to this model, add a period effect if there multiple periods in a dataset
-                              #(if only one period is sampled, no period term is added)
-                              if(length(unique(myData$Period))>1){
-                                formula=paste(formula,"f(Period_4INLA,model='iid')",sep="+")
-                              }
-                              
-                              #to this model, if model doesnt crash with ar1 term, then include it in the model formula, 
-                              #if INLA crashes, then dont add the ar1 term
-                              formula_ar1 <- paste(formula,"f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA))",sep="+")
-                              out <- try(inla(as.formula(formula_ar1),data=myData,silent="2L"),TRUE)
-                              if(class(out)=="try-error"){
-                                
-                                formula_ar2 <- paste(formula,"f(iYear,model='ar1')",sep="+")
-                                out <- try(inla(as.formula(formula_ar1),data=myData,silent="2L"),TRUE)
-                                
-                                if(class(out)=="try-error"){
-                                  formula = formula
-                                  
-                                }else{
-                                  formula = formula_ar2
-                                }
-                                
-                              }else{
-                                formula = formula_ar1
-                              }
-                              
-                              #finally fit this formula using INLA to the dataset
-                              library(INLA)
-                              inla1 <- inla(as.formula(formula),data=myData)
-                              
-                              #return model summary
-                              return(cbind(Year = x+window,trend = inla1$summary.fixed[2,]))
-                              })
-                            })
-
-save(windowFits10,file="windowFits.RData") 
-
-
-
-load("windowFits15.RData")
-load("windowFits10.RData")
-windowFits10$Continent<- ordered(windowFits10$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
-windowFits15$Continent<- ordered(windowFits15$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
-
-
-ggplot(windowFits15)+
-  geom_line(aes(x=Year-15,y=trend.mean,colour=Realm))+
-  geom_ribbon(aes(x=Year-15,ymin=trend.0.025quant,ymax=trend.0.975quant,fill=Realm),alpha=0.5)+
-  scale_color_manual(values = col.scheme.realm)+
-  facet_wrap(~Continent)+
-  scale_fill_manual(values = col.scheme.realm)+
-  theme_bw()+  labs(y = "15 year slope", x = "First year of time window") +
-  geom_hline(yintercept=0,linetype="dashed") + 
-  scale_y_continuous(limits = c(-0.1, 0.1))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
-        panel.spacing = unit(2, "lines"))
-  
-ggplot(windowFits10)+
-  geom_line(aes(x=Year-10,y=trend.mean,colour=Realm))+
-  geom_ribbon(aes(x=Year-10,ymin=trend.0.025quant,ymax=trend.0.975quant,fill=Realm),alpha=0.5)+
-  scale_color_manual(values = col.scheme.realm)+
-  facet_wrap(~Continent)+
-  scale_fill_manual(values = col.scheme.realm)+
-  theme_bw()+  labs(y = "10 year slope", x = "First year of time window") +
-  geom_hline(yintercept=0,linetype="dashed") + 
-  scale_y_continuous(limits = c(-0.15, 0.15))+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
-        panel.spacing = unit(2, "lines"))
 
 
 
@@ -1077,7 +851,7 @@ ggplot(subset(RWcont, goodData == T ))+
 
 
 
-# 
+## # # # # # # # # # # # # # # ########################################################################## # 
 
 # DRiveRS #####
 
@@ -1119,6 +893,7 @@ inlaFpaInt <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data=completeData, verbose = F, num.threads = 2)
+all.results<-c(all.results, PA_model = list(inlaFpaInt$summary.fixed)) # save fixed effects
 save(inlaFpaInt, file = "/data/Roel/inlaFpaInt.RData")
 load("E:/inlaFpaInt.RData")
 
@@ -1159,22 +934,6 @@ ggplot(data.frame(paSlope))+
 
   
 
-
-# Protected areas in temperate zone
-
-completeDataTemp<-subset(completeData, BiomeCoarse == "Temperate")
-inlaFpaIntTemp <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
-                         f(Period_4INLA,model='iid')+
-                         f(Location_4INLA,model='iid')+
-                         f(Plot_ID_4INLA,model='iid')+
-                         f(Datasource_ID_4INLA,model='iid')+
-                         f(Plot_ID_4INLAR,iYear,model='iid')+
-                         f(Location_4INLAR,iYear,model='iid')                      +
-                         f(Datasource_ID_4INLAR,iYear,model='iid')+
-                         f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                       control.compute = list(dic=TRUE,waic=TRUE),
-                       data=completeDataTemp, verbose = T, num.threads = 2)
-load("/data/Roel/inlaFpaIntTemp.RData")
 
 
 
@@ -1271,11 +1030,7 @@ plotData<-unique(completeData[, c( "Plot_ID", "Realm", "Continent", "Datasource_
 ################################################
  #Urban area #####
 
- urbanModels <- data.frame(modelName=(character()),
-                          fixedEffects=character(), 
-                          DIC=numeric(),
-                          WAIC=numeric(),
-                          stringsAsFactors=FALSE) 
+
  
 inlaFurban<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_urbanArea) + cYear* Realm * sqrt(End_urbanArea) +
           f(Period_4INLA,model='iid')+
@@ -1289,20 +1044,7 @@ inlaFurban<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_urbanArea) + cYear*
         control.compute = list(dic=TRUE,waic=TRUE),
         data=completeData, verbose = T, num.threads = 2)
 
-
-# o should we test: 
-inlaFurbanTest<- inla(log10(Number+1) ~ cYear + Realm + sqrt(End_urbanArea) + cYear: Realm + 
-                        cYear : sqrt(End_urbanArea) + cYear: Realm : sqrt(End_urbanArea) +
-                    f(Period_4INLA,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLA,model='iid')+
-                    f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Location_4INLAR,iYear,model='iid')                      +
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                  control.compute = list(dic=TRUE,waic=TRUE),
-                  data=completeData, verbose = T, num.threads = 2)
+ all.results<-c(all.results, Urban_cover_3way = list(inlaFurban$summary.fixed)) # save fixed effects
 
 
 urbanPlot<- ggplot(landusePlots, aes(x=(End_urbanArea), y = slope))+  #`Plot_slp_ mean`
@@ -1315,54 +1057,6 @@ urbanPlot<- ggplot(landusePlots, aes(x=(End_urbanArea), y = slope))+  #`Plot_slp
   facet_wrap(~Realm , scales = "free") +
   theme_clean + 
   theme()
-
-
-
-urbanModels[1,1] <-"3way"
-urbanModels[1,2] <- "Realm*cYear*urbanArea"
-urbanModels[1,3] <-summary(inlaFurban)$dic$dic
-urbanModels[1,4] <-summary(inlaFurban)$waic$waic
-
-
-inlaFurban1<- inla(log10(Number+1) ~ Realm * cYear + cYear* sqrt(End_urbanArea) +
-                    f(Period_4INLA,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLA,model='iid')+
-                    f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                  control.compute = list(dic=TRUE,waic=TRUE),
-                  data=completeData, verbose = T, num.threads = 2)
-
-urbanModels[2,1] <-"2way"
-urbanModels[2,2] <- "Year*UrbanCover + Realm*Year"
-urbanModels[2,3] <-summary(inlaFurban)$dic$dic
-urbanModels[2,4] <-summary(inlaFurban)$waic$waic
-
-
-inlaFurban2<- inla(log10(Number+1) ~ Realm * cYear + sqrt(End_urbanArea)+
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Location_4INLAR,iYear,model='iid')                      +
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
-                   data=completeData, verbose = T, num.threads = 2)
-
-urbanModels[3,1] <-"additive"
-urbanModels[3,2] <- "Realm*Year +UrbanCover"
-urbanModels[3,3] <-summary(inlaFurban)$dic$dic
-urbanModels[3,4] <-summary(inlaFurban)$waic$waic
-
-urbanModels[4,1] <-"none"
-urbanModels[4,2] <- "Year* Realm "
-urbanModels[4,3] <-summary(inlaF)$dic$dic
-urbanModels[4,4] <-summary(inlaF)$waic$waic
 
 
 
@@ -1380,20 +1074,10 @@ inlaFurbanT<- inla(log10(Number+1) ~  cYear* sqrt(End_urbanArea) +
                   data= subset(completeData, Realm == "Terrestrial"), 
                   verbose = T, num.threads = 2)
 
+load("E:/inlaFurbanT.RData")
+all.results<-c(all.results, Urban_cover_Terrestrial = list(inlaFurbanT$summary.fixed)) # save fixed effects
 
 
-inlaFurbanT2<- inla(log10(Number+1) ~  cYear + sqrt(End_urbanArea) +
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Location_4INLAR,iYear,model='iid')                      +
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
-                   data= subset(completeData, Realm == "Terrestrial"), 
-                   verbose = T, num.threads = 2)
 
 
 
@@ -1409,19 +1093,10 @@ inlaFurbanFW<- inla(log10(Number+1) ~  cYear* sqrt(End_urbanArea) +
                    control.compute = list(dic=TRUE,waic=TRUE),
                    data= subset(completeData, Realm == "Freshwater"), 
                     num.threads = 2)#verbose = T,
+load("E:/inlaFurbanFW.RData")
+all.results<-c(all.results, Urban_cover_FW = list(inlaFurbanFW$summary.fixed)) # save fixed effects
 
-inlaFurbanFW2<- inla(log10(Number+1) ~  cYear+ sqrt(End_urbanArea) +
-                      f(Period_4INLA,model='iid')+
-                      f(Location_4INLA,model='iid')+
-                      f(Plot_ID_4INLA,model='iid')+
-                      f(Datasource_ID_4INLA,model='iid')+
-                       f(Plot_ID_4INLAR,iYear,model='iid')+
-                       f(Location_4INLAR,iYear,model='iid')                      +
-                       f(Datasource_ID_4INLAR,iYear,model='iid')+
-                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                    control.compute = list(dic=TRUE,waic=TRUE),
-                    data= subset(completeData, Realm == "Freshwater"), 
-                    num.threads = 2)#verbose = T,
+
 
 
 ###############################################################################
@@ -2311,5 +1986,312 @@ PAmodels[4,1]<- "none"
 PAmodels[4,2]<- "Year: Realm "
 PAmodels[4,3]<- summary(inlaF)$dic$dic
 PAmodels[4,4]<- summary(inlaF)$waic$waic
+
+
+
+
+
+
+
+
+####################
+# THRASH #####
+
+
+
+
+
+# biomes original wwf biomes
+selectedData<- subset(completeData, biome != "Tropical & Subtropical Dry Broadleaf Forests" & biome != "Tropical & Subtropical Grasslands, Savannas & Shrublands")
+selectedData$biome<- droplevels(selectedData$biome)
+
+inlaFbiom2 <- inla(log10(Number+1) ~ cYear: Realm:biome + Realm + biome + 
+                     f(Period_4INLA,model='iid')+
+                     f(Location_4INLA,model='iid')+
+                     f(Plot_ID_4INLA,model='iid')+
+                     f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   control.compute = list(dic=TRUE,waic=TRUE),
+                   data=selectedData)
+
+biom2Slope<- inlaFbiom2$summary.fixed[c(13:26, 31:34),]
+vars<-data.frame(do.call(rbind, strsplit(rownames(biom2Slope), split = ":")))
+biom2Slope<-cbind(biom2Slope, vars)
+biom2Slope$X1<-gsub("Realm", "", biom2Slope$X1);  biom2Slope$X2<-gsub("biome", "", biom2Slope$X2)
+
+ggplot(data.frame(biom2Slope))+
+  geom_crossbar(aes(x=X2,   y=mean, fill = X1,
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge")+
+  scale_fill_manual(values = col.scheme.realm)+
+  coord_flip()+
+  geom_hline(yintercept=0,linetype="dashed")
+# does not provide much that we didn;t already know 
+
+
+
+
+
+# politics:  east vs west europe
+eur<- subset(completeData, Continent == "Europe")
+eur$E_W[eur$Country == "Russia" | eur$Country == "Belarus"  | eur$Country == "Ukraine" ] <-"E"
+eur$E_W[eur$Country != "Russia" & eur$Country != "Belarus"  & eur$Country != "Ukraine" ] <-"W"
+eur$EMW<- "W"
+eur$EMW[eur$Country == "Russia" | eur$Country == "Belarus"  | eur$Country == "Ukraine" ] <-"E"
+eur$EMW[eur$Country == "Hungary" | eur$Country == "Czech Republic"  | eur$Country == "Slovakia" ] <-"FEB"
+
+unique(eur[, c("Country", "E_W")])
+unique(eur[, c("Country", "EMW")])
+
+
+inlaFeur <- inla(log10(Number+1) ~ cYear: Realm: E_W + Realm + E_W + 
+                   f(Period_4INLA,model='iid')+
+                   f(Location_4INLA,model='iid')+
+                   f(Plot_ID_4INLA,model='iid')+
+                   f(Datasource_ID_4INLA,model='iid')+
+                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 control.compute = list(dic=TRUE,waic=TRUE),
+                 data=eur)
+
+eurSlope<- inlaFeur$summary.fixed[4:7,]
+ggplot(data.frame(eurSlope))+
+  geom_crossbar(aes(x=rownames(eurSlope),   y=mean,
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge")+
+  #scale_fill_manual(values = col.scheme.realm)+
+  coord_flip()+
+  geom_hline(yintercept=0,linetype="dashed")+
+  #ylim(-0.03, 0.03)+  xlab ("")+ ylab ("Slope")+
+  #geom_text(aes(x = Biome , y = 0.027, fill = Realm,  label = text), position = position_dodge(width = 1)) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+
+# using country as additional random intercept 
+
+completeData$Country4INLA<- interaction(completeData$Datasource_ID, completeData$Country)
+completeData$Country4INLA <- as.numeric(factor(completeData$Country4INLA))   
+
+inlaFcont2.0 <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent + 
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                       #f(Country4INLA,model='iid')+   # new coutnrly level random slope ???
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data=completeData)
+
+# index for random slopes
+completeData$Country4INLAR<- completeData$Country4INLA+max(completeData$Country4INLA)
+inlaFcont2.1 <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent + 
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                       f(Country4INLA,model='iid')+   # new country level random slope 
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(Country4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data=completeData)
+
+
+
+
+
+
+#(3) moving 15-year window model #####
+
+# 10 or 15 year slices 
+
+
+window = 10
+
+windowFits10 <- ddply(subset(completeData,Year>1959),
+                      .(Realm,Continent),
+                      function(df){
+                        
+                        
+                        ldply(min(df$Year):(max(df$Year)-window),
+                              
+                              
+                              function(x){
+                                
+                                myData <- subset(df, Year>=as.numeric(x) & 
+                                                   Year <= as.numeric(x+window)) 
+                                
+                                # build dataframe exluding plots of less than half the period  in duration  
+                                selectionDF<-myData %>% group_by(Plot_ID) %>%
+                                  summarize( length.ok = max(Year) - min(Year) > 0.5*window)          
+                                myData<- merge(myData, selectionDF, by = "Plot_ID")
+                                myData<- subset(myData, length.ok == T )            
+                                
+                                
+                                #write model formula
+                                
+                                #basic model 
+                                formula="log10(Number+1)~cYear"
+                                
+                                #if multiple datasets
+                                if(length(unique(myData$Datasource_ID))>1){
+                                  formula=paste(formula,"f(Datasource_ID_4INLA,model='iid')+
+                                                f(as.numeric(Datasource_ID_4INLAR), iYear, model='iid')",sep="+")
+                                }
+                                
+                                #to this model, add a location effect if plots within a dataset are nested in sites 
+                                #add only random location intercept 
+                                if(length(unique(myData$Location))>1){
+                                  formula=paste(formula,"f(Location_4INLA,model='iid')" ,sep="+")
+                                }
+                                
+                                #to this model, add a plot effect if a dataset sampled multiple plots
+                                #add both a random plot intercept and random plot slope
+                                #(if a dataset only sampled one plot, no plot effects are added)
+                                if(length(unique(myData$Plot_ID))>1){
+                                  formula=paste(formula,"f(Plot_ID_4INLA,model='iid') +
+                                                f(Plot_ID_4INLAR,iYear,model='iid')",sep="+")
+                                }
+                                
+                                #to this model, add a period effect if there multiple periods in a dataset
+                                #(if only one period is sampled, no period term is added)
+                                if(length(unique(myData$Period))>1){
+                                  formula=paste(formula,"f(Period_4INLA,model='iid')",sep="+")
+                                }
+                                
+                                #to this model, if model doesnt crash with ar1 term, then include it in the model formula, 
+                                #if INLA crashes, then dont add the ar1 term
+                                formula_ar1 <- paste(formula,"f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA))",sep="+")
+                                out <- try(inla(as.formula(formula_ar1),data=myData,silent="2L"),TRUE)
+                                if(class(out)=="try-error"){
+                                  
+                                  formula_ar2 <- paste(formula,"f(iYear,model='ar1')",sep="+")
+                                  out <- try(inla(as.formula(formula_ar1),data=myData,silent="2L"),TRUE)
+                                  
+                                  if(class(out)=="try-error"){
+                                    formula = formula
+                                    
+                                  }else{
+                                    formula = formula_ar2
+                                  }
+                                  
+                                }else{
+                                  formula = formula_ar1
+                                }
+                                
+                                #finally fit this formula using INLA to the dataset
+                                library(INLA)
+                                inla1 <- inla(as.formula(formula),data=myData)
+                                
+                                #return model summary
+                                return(cbind(Year = x+window,trend = inla1$summary.fixed[2,]))
+                                })
+                              })
+
+save(windowFits10,file="windowFits.RData") 
+
+
+
+load("windowFits15.RData")
+load("windowFits10.RData")
+windowFits10$Continent<- ordered(windowFits10$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
+windowFits15$Continent<- ordered(windowFits15$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
+
+
+ggplot(windowFits15)+
+  geom_line(aes(x=Year-15,y=trend.mean,colour=Realm))+
+  geom_ribbon(aes(x=Year-15,ymin=trend.0.025quant,ymax=trend.0.975quant,fill=Realm),alpha=0.5)+
+  scale_color_manual(values = col.scheme.realm)+
+  facet_wrap(~Continent)+
+  scale_fill_manual(values = col.scheme.realm)+
+  theme_bw()+  labs(y = "15 year slope", x = "First year of time window") +
+  geom_hline(yintercept=0,linetype="dashed") + 
+  scale_y_continuous(limits = c(-0.1, 0.1))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        panel.spacing = unit(2, "lines"))
+
+ggplot(windowFits10)+
+  geom_line(aes(x=Year-10,y=trend.mean,colour=Realm))+
+  geom_ribbon(aes(x=Year-10,ymin=trend.0.025quant,ymax=trend.0.975quant,fill=Realm),alpha=0.5)+
+  scale_color_manual(values = col.scheme.realm)+
+  facet_wrap(~Continent)+
+  scale_fill_manual(values = col.scheme.realm)+
+  theme_bw()+  labs(y = "10 year slope", x = "First year of time window") +
+  geom_hline(yintercept=0,linetype="dashed") + 
+  scale_y_continuous(limits = c(-0.15, 0.15))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        panel.spacing = unit(2, "lines"))
+
+
+
+# Protected areas in temperate zone
+
+completeDataTemp<-subset(completeData, BiomeCoarse == "Temperate")
+inlaFpaIntTemp <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
+                         f(Period_4INLA,model='iid')+
+                         f(Location_4INLA,model='iid')+
+                         f(Plot_ID_4INLA,model='iid')+
+                         f(Datasource_ID_4INLA,model='iid')+
+                         f(Plot_ID_4INLAR,iYear,model='iid')+
+                         f(Location_4INLAR,iYear,model='iid')                      +
+                         f(Datasource_ID_4INLAR,iYear,model='iid')+
+                         f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                       control.compute = list(dic=TRUE,waic=TRUE),
+                       data=completeDataTemp, verbose = T, num.threads = 2)
+load("/data/Roel/inlaFpaIntTemp.RData")
+
+
+
+
+inlaFurban1<- inla(log10(Number+1) ~ Realm * cYear + cYear* sqrt(End_urbanArea) +
+                     f(Period_4INLA,model='iid')+
+                     f(Location_4INLA,model='iid')+
+                     f(Plot_ID_4INLA,model='iid')+
+                     f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   control.compute = list(dic=TRUE,waic=TRUE),
+                   data=completeData, verbose = T, num.threads = 2)
+
+urbanModels[2,1] <-"2way"
+urbanModels[2,2] <- "Year*UrbanCover + Realm*Year"
+urbanModels[2,3] <-summary(inlaFurban)$dic$dic
+urbanModels[2,4] <-summary(inlaFurban)$waic$waic
+
+
+inlaFurban2<- inla(log10(Number+1) ~ Realm * cYear + sqrt(End_urbanArea)+
+                     f(Period_4INLA,model='iid')+
+                     f(Location_4INLA,model='iid')+
+                     f(Plot_ID_4INLA,model='iid')+
+                     f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   control.compute = list(dic=TRUE,waic=TRUE),
+                   data=completeData, verbose = T, num.threads = 2)
+
+urbanModels[3,1] <-"additive"
+urbanModels[3,2] <- "Realm*Year +UrbanCover"
+urbanModels[3,3] <-summary(inlaFurban)$dic$dic
+urbanModels[3,4] <-summary(inlaFurban)$waic$waic
+
+urbanModels[4,1] <-"none"
+urbanModels[4,2] <- "Year* Realm "
+urbanModels[4,3] <-summary(inlaF)$dic$dic
+urbanModels[4,4] <-summary(inlaF)$waic$waic
+
 
 
