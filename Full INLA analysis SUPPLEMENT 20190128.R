@@ -40,14 +40,15 @@ incompleteData<- merge(completeData, plotDuration)
 incompleteData<- incompleteData[incompleteData$yrsData >2, ]
 
 inlaSubset <- inla(log10(Number+1) ~ cYear:Realm + Realm + 
-                 f(Period_4INLA,model='iid')+
-                 f(Location_4INLA,model='iid')+
-                 f(Plot_ID_4INLA,model='iid')+
-                 f(Datasource_ID_4INLA,model='iid')+
-                 f(Plot_ID_4INLAR,iYear,model='iid')+
-                 f(Datasource_ID_4INLAR,iYear,model='iid')+
-                 f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-               control.compute = list(dic=TRUE,waic=TRUE),
+                     f(Period_4INLA,model='iid')+
+                     f(Location_4INLA,model='iid')+
+                     f(Plot_ID_4INLA,model='iid')+
+                     f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   control.compute = list(dic=TRUE,waic=TRUE),
                data=incompleteData, verbose = F)
 
 # not good
@@ -61,27 +62,29 @@ inlaSubset <- inla(log10(Number+1) ~ cYear:Realm + Realm +
 # all arthropods #####
 
 inlaFA <- inla(log10(Number+1) ~ cYear + 
-                      f(Period_4INLA,model='iid')+
-                      f(Location_4INLA,model='iid')+
-                      f(Plot_ID_4INLA,model='iid')+
-                      f(Datasource_ID_4INLA,model='iid')+
-                      f(Plot_ID_4INLAR,iYear,model='iid')+
-                      f(Datasource_ID_4INLAR,iYear,model='iid')+
-                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                    control.compute = list(dic=TRUE,waic=TRUE),
+                 f(Period_4INLA,model='iid')+
+                 f(Location_4INLA,model='iid')+
+                 f(Plot_ID_4INLA,model='iid')+
+                 f(Datasource_ID_4INLA,model='iid')+
+                 f(Plot_ID_4INLAR,iYear,model='iid')+
+                 f(Location_4INLAR,iYear,model='iid')                      +
+                 f(Datasource_ID_4INLAR,iYear,model='iid')+
+                 f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+               control.compute = list(dic=TRUE,waic=TRUE),
                     data=completeDataArth, verbose = F)
 
 
 
 inlaFArealm <- inla(log10(Number+1) ~ cYear: Realm + Realm +
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
                    data=completeDataArth, verbose = F)
 load("E:/inlaFArealm.RData")
 
@@ -113,14 +116,15 @@ ggplot(data.frame(realmSlope))+
  # Strata
 
 inlaFAstrat <- inla(log10(Number+1) ~ cYear: Realm:Stratum + Realm + Stratum + 
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
+                      f(Period_4INLA,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Datasource_ID_4INLA,model='iid')+
+                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLAR,iYear,model='iid')                      +
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                    control.compute = list(dic=TRUE,waic=TRUE),
                    data=completeDataArth)
 
 
@@ -151,14 +155,15 @@ ggplot(data.frame(stratSlope))+
 # continent
 
 inlaFAcont <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent + 
-                    f(Period_4INLA,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID_4INLA,model='iid')+
-                    f(Datasource_ID_4INLA,model='iid')+
-                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                  control.compute = list(dic=TRUE,waic=TRUE),
+                     f(Period_4INLA,model='iid')+
+                     f(Location_4INLA,model='iid')+
+                     f(Plot_ID_4INLA,model='iid')+
+                     f(Datasource_ID_4INLA,model='iid')+
+                     f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
+                     f(Datasource_ID_4INLAR,iYear,model='iid')+
+                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeDataArth)
 #plot
 load("E:/inlaFAcont.RData")
@@ -189,12 +194,13 @@ ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude afric
 
 
 # Biome 
-inlaFAbiom <- inla(log10(Number+1) ~ cYear: Realm:Biome + Realm + Biome + 
+inlaFAbiom <- inla(log10(Number+1) ~ cYear: Realm:BiomeCoarse + Realm + BiomeCoarse + 
                      f(Period_4INLA,model='iid')+
                      f(Location_4INLA,model='iid')+
                      f(Plot_ID_4INLA,model='iid')+
                      f(Datasource_ID_4INLA,model='iid')+
                      f(Plot_ID_4INLAR,iYear,model='iid')+
+                     f(Location_4INLAR,iYear,model='iid')                      +
                      f(Datasource_ID_4INLAR,iYear,model='iid')+
                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                    control.compute = list(dic=TRUE,waic=TRUE),
@@ -232,16 +238,6 @@ ggplot(data.frame(biomSlope))+
 # swedish data more restricted (only datasets with data standardized to 1m2)
 # can only affect Europe fw and fw boreal and temperate 
 
-inlaFAcont <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent + 
-                     f(Period_4INLA,model='iid')+
-                     f(Location_4INLA,model='iid')+
-                     f(Plot_ID_4INLA,model='iid')+
-                     f(Datasource_ID_4INLA,model='iid')+
-                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                     f(Datasource_ID_4INLAR,iYear,model='iid')+
-                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                   control.compute = list(dic=TRUE,waic=TRUE),
-                   data=completeDataSwedenRestr)
 
 
 
