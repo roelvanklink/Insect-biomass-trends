@@ -36,6 +36,9 @@ col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "")
 col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "white")
 
 
+col.scheme.global<- c(  "Global"  = "grey10", "Observed" = "grey70")  #
+col.scheme.black<- c(  "Global"  = "black", "Observed" = "black")  #
+
 
 
 
@@ -429,7 +432,7 @@ inlaFstrat <- inla(log10(Number+1) ~ cYear:Stratum + Stratum +
 load("E:/inlaFstrat.RData")
 all.results<-c(all.results, Strata_model = list(inlaFstrat$summary.fixed))
 
-stratSlope<- inlaFstrat$summary.fixed[9:14,]
+stratSlope<- inlaFstrat$summary.fixed[7:12,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(stratSlope), split = ":")))
 stratSlope<-cbind(stratSlope, vars)
 stratSlope$X1<-gsub("Stratum", "", stratSlope$X1)
@@ -440,18 +443,22 @@ stratSlope$text = paste0("(", stratSlope$Datasources, " | ", stratSlope$Plots, "
 rownames(stratSlope)<-stratSlope$X1
 stratSlope$X1<- ordered(stratSlope$X1, levels = c("Water", "Underground" , "Soil surface", "Herb layer", "Trees", "Air" ))
 
+brks<- c(-0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04)
+perc<-(10^(brks )  *100) - 100
+l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
+e<- c("","","","","","","")
+
+
 ggplot(data.frame(stratSlope))+
   geom_crossbar(aes(x=X1,y=mean, fill = X1,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7, fill = "grey70")+
-  #scale_fill_manual(values = col.scheme.strat, guide=FALSE)+
   coord_flip()+
-  ylim(-0.015, 0.025)+
-  xlab ("")+ ylab ("Trend slope")+
+  xlab ("")+ ylab("Trend slope  \n % change per year")+ #
   geom_hline(yintercept=0,linetype="dashed")+
-  geom_text(aes(x = X1 , y = 0.022, label = text), size = 3) +
-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-      panel.background = element_blank(), axis.line = element_line(colour = "black"))
-
+  geom_text(aes(x = X1 , y = 0.028, label = text), size = 3) +
+scale_y_continuous(breaks = brks,labels = l, limits=c(-0.015,0.032))+
+  theme_clean
+  
 
 
 
@@ -505,7 +512,6 @@ contPlot<- ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # ex
             position = position_dodge(width = 0.7), size = 3, color = 1) +
     coord_flip()+
   scale_y_continuous(breaks = brks,labels = e, limits=c(-0.028,0.036))+
-  #ylim(-0.028,0.036)+
   xlab ("")+ ylab("")+ #Trend slope | \n % change per year
   theme_clean +
 theme(legend.key=element_blank(),
@@ -900,13 +906,6 @@ metadata_pa<-  completeData %>%
 metadata_pa
 
 
-PAmodels<- data.frame(modelName=(character()),
-                     fixedEffects=character(), 
-                     DIC=numeric(),
-                     WAIC=numeric(),
-                     stringsAsFactors=FALSE) 
-
-
 inlaFpaInt <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                      f(Period_4INLA,model='iid')+
                      f(Location_4INLA,model='iid')+
@@ -920,8 +919,9 @@ inlaFpaInt <- inla(log10(Number+1) ~ cYear: PA:Realm + PA + Realm +
                    data=completeData, verbose = F, num.threads = 2)
 all.results<-c(all.results, PA_model = list(inlaFpaInt$summary.fixed)) # save fixed effects
 save(inlaFpaInt, file = "/data/Roel/inlaFpaInt.RData")
-load("E:/inlaFpaInt.RData")
 
+
+load("E:/inlaFpaInt.RData")
 data.frame(
 var =   rownames(inlaFpaInt$summary.fixed)[4:7], 
 mean = (10^(inlaFpaInt$summary.fixed[4:7,1] )-1)  *100, # proportional changes per year
@@ -941,22 +941,27 @@ paSlope<- merge(paSlope, metadata_pa)
 paSlope$text = paste0("(", paSlope$Datasources, " | ", paSlope$Plots, ") ")
 
 
+brks<- c(-0.010, -0.005, 0, 0.005, 0.01, 0.015)
+perc<-(10^(brks )  *100) - 100
+l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
+e<- c("","","","","","","")
+
+
 ggplot(data.frame(paSlope))+
   geom_crossbar(aes(x=Realm,   y=mean, fill = PA,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
-  xlab ("")+ ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
-  scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
-  ylim(-0.01, 0.015)+  
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.01, 0.015))+
+  xlab ("")+ ylab("Trend slope  \n % change per year")+
   geom_text(aes(x = Realm , y = 0.014, fill = PA,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
-  scale_fill_manual(name="Protected\nstatus",
+  scale_fill_manual(name="Protection\nstatus",
                     breaks=c("no", "yes"),
                     labels=c("Unprotected", "Protected"), 
                     values = col.scheme.PA) + 
   theme_clean
 
-
+  
   
 
 
