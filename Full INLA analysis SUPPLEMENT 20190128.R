@@ -94,19 +94,21 @@ metadata_realm<-  completeData %>%
     Datasources = length(unique(Datasource_ID)),
     Plots =  length(unique(Plot_ID))) 
 
-realmSlope<- inlaFArealm$summary.fixed[ 2:3,]
+realmSlope<- inlaFArealm$summary.fixed[ 3:4,]
 rownames(realmSlope)<- c("Freshwater" , "Terrestrial" )
 
-ggplot(data.frame(realmSlope))+
+realmPlotArth<-ggplot(data.frame(realmSlope))+
   geom_crossbar(aes(x=rownames(realmSlope),y=mean, fill = rownames(realmSlope),
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7)+
-  scale_fill_manual(values = col.scheme.realm, guide=FALSE)+
+  scale_fill_manual(values = col.scheme.realm)+
   coord_flip()+  ylim(-0.01, 0.02)+  xlab ("")+
   geom_hline(yintercept=0,linetype="dashed")+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-  ggtitle("Realms")
-
+  ylab ("Trend slope")+
+ggtitle("Realms") +
+theme_clean +
+  theme(legend.position="bottom" ,
+          legend.title=element_blank()) 
+  
 
 
 
@@ -129,7 +131,7 @@ inlaFAstrat <- inla(log10(Number+1) ~ cYear: Realm:Stratum + Realm + Stratum +
 
 
 load("E:/inlaFAstrat.RData")
-stratSlope<- inlaFAstrat$summary.fixed[9:14,]
+stratSlope<- inlaFAstrat$summary.fixed[7:12,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(stratSlope), split = ":")))
 stratSlope<-cbind(stratSlope, vars)
 stratSlope$X1<-gsub("Stratum", "", stratSlope$X1)
@@ -138,17 +140,15 @@ stratSlope$text = paste0("(", stratSlope$Datasources, " / ", stratSlope$Plots, "
 rownames(stratSlope)<-stratSlope$X1
 stratSlope$X1<- ordered(stratSlope$X1, levels = c("Water", "Underground" , "Soil surface", "Herb layer", "Trees", "Air" ))
 
-ggplot(data.frame(stratSlope))+
+stratPlotArth<- ggplot(data.frame(stratSlope))+
   geom_crossbar(aes(x=X1,y=mean, fill = X1,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7, fill = "grey70")+
-  #scale_fill_manual(values = col.scheme.strat, guide=FALSE)+
+  ggtitle ("Capture strata")+
   coord_flip()+
   ylim(-0.015, 0.03)+
-  xlab ("")+
+  xlab ("")+ ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
- # geom_text(aes(x = X1 , y = 0.027, label = text), size = 3) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+theme_clean 
 
 
 
@@ -167,7 +167,17 @@ inlaFAcont <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent 
                   data=completeDataArth)
 #plot
 load("E:/inlaFAcont.RData")
-contSlope<- inlaFcont$summary.fixed[8:19,]
+
+metadata_cont<-  completeDataArth %>% 
+  group_by(Continent, Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)),
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T)) 
+metadata_cont
+
+contSlope<- inlaFAcont$summary.fixed[8:19,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(contSlope), split = ":")))
 contSlope<-cbind(contSlope, vars)
 contSlope$Realm<-gsub("Realm", "", contSlope$X1);  contSlope$Continent<-gsub("Continent", "", contSlope$X2)
@@ -175,20 +185,19 @@ contSlope<- merge(contSlope, metadata_cont)
 contSlope$text = paste0("(", contSlope$Datasources, " / ", contSlope$Plots, ")")
 contSlope$Continent<- ordered(contSlope$Continent, levels = rev(c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" )))
 
-ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude africa,bc it has too wide CI's 
+contPlotArth<-ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude africa,bc it has too wide CI's 
   geom_crossbar(aes(x=Continent,   y=mean, fill = Realm, 
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
   geom_hline(yintercept=0,linetype="dashed") +
-  xlab ("")+ ylab("Slope")+
+  xlab ("")+ ylab("Trend slope")+
   # geom_text(aes(x = Continent , y = 0.028, label = text, fill = Realm),  
   #          position = position_dodge(width = 1), size = 3, color = 1) +
   coord_flip()+
   scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
   ylim(-0.025, 0.03)+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"))+
-  theme(legend.key=element_blank()) +
+ theme_clean +
+  theme(legend.position ="") +
   ggtitle("Continents")
 
 
@@ -208,6 +217,17 @@ inlaFAbiom <- inla(log10(Number+1) ~ cYear: Realm:BiomeCoarse + Realm + BiomeCoa
 #
 load("E:/inlaFAbiom.RData")
 
+metadata_biom<-  completeDataArth %>% 
+  group_by(BiomeCoarse, Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)),
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T)) 
+metadata_biom
+
+
+
 biomSlope<- inlaFAbiom$summary.fixed[6:13,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(biomSlope), split = ":")))
 biomSlope<-cbind(biomSlope, vars)
@@ -217,20 +237,20 @@ biomSlope<- merge(biomSlope, metadata_biom)
 biomSlope$text = paste0("(", biomSlope$Datasources, " / ", biomSlope$Plots, ") ")
 biomSlope$Biome<- ordered(biomSlope$Biome, levels = rev(c("Boreal/Alpine", "Temperate" , "Drylands", "Tropical"  )))
 
-ggplot(data.frame(biomSlope))+
+biomPlotArth<- ggplot(data.frame(biomSlope))+
   geom_crossbar(aes(x=Biome,   y=mean, fill = Realm,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
-  xlab ("")+ ylab ("Slope")+geom_hline(yintercept=0,linetype="dashed")+
+  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   scale_y_continuous(breaks = c(-0.02, -0.01, 0,0.01, 0.02)) +
   ylim(-0.03, 0.032)+  
- # geom_text(aes(x = Biome , y = 0.027, fill = Realm,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black") , 
-        legend.key=element_blank())+
+ theme_clean + 
+  theme(legend.position = "")+
   ggtitle("Biomes")
 
+library(gridExtra)
+grid.arrange(realmPlotArth, biomPlotArth,  stratPlotArth, contPlotArth,nrow = 2)
 
 
 
@@ -274,199 +294,107 @@ all.aggrAB.test$abundance[all.aggrAB.test$abundance == 0]<- all.aggrAB.test$dens
 # remove 0's
 all.aggrAB.test <-subset(   all.aggrAB.test, biomass != 0 & abundance != 0)
 
-qplot(abundance,biomass, data=all.aggrAB.test,colour=as.factor(Plot_ID))+
+qplot(x=abundance,y=biomass, data=all.aggrAB.test,colour=as.factor(Plot_ID))+
   scale_x_log10()+
   scale_y_log10()+
-  facet_wrap(~Datasource_name,scales="free")+
-  theme(legend.position="none") +
-theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-      panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  xlab("Abundance (Number of individuals)") + ylab  ("Biomass (variable units)")+
+  facet_wrap(~Datasource_ID ,scales="free")+
+  theme_clean+
+  theme(legend.position="none", 
+        axis.text.x  = element_text(angle=28, vjust=1, hjust = 1)) 
 
 #################################################################################
 
 # Tables Drivers for DIC comparisons #####
 
+names(all.results)
 
-# protected areas
-PAmodels<- data.frame(modelName=(character()),
-                      fixedEffects=character(), 
-                      DIC=numeric(),
-                      WAIC=numeric(),
-                      stringsAsFactors=FALSE) 
-
-
-load("E:/inlaFpaInt.RData")
-PAmodels[1,1]<- "3way"   
-PAmodels[1,2]<- "Year: PA:Realm"
-PAmodels[1,3]<- summary(inlaFpaInt)$dic$dic
-PAmodels[1,4]<- summary(inlaFpaInt)$waic$waic
+urbanizationFW <- cbind(Realm = "Freshwater",  all.results$Changes_LUH2_FW[5:6,], variable = rownames(all.results$Changes_LUH2_FW[5:6,]))
+urbanizationTer<- cbind(Realm = "Terrestrial", all.results$Changes_LUH2_Terr[5:6,], variable = rownames(all.results$Changes_LUH2_Terr[5:6,]) )
+cover25kmFW    <- cbind(Realm = "Freshwater",  (all.results$Landuse_LUH2_FW)[5:6,], variable = rownames(all.results$Landuse_LUH2_FW[5:6,])  )
+cover25kmTer   <- cbind(Realm = "Terrestrial", all.results$Landuse_LUH2_Terrestrial[5:6,], variable = rownames(all.results$Landuse_LUH2_Terrestrial[5:6,])  )
+cover0.81FW    <- cbind(Realm = "Freshwater", all.results$Landuse_ESA_FW  [5:6,], variable = rownames(all.results$Landuse_ESA_FW[5:6,])    )
+cover0.81Ter   <- cbind(Realm = "Terrestrial",all.results$Landuse_ESA_terr[5:6,], variable = rownames(all.results$Landuse_ESA_terr[5:6,])     )
+deltaFwCRU     <- cbind(Realm = "Freshwater", all.results$relClimate_Change_CRU_FW[5:6,], variable = rownames(all.results$relClimate_Change_CRU_FW[5:6,])  )
+deltaTerCRU    <- cbind(Realm = "Terrestrial",all.results$relClimate_Change_CRU_Terr[5:6,], variable = rownames(all.results$relClimate_Change_CRU_Terr[5:6,]) ) 
+deltaFwCHELSA  <- cbind(Realm = "Freshwater", all.results$relClimate_Change_CHELSA_FW[5:6,], variable = rownames(all.results$relClimate_Change_CHELSA_FW[5:6,])  )
+deltaTerCHELSA <- cbind(Realm = "Terrestrial",all.results$relClimate_Change_CHELSA_Terr[5:6,], variable = rownames(all.results$relClimate_Change_CHELSA_Terr[5:6,]) )
 
 
-load("E:/inlaFpa.RData")
-PAmodels[2,1]<- "2way"   
-PAmodels[2,2]<- "Year:PA + PA:Realm"
-PAmodels[2,3]<- summary(inlaFpa)$dic$dic
-PAmodels[2,4]<- summary(inlaFpa)$waic$waic
+   
+drivers<- rbind(urbanizationTer, urbanizationFW, cover25kmFW   , cover25kmTer, cover0.81Ter, cover0.81FW, 
+             deltaTerCRU, deltaFwCRU, deltaTerCHELSA, deltaFwCHELSA)
+drivers$scale <- NA
+drivers$scale [drivers$mean + drivers$`0.975quant` <0.5]<-"small"
+drivers$scale [drivers$mean + drivers$`0.975quant` >0.5]<-"mid"
+drivers$scale [drivers$mean + drivers$`0.975quant` >5]<-"large"
 
 
-load("E:/inlaFpa2.RData")
-PAmodels[3,1]<- "additive"   
-PAmodels[3,2]<- "Year:Realm + PA"
-PAmodels[3,3]<- summary(inlaFpa2)$dic$dic
-PAmodels[3,4]<- summary(inlaFpa2)$waic$waic
+# rename variables 
 
+drivers$name <- NA
+drivers$name[drivers$variable == "cYear:urbanization"] <- "Change in urban cover per 625 km2"
+drivers$name[drivers$variable == "cYear:cropification"] <- "Change in cropland cover per 625 km2"
+drivers$name[drivers$variable == "cYear:sqrt(End_cropArea)"] <- "sqrt fraction Cropland cover per 625 km2 at end"
+drivers$name[drivers$variable == "cYear:sqrt(End_urbanArea)"] <- "sqrt fraction Urban cover per 625 km2 at end"
+drivers$name[drivers$variable == "cYear:frcCrop900m"] <- "sqrt fraction Cropland cover per 0.81 km2 at end"
+drivers$name[drivers$variable == "cYear:frcUrban900m"] <- "sqrt fraction Urban cover per 0.81 km2 at end"
+drivers$name[drivers$variable == "cYear:relDeltaTmean"] <- "Relative change in mean temperature per 0.25 degr2 at end"
+drivers$name[drivers$variable == "cYear:relDeltaPrec"] <- "Relative change in monthly precipitation per 0.25 degr2 at end"
+drivers$name[drivers$variable == "cYear:CHELSArelDeltaTmean"] <- "Relative change in mean temperature per 1 km2 at end"
+drivers$name[drivers$variable == "cYear:CHELSArelDeltaPrec"] <- "Relative change in monthly precipitation per 1 km2 at end"
 
-PAmodels[4,1]<- "none"   
-PAmodels[4,2]<- "Year:Realm "
-PAmodels[4,3]<- summary(inlaF)$dic$dic
-PAmodels[4,4]<- summary(inlaF)$waic$waic
+drivers$name<- factor(drivers$name, levels = rev(c( "Change in urban cover per 625 km2", 
+                                                   "Change in cropland cover per 625 km2", 
+                                                   "sqrt fraction Urban cover per 625 km2 at end", 
+                                                   "sqrt fraction Cropland cover per 625 km2 at end", 
+                                                   "sqrt fraction Urban cover per 0.81 km2 at end",
+                                                   "sqrt fraction Cropland cover per 0.81 km2 at end",
+                                                   "Relative change in mean temperature per 0.25 degr2 at end",
+                                                   "Relative change in monthly precipitation per 0.25 degr2 at end",
+                                                   "Relative change in mean temperature per 1 km2 at end" ,
+                                                   "Relative change in monthly precipitation per 1 km2 at end")))                                              
 
-PAmodels
-
-# plot for PA's
-metadata_pa<-  completeData %>% 
-  group_by( Realm,PA) %>%
-  summarise(
-    Datasources = length(unique(Datasource_ID)),
-    Plots =  length(unique(Plot_ID)))
-metadata_pa
-
-paSlope<- inlaFpaInt$summary.fixed[4:7,]
-vars<-data.frame(do.call(rbind, strsplit(rownames(paSlope), split = ":")))
-paSlope<-cbind(paSlope, vars)
-paSlope$PA<-gsub("PA", "", paSlope$X1);  paSlope$Realm<-gsub("Realm", "", paSlope$X2)
-paSlope<- merge(paSlope, metadata_pa)
-paSlope$text = paste0("(", paSlope$Datasources, " / ", paSlope$Plots, ")")
-paSlope$PA[paSlope$PA == "yes"  ]<-"Protected area" ;  paSlope$PA[paSlope$PA == "no"  ]<-"Not protected area"
-
-ggplot(data.frame(paSlope))+
-  geom_crossbar(aes(x=Realm,   y=mean, fill = PA,
-                    ymin=X0.025quant,ymax=X0.975quant), width = 0.7, position="dodge")+
-  scale_fill_manual(values = col.scheme.pa)+
+sml<- ggplot( subset(drivers, scale =="small")   ) + 
+   geom_crossbar(aes(x=name,   y=mean, fill = Realm,
+                    ymin=`0.025quant` ,ymax= `0.975quant` ), position="dodge",alpha=1 ,  width =0.7)+
+ scale_fill_manual(values = col.scheme.realm)+
+  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
-  geom_hline(yintercept=0,linetype="dashed")+
-  ylim(-0.01, 0.02)+  xlab ("")+ ylab ("Slope")+
-  geom_text(aes(x = Realm , y = 0.017, fill = PA,  label = text), size = 4, position = position_dodge(width = 1)) +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"), legend.key=element_blank()) + 
-   guides(fill=guide_legend(title=NULL))
+   theme_clean + 
+  theme(legend.position = "", 
+        strip.text = element_blank(), 
+        strip.background = element_blank())+
+  facet_wrap(.~scale, scales = "free", nrow = 3)
+
+md<- ggplot( subset(drivers, scale =="mid")   ) + 
+  geom_crossbar(aes(x=name,   y=mean, fill = Realm,
+                    ymin=`0.025quant` ,ymax= `0.975quant` ), position="dodge",alpha=1 ,  width =0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
+  coord_flip()+
+  theme_clean + 
+  theme(legend.position = "", 
+        strip.text = element_blank(), 
+        strip.background = element_blank())+
+  facet_wrap(.~scale, scales = "free", nrow = 3)
+
+lrg<- ggplot( subset(drivers, scale =="large")   ) + 
+  geom_crossbar(aes(x=name,   y=mean, fill = Realm,
+                    ymin=`0.025quant` ,ymax= `0.975quant` ), position="dodge",alpha=1 ,  width =0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  ylab ("Model estimate")+ xlab ("")+geom_hline(yintercept=0,linetype="dashed")+
+  coord_flip()+
+  theme_clean + 
+  theme(legend.position = "", 
+        strip.text = element_blank(), 
+        strip.background = element_blank())+
+  facet_wrap(.~scale, scales = "free", nrow = 3)
 
 
-######################################################################################
-# Crop
-
-cropModels <- data.frame(modelName=(character()),
-                         fixedEffects=character(), 
-                         DIC=numeric(),
-                         WAIC=numeric(),
-                         stringsAsFactors=FALSE)
-
-load("E:/inlaFcrop 3way.RData")
-cropModels[1,1] <-"3way"
-cropModels[1,2] <- "Realm*cYear*cropArea"
-cropModels[1,3] <-summary(inlaFcropTRY)$dic$dic
-cropModels[1,4] <-summary(inlaFcropTRY)$waic$waic
-
-load("E:/inlaFcrop1 only2ways.RData")
-cropModels[2,1] <-"2way"
-cropModels[2,2] <- "cYear* Realm + cYear*cropArea"
-cropModels[2,3] <-summary(inlaFcrop1)$dic$dic
-cropModels[2,4] <-summary(inlaFcrop1)$waic$waic
-
-load("E:/inlaFcrop2.RData")
-cropModels[3,1] <-"additive"
-cropModels[3,2] <- "Year* Realm + cropCover"
-cropModels[3,3] <-summary(inlaFcrop2)$dic$dic
-cropModels[3,4] <-summary(inlaFcrop2)$waic$waic
-
-cropModels[4,1] <-"none"
-cropModels[4,2] <- "Year* Realm "
-cropModels[4,3] <-summary(inlaF)$dic$dic
-cropModels[4,4] <-summary(inlaF)$waic$waic
-
-cropModels
-
-
-#################################################################################
-# Urban
-
-urbanModels <- data.frame(modelName=(character()),
-                          fixedEffects=character(), 
-                          DIC=numeric(),
-                          WAIC=numeric(),
-                          stringsAsFactors=FALSE) 
-
-load("E:/inlaFurban.RData")
-     
-urbanModels[1,1] <-"3way"
-urbanModels[1,2] <- "Realm*cYear*urbanArea"
-urbanModels[1,3] <-summary(inlaFurban)$dic$dic
-urbanModels[1,4] <-summary(inlaFurban)$waic$waic
-
-
-load("E:/inlaFurban1 2way inter.RData")
-
-urbanModels[2,1] <-"2way"
-urbanModels[2,2] <- "Year*UrbanCover + Realm*Year"
-urbanModels[2,3] <-summary(inlaFurban1)$dic$dic
-urbanModels[2,4] <-summary(inlaFurban1)$waic$waic
-
-load("E:/inlaFurban2 no inter.RData")
-
-
-urbanModels[3,1] <-"additive"
-urbanModels[3,2] <- "Realm*Year +UrbanCover"
-urbanModels[3,3] <-summary(inlaFurban2)$dic$dic
-urbanModels[3,4] <-summary(inlaFurban2)$waic$waic
-
-urbanModels[4,1] <-"none"
-urbanModels[4,2] <- "Year* Realm "
-urbanModels[4,3] <-summary(inlaF)$dic$dic
-urbanModels[4,4] <-summary(inlaF)$waic$waic
+library(gridExtra)
+grid.arrange(sml, md, lrg, nrow = 3,  heights = c(7,3, 2.2) )
 
 
 
-#######################################################################################
-
-
-##################################################################################################
-# mean Temperature change
-
-meanTModels <- data.frame(modelName=(character()),
-                          fixedEffects=character(), 
-                          DIC=numeric(),
-                          WAIC=numeric(),
-                          stringsAsFactors=FALSE)
-
-load("E:/inlaFmeanT.RData")
-meanTModels[1,1] <-"3way"
-meanTModels[1,2] <- "Year*Realm*relDeltaTmean"
-meanTModels[1,3] <-summary(inlaFmeanT)$dic$dic
-meanTModels[1,4] <-summary(inlaFmeanT)$waic$waic
-
-
-load("E:/inlaFmeanT1.RData")
-meanTModels[2,1] <-"2way"
-meanTModels[2,2] <- "Year*Realm*relDeltaTmean"
-meanTModels[2,3] <-summary(inlaFmeanT1)$dic$dic
-meanTModels[2,4] <-summary(inlaFmeanT1)$waic$waic
-
-
-load("E:/inlaFmeanT2.RData")
-meanTModels[3,1] <-"additive"
-meanTModels[3,2] <- "relDeltaTmean+cYear*Realm "
-meanTModels[3,3] <-summary(inlaFmeanT2)$dic$dic
-meanTModels[3,4] <-summary(inlaFmeanT2)$waic$waic
-
-# dic and waic for simplest model
-meanTModels[4,1] <-"none"
-meanTModels[4,2] <- "Year* Realm "
-meanTModels[4,3] <-summary(inlaF)$dic$dic
-meanTModels[4,4] <-summary(inlaF)$waic$waic
-
-
-
-
-###################################################################################
-#precipitation
 
