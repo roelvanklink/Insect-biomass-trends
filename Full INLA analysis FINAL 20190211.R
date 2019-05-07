@@ -576,7 +576,23 @@ perc<-(10^(brks )  *100) - 100
 l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 
 
-ggplot(data.frame(subset(regionSlope, ok >0 )))+ # only use >20plots or >4 datasets 
+allVars <-expand.grid(Realm = unique(regionSlope$Realm), Region = unique(regionSlope$Region))
+regionSlope<- merge(allVars, regionSlope, all.x = T)
+test<-NULL
+for (i in (1: length(unique(regionSlope$Region)))){
+regs<-  unique(regionSlope$Region)
+df<-subset(regionSlope, Region == regs[i])
+
+if (any(is.na (df$ok))) {
+  df$ok[is.na(df$ok)]<-   df$ok[!is.na(df$ok)]}
+if (sum(df$ok ==0 ) ==1) {
+  df[df$ok == 0 , c(3:9, 17)] <- NA     # but values need to be NA, or else they'll be included
+df$ok[df$ok == 0 ] <-   df$ok[df$ok != 0 ]} # needs number >0 to be included 
+ test<- rbind(test, df) 
+}
+regionSlope<- test
+
+ggplot(data.frame(subset(test, ok >0 )))+ # only use >20plots or >4 datasets 
   geom_crossbar(aes(x=Region,   y=mean, fill = Realm, 
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
@@ -1126,7 +1142,7 @@ inlaFlanduseT<- inla(log10(Number+1) ~  cYear* sqrt(End_cropArea)+ cYear* sqrt(E
                       num.threads = 2) #verbose = T,
  save(inlaFlanduseFW, file = "inlaFlanduseFW.RData")
  load("E:/inlaFlanduseFW.RData")
- all.results<-c(all.results, Landuse_LUH2_FW = list(inlaFlanduseFW$summary.fixed)) # save fixed effects
+ all.results$Landuse_LUH2_FW <- (inlaFlanduseFW$summary.fixed) # save fixed effects
  
  
 landusePlots<- merge(RandEfPlot,  LU )
@@ -1183,7 +1199,7 @@ inlaFChangesTerr<- inla(log10(Number+1) ~ cYear + cYear *  urbanization + cYear 
                         data=subset(completeData, Realm == "Terrestrial"), verbose = T, num.threads = 2)
 save(inlaFChangesTerr, file = "/data/Roel/inlaFChangesTerr.RData")
 load("E:/inlaFChangesTerr.RData")
-all.results<-c(all.results, Changes_LUH2_Terr = list(inlaFChangesTerr$summary.fixed)) # negatve Urbanization effect! 
+all.results$Changes_LUH2_Terr <- (inlaFChangesTerr$summary.fixed) # negatve Urbanization effect! 
 
 
 inlaFChangesFW<- inla(log10(Number+1) ~ cYear + cYear *  urbanization + cYear * cropification + #cYear:PA +
