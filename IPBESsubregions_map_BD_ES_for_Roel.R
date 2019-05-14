@@ -105,7 +105,7 @@ for (i in 1:3){
       gt_plot[panel_coords$t:panel_coords$b, panel_coords$l:panel_coords$r]
     })
   
-  #alocates plots to the map by listed coordinates
+  #allocates plots to the map by listed coordinates
   bar_annotation_list <- lapply(1:length(map.kt$OBJECTID), function(i) 
     annotation_custom(bar.testplot_list[[i]], 
                       
@@ -135,6 +135,13 @@ for (i in 1:3){
 
 
 
+
+#################################################################################################
+load("metadata_per_dataset.RData")
+metadata_per_dataset<- metadata_per_dataset[order( -metadata_per_dataset$mean_lat),] 
+
+
+
 ggplot(data=df, aes(x=Datasource_name, y=Duration, fill = Realm)) +
  geom_bar(stat="identity") +theme_clean +
   scale_fill_manual(values = col.scheme.realm)+
@@ -151,81 +158,160 @@ ggplot(data=df, aes(x=Datasource_name, y=Duration, fill = Realm)) +
 
 
 
-  print(ssp[i])
   
-  ## 1 - Select model ##
-  final_data1<-subset(final_data, final_data$Scenario==ssp[i] | final_data$Scenario==ssp2[i])
   
-  ## make it in the same order that in the shapefile
-  final_data1$Region<-factor(final_data1$Region, levels = map.kt$IPBES_sub)
-  
-  final_data1 <- arrange(final_data1,Region, factor(Region))
-  
-  print(Sys.time())
-  #runs and saves individual plots
-  
-  bar.testplot_list <- 
-    lapply(metadata_per_dataset$Datasource_ID, function(i) { 
+  bar.testplot_list <- list() 
+  for (i in 1: nrow(metadata_per_dataset)){
+#      lapply(metadata_per_dataset$Datasource_ID, function(i) { 
       
       gt_plot <- ggplotGrob(
         ggplot(data=metadata_per_dataset[i,], aes(x=Datasource_name, y=Duration, fill = Realm)) +
-          geom_bar(stat="identity") +theme_clean +
+          geom_bar(stat="identity", color = 1, size = 0.2)  +
           scale_fill_manual(values = col.scheme.realm)+
           ylim (0, 90)+
+          theme_clean+
           theme_void()+
           #labs(x = "", y = "")+
-         theme(   legend.position = "none", 
-                  rect = element_blank(),
-        #        line = element_blank(),
-                aspect.ratio=15/1 #, 
-        #        axis.title=element_blank(),
-        #        axis.text=element_blank(),
-        #        axis.ticks=element_blank()
-                
-                 ))
+          theme(   legend.position = "none", 
+                   rect = element_blank(),
+                   aspect.ratio=18/1 #, 
+                   
+                   
+          ))
       panel_coords <- gt_plot$layout[gt_plot$layout$name == "panel",]
       gt_plot[panel_coords$t:panel_coords$b, panel_coords$l:panel_coords$r]
-    })
-  
-  #alocates plots to the map by listed coordinates
-  bar_annotation_list <- lapply(1:length(metadata_per_dataset$Datasource_ID), function(i) 
-    annotation_custom(bar.testplot_list[[i]], 
-                      
-                      xmin = metadata_per_dataset$mean_long[i] - 20,
-                      xmax = metadata_per_dataset$mean_long[i] + 20,
-                      ymin = metadata_per_dataset$mean_lat[i] - 20,
-                      ymax = metadata_per_dataset$mean_lat[i] + 20) )
+    
+      bar.testplot_list[[i]]<- gt_plot
+      }
+  length(bar.testplot_list)
   
   
-  result_plot <- Reduce(`+`, bar_annotation_list, p.wgs)
-  
-  result_plot
-  
-  
-  ##################################################################
-  # tryouts
+# convert coordinates to robinson projection  
   pts.wgs <- metadata_per_dataset
   pts.wgs <- SpatialPointsDataFrame(coords = data.frame(lon = pts.wgs$mean_long,
                                                         lat = pts.wgs$mean_lat),
                                     proj4string = CRS(WGS84),
                                     data = pts.wgs)
-  
   pts.rob <- spTransform(pts.wgs, CRSobj = ROBINSON)
-  
-  
   pts.rob@data <- data.frame(pts.rob@data, 
-                              x = coordinates(pts.rob)[,1],
-                              y = coordinates(pts.rob)[,2])
+                             x = coordinates(pts.rob)[,1],
+                             y = coordinates(pts.rob)[,2])
   
   
-  # this a least works:
-  p.wgs + 
-    annotation_custom(gt_plot, 
+  
+  
+  #allocates plots to the map by listed coordinates
+  bar_annotation_list <- lapply(1 : length(metadata_per_dataset$Datasource_ID), function(i) #
+    annotation_custom(bar.testplot_list[[i]], 
+                      
                       xmin = pts.rob@data$x[i] -400000 ,
                       xmax = pts.rob@data$x[i] + 400000,
                       ymin = pts.rob@data$y[i] - 100000,
                       ymax = pts.rob@data$y[i] + 2000000)
+    )
+  
+ # bar.testplot_list<- list(gt_plot1, gt_plot2, gt_plot3, gt_plot4, gt_plot5) # test list manually 
+  
+  
+# make legend
+lgnd<-  data.frame(
+    Duration = rep(c(10, 20,40,60,80,100),2),
+    Realm = rep(c("Terrestrial", "Freshwater"), each = 6)
+  )
+  
+ 
+  #for (i in 1: nrow(metadata_per_dataset)){
+    #      lapply(metadata_per_dataset$Datasource_ID, function(i) { 
+    
+   leg_plot <- ggplotGrob(
+      ggplot(data=lgnd, aes(x=as.factor(Duration), y=Duration, fill = Realm)) +  #
+        geom_bar(stat= "identity", color = 1, size = 0.2)  +
+        scale_fill_manual(values = col.scheme.realm)+
+        ylim (0, 100)+
+        theme_clean+
+        facet_wrap(~Realm, nrow = 2, strip.position = c("right"))+
+        #theme_void()+
+        labs(x = "", y = "Duration (years)")+
+        theme(   legend.position = "none", 
+                 rect = element_blank(),
+                 aspect.ratio=2.5/1 , 
+                 axis.text.x=element_blank(),
+                 axis.ticks.x=element_blank(), 
+                 axis.line.x=element_blank(), 
+                 #axis.text=element_text(size=2) 
+                 axis.title=element_text(size=9), 
+                 strip.text.y = element_text(size = 8, face = "bold", angle = 0),
+                 plot.background = element_rect(fill = "white")
+        ))
+#,face="bold"#    panel_coords <- gt_plot$layout[gt_plot$layout$name == "panel",]
+#    gt_plot[panel_coords$t:panel_coords$b, panel_coords$l:panel_coords$r]
 
+  
+  
+  
+  
+  map_with_bars <- Reduce(`+`, bar_annotation_list, p.wgs)
+  
+# legend location :
+   x =  -18000000 
+   y =  -5000000
+   
+   
+   map_with_bars+ 
+       
+     annotation_custom(leg_plot, 
+                       
+                       xmin = x - 0 ,
+                       xmax = x + 10000000,
+                       ymin = y - 0,
+                       ymax = y + 6000000)
+   
+     
+   
+   png("map_with_bars.png", width=4400, height=2000, res = 360)
+   map_with_bars
+   dev.off()
+   
+  
+   
+  
+  
+  
+  
+  ##################################################################
+  # tryouts
+
+ 
+  
+  # this a least works:
+  p.wgs + 
+    annotation_custom(bar.testplot_list[[1]], 
+                      xmin = pts.rob@data$x[1] -400000 ,
+                      xmax = pts.rob@data$x[1] + 400000,
+                      ymin = pts.rob@data$y[1] - 100000,
+                      ymax = pts.rob@data$y[1] + 2000000)
+  +
+    annotation_custom(bar.testplot_list[[2]], 
+                      xmin = pts.rob@data$x[2] -400000 ,
+                      xmax = pts.rob@data$x[2] + 400000,
+                      ymin = pts.rob@data$y[2] - 100000,
+                      ymax = pts.rob@data$y[2] + 2000000)+
+  annotation_custom(bar.testplot_list[[3]], 
+                    xmin = pts.rob@data$x[3] -400000 ,
+                    xmax = pts.rob@data$x[3] + 400000,
+                    ymin = pts.rob@data$y[3] - 100000,
+                    ymax = pts.rob@data$y[3] + 2000000)
+  +
+    annotation_custom(bar.testplot_list[[4]], 
+                      xmin = pts.rob@data$x[4] -400000 ,
+                      xmax = pts.rob@data$x[4] + 400000,
+                      ymin = pts.rob@data$y[4] - 100000,
+                      ymax = pts.rob@data$y[4] + 2000000)+
+    annotation_custom(bar.testplot_list[[5]], 
+                      xmin = pts.rob@data$x[5] -400000 ,
+                      xmax = pts.rob@data$x[5] + 400000,
+                      ymin = pts.rob@data$y[5] - 100000,
+                      ymax = pts.rob@data$y[5] + 2000000)
    
   
   
@@ -243,3 +329,17 @@ ggplot(data=df, aes(x=Datasource_name, y=Duration, fill = Realm)) +
 
 
 
+
+  
+  
+  
+  
+  p.wgs + 
+    bar_annotation_list[[1]]+
+    bar_annotation_list[[2]]+
+    bar_annotation_list[[3]]+
+    bar_annotation_list[[4]]+
+    bar_annotation_list[[5]]
+  
+  
+  
