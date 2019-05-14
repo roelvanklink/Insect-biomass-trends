@@ -16,6 +16,7 @@ load("completeData.Rdata")
 load("completeDataArth.RData")
 load("E:/inla1.RData")
 load("all.results.RData")
+load("metadata_per_dataset.RData")
 #completeData$Stratum[completeData$Stratum == "air"]<-"Air"
 #completeData$Stratum[completeData$Plot_ID == 930 ]<- "Soil surface"
 
@@ -265,7 +266,6 @@ randomFits$c0.975quant<- randomFits$RW.0.975quant+ randomFits$intercept
 
 
 # Fig 1B D plot map #####
-  setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
   
 load("RandEfDataset.RData")
 
@@ -281,13 +281,14 @@ pts.wgs <- SpatialPointsDataFrame(coords = data.frame(lon = pts.wgs$mean_long,
                                   proj4string = CRS(WGS84),
                                   data = pts.wgs)
 
+setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
 source("map_preparation.R")
 # scale slopes 
 pts.wgs$slope.scal[pts.wgs$slope.scal<(-0.02)]<- -0.02 # 
 pts.wgs$slope.scal[pts.wgs$slope.scal>(0.02)]<- 0.02
 
 # plot on map  by Datasource # scale is set to be symmetrical over most extreme value
-p.wgs+
+fw.wgs<- p.wgs+
   geom_point(data = subset(pts.rob, Realm =="Freshwater")@data ,  size = 1.8, #color = "grey30",pch = 21,
              aes(x = x,   y = y,  color = slope, group = NULL), 
              position=position_jitter(h=1, w=1)) +  #
@@ -295,17 +296,24 @@ p.wgs+
                         limits = c(min(pts.rob$slope), max(pts.rob$slope)), name = 'Trend \nslope') +# "PuBuGn"
   ggtitle("Freshwater fauna") 
 
-#limits = c(min(pts.wgs$slope), -min(pts.wgs$slope)), name = 'Trend \nslope') +# "PuBuGn" # symmatrical color scheme
-  
+png("map plasma fw.png", width=4400, height=2000, res = 360)
+fw.wgs
+dev.off()
+
 
 # terrestrial
-p.wgs+
+terr.wgs<-p.wgs+
  geom_point(data = subset(pts.rob, Realm =="Terrestrial")@data, size = 1.8, #pch = 21,color = "grey30" ,
             aes(x = x,   y = y,  color = slope, group = NULL) , 
             position=position_jitter(h=1, w=1)) +
   scale_color_viridis_c(space = "Lab" , option = "plasma",
                        limits = c(min(pts.rob$slope), max(pts.rob$slope)), name = 'Trend \nslope') +# "PuBuGn"
   ggtitle("Terrestrial fauna") 
+
+png("map plasma terr.png", width=4400, height=2000, res = 360)
+terr.wgs
+dev.off()
+
 
 # both on one map
 library(ggnewscale)
@@ -512,7 +520,7 @@ contPlot<- ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # ex
   geom_text(aes(x = Continent , y = 0.032, label = text, fill = Realm),  
             position = position_dodge(width = 0.7), size = 3, color = 1) +
     coord_flip()+
-  scale_y_continuous(breaks = brks,labels = e, limits=c(-0.028,0.036))+
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.028,0.036))+
   xlab ("")+ ylab("")+ #Trend slope | \n % change per year
   theme_clean +
 theme(legend.key=element_blank(),
@@ -521,7 +529,24 @@ theme(legend.key=element_blank(),
   geom_text(aes(x = 5.3 , y = -0.025, label = "A"),  
             size = 6, color = 1) 
 
-  
+#presentations version: 
+contPlot<- ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude africa,bc it has too wide CI's 
+  geom_crossbar(aes(x=Continent,   y=mean, fill = Realm, 
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  geom_hline(yintercept=0,linetype="dashed") +
+  geom_text(aes(x = Continent , y = 0.032, label = text, fill = Realm),  
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
+  coord_flip()+
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.028,0.036))+
+  xlab ("")+ ylab("Trend slope  \n % change per year")+
+  theme_clean +
+  theme(legend.key=element_blank(), 
+        legend.position="bottom") 
+
+png("continent plot.png", width=2000, height=1500, res = 360)
+contPlot
+dev.off()
 
 
 # Geographic Regions ##### 
@@ -670,6 +695,9 @@ biomPlot<- ggplot(data.frame(biomSlope))+
   geom_text(aes(x = 4.3 , y = -0.025, label = "B"),  
           size = 6, color = 1) 
   
+png("biome plot.png", width=2000, height=1300, res = 360)
+biomPlot
+dev.off()
 
 
 library(gridExtra)
@@ -833,6 +861,9 @@ ggsave(filename = "fig 1AC test5.pdf",
       device = "pdf", 
       colormodel = "cmyk", 
       useDingbats = F)
+png("Fig 1AC.png", width=2000, height=2500, res = 360)
+fig1AC
+dev.off()
 
 
 
@@ -936,6 +967,10 @@ ggplot(subset(RWcont, goodData == T ))+
         strip.text.x = element_text(angle = 0, hjust = 0), 
         axis.text.x  = element_text(angle=45, vjust=1, hjust = 1))
 
+png("Fig 3.png", width=4000, height=2300, res = 360)
+fig1AC
+dev.off()
+
 
 ## # # # # # # # # # # # # # # ########################################################################## # 
 
@@ -1002,7 +1037,7 @@ l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 e<- c("","","","","","","")
 
 
-ggplot(data.frame(paSlope))+
+PAplot<- ggplot(data.frame(paSlope))+
   geom_crossbar(aes(x=Realm,   y=mean, fill = PA,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   geom_hline(yintercept=0,linetype="dashed")+
@@ -1016,7 +1051,10 @@ ggplot(data.frame(paSlope))+
                     values = col.scheme.PA) + 
   theme_clean
 
-  
+png("PA plot.png", width=2000, height=700, res = 360)
+PAplot
+dev.off()
+
   
 
 
@@ -1223,7 +1261,7 @@ all.results$Changes_LUH2_FW <- (inlaFChangesFW$summary.fixed) # save fixed effec
 
 
 urbanizationPlot<- ggplot(landusePlots, aes(x=urbanization*100, y = slope))+  #`Plot_slp_ mean`
-  geom_point (aes(color = Realm), size = 0.5 )+
+  geom_point (aes(color = Realm), size = 1 )+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
   xlab (bquote('Change in % urban cover per 25'~ km^2)) + ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
@@ -1574,7 +1612,7 @@ CHELSAplots$Realm <- relevel(CHELSAplots$Realm, ref = "Terrestrial")
 
 
 CHELSApPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaPrec, y = slope))+  #`Plot_slp_ mean`
-  geom_point (aes(color = Realm) , size = sz)+
+  geom_point (aes(color = Realm) , size = 1)+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
   xlab ("Absolute change in precipitation per decade (mm)")+ ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
@@ -1588,7 +1626,7 @@ CHELSApPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaPrec, y = slope))+  #`Plot_sl
 
 
 CHELSATmeanPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaTmean, y = slope))+  #`Plot_slp_ mean`
-  geom_point (aes(color = Realm) , size = sz)+
+  geom_point (aes(color = Realm) , size = 1)+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
   xlab ("Absolute change in mean Temperature")+ ylab ("")+ #Trend slope
   geom_hline(yintercept=0,linetype="dashed")+
@@ -1601,7 +1639,7 @@ CHELSATmeanPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaTmean, y = slope))+  #`Pl
 
 
 CHELSAPrelPlot<- ggplot(CHELSAplots, aes(x=CHELSArelDeltaPrec, y = slope))+  #`Plot_slp_ mean`
-  geom_point (aes(color = Realm), size = sz )+
+  geom_point (aes(color = Realm), size = 1 )+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
   ylab ("")+ #Trend slope
   xlab( expression(atop("Relative change in precipitation per decade", '('*Delta*'Prec / ' *mu*'Prec (mm))')))+
@@ -1617,7 +1655,7 @@ CHELSAPrelPlot<- ggplot(CHELSAplots, aes(x=CHELSArelDeltaPrec, y = slope))+  #`P
 
 brks<- c(0.00,  0.001, 0.002)
 CHELSATrelPlot<- ggplot(CHELSAplots, aes(x=CHELSArelDeltaTmean, y = slope))+  #`Plot_slp_ mean`
-  geom_point (aes(color = Realm), size = sz )+
+  geom_point (aes(color = Realm), size = 1)+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
   scale_x_continuous(breaks = brks)+
   xlab( expression(atop("Relative change in mean temperature", '('*Delta*'T / ' *mu*'T (K))')))+
