@@ -427,6 +427,7 @@ metadata_per_plot<-  merge4 %>%
     Country = unique(Country),
     Region = unique(Region),
     Realm = unique(Realm),
+    Stratum = unique(Stratum),
     Longitude = unique(Longitude),
     Latitude = unique(Latitude),
     AbundanceBiomass = unique(Abundance.Biomass),
@@ -971,15 +972,16 @@ metadata_per_plot<- completeData %>%
     Country_State = unique(Country_State),
     Country = unique(Country),
     Realm = unique(Realm),
- #   Longitude = unique(Longitude),
+    Stratum = length(unique(Stratum)),
+#Longitude = unique(Longitude),
     NUMBER_OF_PLOTS =  length(unique(Plot_ID)), # should be 1
     NUMBER_OF_SAMPLES = length(unique(paste(Year, Period))),
     NUMBER_OF_YEARS = length(unique(Year)),
     #NUMBER_OF_TAXA = length(unique(Taxon)),
     TOTAL_N = sum(Number, na.rm = T),
-    PA = unique(PA), 
-PAname = unique(NAME),    
-PAsince = unique(STATUS_YR)
+    PA = unique(PA)#, 
+#PAname = unique(NAME),    
+#PAsince = unique(STATUS_YR)
   )
 metadata_per_plot <- merge(metadata_per_plot, plots[, c(1, 7,8,9,10, 16,17, 18)]   , by = "Plot_ID")
 save(metadata_per_plot, file = "metadata_per_plot.RData")
