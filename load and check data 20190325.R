@@ -9,13 +9,14 @@ library(tidyverse)
 setwd("C:/Users/roelv/Dropbox/Insect Biomass Trends/csvs") # home
 setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
 
-taxa<-read.csv( file = "Taxa.csv"); dim(taxa)
+taxa<-read.csv( file = "taxa 3.0.csv"); dim(taxa)
 plots<-read.csv( file = "Plots.csv"); dim(plots)
 samples <-read.csv( file = "Sample_Info.csv"); dim(samples)
 database <-read.csv( file = "Data.csv"); dim(database)
 database<- subset(database, Note != "remove");dim(database)
 studies<-read.csv(file = "studies.csv", header = T); dim(studies)
-#studies1 <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies)
+#studies1 <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies) 
+#write.csv(studies, file = "studies.csv")
 
 # some changes to groupings
 levels(studies$Continent)[levels(studies$Continent) == "South America"]  <- "Latin America"
@@ -45,7 +46,7 @@ plots<- plots[, c("Plot_ID", "Datasource_ID", "Location", "Plot_name", "Details.
                  "Process_of_change", "notes_change", "invasives", "Coord_system", "Original_Latitude", "Original_Longitude", "Latitude",
                  "Longitude", "Elevation", "Source_geogr_data")]
 names(taxa) # no redundancy
-taxa<-taxa[, c("ID","Phylum", "Class",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon",     "Note")]
+taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon",     "Note")]
   
 # extra files to append to database file
 Biotime <- read.csv( file = "BioTIME final 2019.csv");#head(Biotime)
@@ -73,7 +74,9 @@ sev.ants<- read.csv(file = "sev antnests formatted.csv", header = T)
 sev.gh  <- read.csv(file = "sev grasshoppers formatted.csv", header = T)
 sev.pf  <- read.csv(file = "sev pitfalls formatted.csv", header = T)
 ecn.but<- read.csv(file = "ECN butterflies final.csv", header = T)
+levels(ecn.but$Taxon)[levels(ecn.but$Taxon) == "NONE" ] <- "Butterflies"
 ecn.gb<- read.csv(file ="ECN ground beetles final nw.csv", header = T)
+
 ecn.m2<-  read.csv(file ="ECN moths final_2.csv", header = T)
 ecn.m<-  read.csv(file ="ECN moths final.csv", header = T)
 Sweden<-read.csv("SEFW fnal 201904.csv", header = T) ; Sweden$Plot_name<- as.factor(Sweden$Plot_name)
@@ -279,14 +282,6 @@ taxa$Taxon[duplicated(taxa$Taxon)]
 dim(test)
 test1<-merge(test, taxa,  by = "Taxon") ; beep(1)#
 dim(test1) #
-dim(test1)- dim(test) # 
-
-setdiff(unique(test$Datasource_name),  unique(test1$Datasource_name) ) # 
-
-setdiff(unique(test$Taxon),  unique(test1$Taxon) ) # 
-setdiff(unique(test$Taxon),  taxa$Taxon )
-subset(test, Taxon == "")
-subset(test, is.na(Taxon))
 
 
 
@@ -303,9 +298,9 @@ plots[!plots$Datasource_ID %in% studies$Datasource_ID, ] # black rock forest was
 
 
 # 
-dim(test)
-test1<-merge(test, taxa,  by = "Taxon") #
-dim(test1) #
+
+
+
 
 # observations and plots
 test2<-(merge(test1, plots, by = "Plot_ID"))
@@ -326,12 +321,12 @@ samples[duplicated(samples$Sample_ID)] #no duplicates
 
 
 # make sure NA's in number are recognized as na's
-
+is.numeric(test$Number) # is ok 
 mf<- as.numeric(test$Number)
 wrong<-(is.na(mf))
 test[wrong, ]
 
-is.na(as.numeric(test$Number))<-NA
+
 
 
 
@@ -427,7 +422,7 @@ metadata_per_plot<-  merge4 %>%
     Country = unique(Country),
     Region = unique(Region),
     Realm = unique(Realm),
-    Stratum = unique(Stratum),
+    #Stratum = length(unique(Stratum)),
     Longitude = unique(Longitude),
     Latitude = unique(Latitude),
     AbundanceBiomass = unique(Abundance.Biomass),
@@ -439,7 +434,7 @@ metadata_per_plot<-  merge4 %>%
   )
 dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
 newest<- metadata_per_plot
-write.csv(metadata_per_plot, "metadata per plot 20190405.csv")
+write.csv(metadata_per_plot, "metadata per plot 20190531.csv")
 #save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 new<- read.csv("metadata per plot 20190405.csv")
@@ -481,7 +476,7 @@ merge4$duration.ok<- ! merge4$Plot_ID %in% short.plots # length = ok
 
 # only select plots that have sufficient duration
 merge4.1<- subset(merge4, duration.ok == T)
-dim(merge4.1)# 675919 on 5-4-19 
+dim(merge4.1)# 675919 on 5-4-19 -  still good on 31-5-19
 
 
 
@@ -492,7 +487,7 @@ dim(merge4.1)# 675919 on 5-4-19
 nas<-subset(merge4.1, is.na(Number) ) ;dim(nas) #4199
 merge4.2<-subset(merge4.1, !is.na(Number) ) # 
 dim(merge4.2)
-length(unique(merge4.2$Datasource_name)) # 156
+length(unique(merge4.2$Datasource_name)) # 158
 
 
 # Selection 3: remove species richness #####
@@ -519,19 +514,22 @@ save(all.arthropods.dataset, file = "all.arthropods.dataset.RData")
 
 
 # deselect  crustaceans
+unique(merge4.4$Class)
 merge4.5<-subset(merge4.4, Class !=  "Crustacea" )
 merge4.5<-subset(merge4.5, Class !=  "Crustaceae" )
 merge4.5<-subset(merge4.5, Class !=  "Malacostraca" )
 merge4.5<-subset(merge4.5, Class !=  "Branchiopoda" )
 merge4.5<-subset(merge4.5, Class !=  "Ostracoda" )
 merge4.5<-subset(merge4.5, Class !=  "Maxillopoda" )
+merge4.5<-subset(merge4.5, Class !=  "Hexanauplia" )
+
 
 
 merge4.5<-subset(merge4.5, Class !=  "Chilopoda" )
 merge4.5<-subset(merge4.5, Class !=  "Diplopoda" )
 merge4.5<-subset(merge4.5, Class !=  "Symphyla" )
 
-
+unique(merge4.5$Class)
 dim(merge4.5) # 753143
 length(unique(merge4.5$Datasource_name))
 
@@ -547,7 +545,43 @@ save(all.insects.dataset, file = "all.insects.dataset.RData")  #
 
 
 
-#selection 5: make dataframe for Abundance/biomass trend comparison
+#selection 5: 
+# deselect redundant taxa
+redund<- subset(merge4.4, Taxon_redundancy != "");dim(redund) # some 22500
+dim(subset(merge4.4, Taxon_redundancy == "higher_resolution"))
+dim(subset(merge4.4, Taxon_redundancy == "lower_resolution"))
+
+
+merge5.ins<-subset(merge4.5, Taxon_redundancy == "" | Taxon_redundancy == "lower_resolution") # deselect redundant data 
+merge5.arth<-subset(merge4.4, Taxon_redundancy == "" |Taxon_redundancy == "lower_resolution") # deselect redundant data, adn take lowest traxonomic aggregation provided 
+merge5.arth.higherTax<-subset(merge4.4, Taxon_redundancy == "" |Taxon_redundancy == "higher_resolution") # deselect redundant data, but take highest taxonomic res provided
+
+
+dim(merge4.5)-dim(merge5.ins)
+dim(merge4.4)- dim(merge5.arth)
+dim(merge4.4)- dim(merge5.arth.higherTax)
+
+length(unique(merge5.arth$Datasource_name))
+length(unique(merge5.ins$Datasource_name))
+length(unique(merge5.arth.higherTax$Datasource_name))
+
+
+#anything missing? 
+unique(merge4.4$Datasource_ID)[! unique(merge4.4$Datasource_ID) %in% unique(merge5.arth$Datasource_ID)]
+
+
+
+all.selectedIns<-merge5.ins
+all.selectedArth<- merge5.arth
+allSelectedArthHigherTax<- merge5.arth.higherTax
+save(all.selectedIns, file = "all.selectedIns.RData")
+save(all.selectedArth, file = "all.selectedArth.RData")
+save(allSelectedArthHigherTax, file = "allSelectedArthHigherTax.RData")
+
+
+
+
+# make dataframe for Abundance/biomass trend comparison
 ABcomparison.arthr<- subset(merge4.4, Abundance.Biomass == "AB")
 ABcomparison.insect<- subset(merge4.5, Abundance.Biomass == "AB")
 save(ABcomparison.insect, file = "ABcomparison.insect.RData")
@@ -555,27 +589,10 @@ save(ABcomparison.arthr, file = "ABcomparison.arthr.RData")
 
 
 
-# deselect redundant taxa
-redund<- subset(merge4.4, Taxon_redundancy != "");dim(redund) # some 22500
-merge5.ins<-subset(merge4.5, Taxon_redundancy == "") # deselect redundant data 
-merge5.arth<-subset(merge4.4, Taxon_redundancy == "") # deselect redundant data 
-
-dim(merge4.5)
-dim(merge5.ins)
-dim(merge4.4)
-dim(merge5.arth)
-
-length(unique(merge5.arth$Datasource_name))
-length(unique(merge5.ins$Datasource_name))
-
-#anything missing? 
-unique(merge4.4$Datasource_ID)[! unique(merge4.4$Datasource_ID) %in% unique(merge5.arth$Datasource_ID)]
 
 
-all.selectedIns<-merge5.ins
-all.selectedArth<- merge5.arth
-save(all.selectedIns, file = "all.selectedIns.RData")
-save(all.selectedArth, file = "all.selectedArth.RData")
+
+
   
 
 
