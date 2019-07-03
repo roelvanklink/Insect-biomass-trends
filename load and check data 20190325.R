@@ -94,7 +94,7 @@ col.scheme.realm<-c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "peru")
 # patch up Swengel for merge. #####
 #Still to do: original data before merge to homogeneous format, + Sample IDs, and sample file 
 Datasource_name <- "US butterflies Swengel"
-Taxon <-"Lepidoptera"
+Taxon <-"Butterflies"
 Unit<- "abundance"
 Transformed_number<- NA;    Sex <- NA
 Error <- NA;               
