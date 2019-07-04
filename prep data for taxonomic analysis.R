@@ -17,9 +17,11 @@ color.scheme.taxa<- c( "Acari" = rest, "Opiliones" = rest ,"Collembola" = rest  
                        "Terrestrial Isopods" = rest ,"Thysanoptera"  = rest      , "Neuroptera"  = rest ,  "Orthoptera" = rest, 
                        "Aquatic Coleoptera" = aq ,"Aquatic Diptera" = aq ,"Chironomidae" = aq ,"Aquatic Crustaceans" = aq ,
                        "Ephemeroptera" = aq, "Megaloptera" = aq, "Odonata" = aq, "Plecoptera" = aq, "Trichoptera" = aq,
-                       "Araneae" = rest, "Other Hymenoptera" = rest,"Syrphidae"   = rest  , "Other Diptera" = rest , 
+                       "Araneae" = rest, 
+                       "Other Hymenoptera" = rest, "Bees" = rest, "Formicidae" = rest, "Symphyta" = rest , "Vespidae" = rest, 
+                       "Syrphidae"   = rest  , "Other Diptera" = rest , 
                        "Other Coleoptera" = beetles  ,"Staphylinidae" = beetles  , "Coccinellidae"  = beetles ,"Curculionidae" =  beetles , "Carabidae" = beetles  , 
-                       "Heteroptera" = "green" ,  "Auchenorrhyncha"  = "green","Sternorrhyncha" = "green" , 
+                       "Heteroptera" = "green" ,  "Auchenorrhyncha"  = "green","Sternorrhyncha" = "green" , "Psocoptera" ="green",  
                        "Moths" = "blue"   , "Butterflies"  = "red")
 
 
@@ -44,7 +46,7 @@ all.arth$GroupCoarse <- as.character(all.arth$Order)
 all.arth$GroupCoarse[all.arth$Class == "Chilopoda"] <- "Myriapoda" # chilopda (class)
 all.arth$GroupCoarse[all.arth$Class == "Diplopoda"] <- "Myriapoda" # diplopoda (class)
 
-all.arth$GroupCoarse[all.arth$Subclass == "Collembola"] <- "Collembola"  # # Collembola (subclass)
+all.arth$GroupCoarse[all.arth$Subclass == "Collembola" & Realm != "Freshwater"] <- "Collembola"  # # Collembola (subclass)
 all.arth$GroupCoarse[all.arth$Subclass == "Acari"] <- "Acari"  # # Collembola (subclass)
 
 all.arth$GroupCoarse[all.arth$Class == "Malacostraca"] <- "Crustacea" # 
@@ -73,8 +75,13 @@ print(metadata_TaxCoarse, n=Inf)
 # finer grouping into commonly assessed groups
 all.arth$Group <- NA
 
-all.arth$Group[all.arth$Order == "Araneae"] <- "Araneae" #spiders (order) (exclude fw)
-all.arth$Group[all.arth$Subclass == "Acari"] <- "Acari"  # mites (subclass) fw and terr
+all.arth$Group[all.arth$Order == "Araneae" & Realm == "Freshwater"] <- "Water spiders" #water spiders (order) 
+all.arth$Group[all.arth$Order == "Araneae" & Realm == "Terrestrial"] <- "Araneae" # spiders (order) 
+
+
+all.arth$Group[all.arth$Subclass == "Acari"& all.arth$Realm == "Freshwater"] <- "Aquatic Acari"  # mites (subclass) fw 
+all.arth$Group[all.arth$Subclass == "Acari"& all.arth$Realm == "Terrrestrial"] <- "Aquatic Acari"  # mites (subclass) terr
+
 all.arth$Group[all.arth$Order == "Opiliones"] <- "Opiliones" # harvestmen  (exclude fw)
 # scorpions and other weird arachnids? 
 archnds<-(subset(all.arth, Class == "Arachnida" & Order != "Araneae" & Subclass != "Acari" & Order != "Opiliones" & Order != "Pseudoscorpiones"))
@@ -102,7 +109,7 @@ all.arth$Group[all.arth$Order == "Cladocera" & all.arth$Realm == "Freshwater"] <
 all.arth$Group[all.arth$Subclass == "Collembola"] <- "Collembola"  # # Collembola (subclass)
 
 
-all.arth$Group[all.arth$Order == "Orthoptera"]    <- "Orthoptera" # (order)
+all.arth$Group[all.arth$Order == "Orthoptera" & Realm != "Freshwater"]    <- "Orthoptera" # (order)
 all.arth$Group[all.arth$Order == "Plecoptera"]    <- "Plecoptera" #(order) exclude terr
 all.arth$Group[all.arth$Order == "Ephemeroptera"] <- "Ephemeroptera" #(order) exclude terr
 all.arth$Group[all.arth$Order == "Odonata"]       <- "Odonata" #(order)
@@ -121,7 +128,7 @@ all.arth$Group[all.arth$Suborder == "Sternorrhyncha"] <- "Sternorrhyncha" #  # S
 
 
 # HOLOMETABOLA
-all.arth$Group[all.arth$Order == "Neuroptera"] <- "Neuroptera" # neuroptera (order)
+all.arth$Group[all.arth$Order == "Neuroptera" & Realm == "Terrestrial"] <- "Neuroptera" # neuroptera (order)
 
 
 
@@ -138,9 +145,11 @@ all.arth$Group[all.arth$Note == "dayactive" ] <- bt
 
 
 # Lepidoptera: moths (rest lepis, exclude fw)
+all.arth$Group[all.arth$Order == "Lepidoptera" & Realm == "Freshwater"] <- "Aquatic Lepidoptera"
+
 m<- "Moths"
 all.arth$Group[all.arth$Order == "Lepidoptera" &  is.na(all.arth$Group) ] <- m
-
+                 
 all.arth$Group[all.arth$Order == "Trichoptera"] <- "Trichoptera" # Trichoptera (Order, fw) exclude terr
 
 # Diptera
@@ -180,6 +189,7 @@ all.arth$Group[all.arth$Family == "Vespidae" ]    <- "Vespidae" # social wasps
 all.arth$Group[all.arth$Suborder == "Symphyta" ]  <- "Symphyta" # Symphyta: Tenthredinidae Xiphydriidae   Argidae        Cephidae # 
 all.arth$Group[all.arth$Family == "Formicidae" ]    <- "Formicidae"# Ants
  # rest wasps (mostly parasitioids)
+all.arth$Group[all.arth$Order == "Hymenoptera" &  Realm == "Freshwater" ] <- "Aquatic Hymenoptera"
 all.arth$Group[all.arth$Order == "Hymenoptera" &  is.na(all.arth$Group) ] <- "Other Hymenoptera"
 
 
@@ -248,8 +258,6 @@ metadata_TaxCoarse<-  subset(completeData.TaxCoarse, !is.na(Number))   %>%
 print(metadata_TaxCoarse, n=Inf)
 
 
-smp<-sample(unique(completeData.TaxCoarse$Plot_ID), 100)
-testdata<- completeData.TaxCoarse[completeData.TaxCoarse$Plot_ID %in% smp , ]
 
 
 inlaFtaxCoarse <- inla(log10(Number+1) ~ cYear:GroupCoarse + GroupCoarse + 
@@ -265,13 +273,14 @@ inlaFtaxCoarse <- inla(log10(Number+1) ~ cYear:GroupCoarse + GroupCoarse +
                    data=completeData)
 
 
+load("inlaFtaxCoarse-5321137.RData")
 
 
-taxSlope<- inlaFtaxCoarse$summary.fixed[7:12,]
+taxSlope<- inlaFtaxCoarse$summary.fixed[37:72,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(taxSlope), split = ":")))
 taxSlope<-cbind(taxSlope, vars)
-taxSlope$X1<-gsub("TaxCoarse", "", taxSlope$X1)
-taxSlope<- merge(taxSlope, metadata_TaxCoarse, by.x = "X1", by.y = "TaxCoarse")
+taxSlope$X1<-gsub("GroupCoarse", "", taxSlope$X1)
+taxSlope<- merge(taxSlope, metadata_TaxCoarse, by.x = "X1", by.y = "GroupCoarse")
 taxSlope$text = paste0("(", taxSlope$Datasources, " | ", taxSlope$Plots, ")")
 
 # reorder for graph
@@ -284,14 +293,14 @@ l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 e<- c("","","","","","","")
 
 
-ggplot(data.frame(taxSlope))+
+ggplot(data.frame(subset(taxSlope, Datasources >4 )))+
   geom_crossbar(aes(x=X1,y=mean, fill = X1,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7, fill = "grey70")+
   coord_flip()+
   xlab ("")+ ylab("Trend slope  \n % change per year")+ #
   geom_hline(yintercept=0,linetype="dashed")+
   geom_text(aes(x = X1 , y = 0.028, label = text), size = 3) +
-  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.015,0.032))+
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.04,0.05))+
   theme_clean
 
 
@@ -338,9 +347,9 @@ inlaFtaxFine <- inla(log10(Number+1) ~ cYear:Group + Group +
 
 
 summary(inlaFtaxFine)
-load("G:/work/2017 iDiv/2018 insect biomass/inlaFtaxFine.RData")
+load("inlaFtaxFine-5321510.RData")
 
-taxSlope<- inlaFtaxFine$summary.fixed[32:62,]
+taxSlope<- inlaFtaxFine$summary.fixed[38:74,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(taxSlope), split = ":")))
 taxSlope<-cbind(taxSlope, vars)
 taxSlope$X1<-gsub("Group", "", taxSlope$X1)
@@ -354,9 +363,12 @@ taxSlope$X1<- ordered(taxSlope$X1, levels = c("Acari" , "Opiliones" ,"Collembola
                                               
                                               "Aquatic Coleoptera" ,"Aquatic Diptera" ,"Chironomidae" ,"Aquatic Crustaceans" ,
                                               "Ephemeroptera", "Megaloptera", "Odonata", "Plecoptera", "Trichoptera",
-                                              "Araneae", "Other Hymenoptera","Syrphidae"    , "Other Diptera" , 
+                                              "Araneae", 
+                                              "Other Hymenoptera", "Bees", "Formicidae", "Symphyta" , "Vespidae", 
+                                              "Syrphidae"    , "Other Diptera" , 
                                               "Other Coleoptera"   ,"Staphylinidae" , "Coccinellidae"  ,"Curculionidae" , "Carabidae"  , 
-                                              "Heteroptera" ,  "Auchenorrhyncha" ,"Sternorrhyncha" , 
+                                              "Heteroptera" ,  "Auchenorrhyncha" ,"Sternorrhyncha" , "Psocoptera", 
+                                              "Blattodea" , 
                                               
                                               "Moths"    , "Butterflies"))
 
@@ -371,7 +383,7 @@ l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 e<- c("","","","","","","")
 
 
-ggplot(data.frame(subset(taxSlope, Datasources >2 )))+
+ggplot(data.frame(subset(taxSlope, Datasources >4 )))+
   geom_crossbar(aes(x=X1,y=mean, fill = X1,
                     ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7)+
   coord_flip()+
@@ -386,3 +398,70 @@ ggplot(data.frame(subset(taxSlope, Datasources >2 )))+
 
 
 
+
+
+
+
+##############################
+# how can the butterflies be POSITIVE!???
+
+bf<- subset(completeData.TaxFine, Group == "Butterflies" ) 
+
+library(INLA)
+inlaBF<- inla(log10(Number+1) ~ cYear + 
+                                f(Period_4INLA,model='iid')+
+                                f(Location_4INLA,model='iid')+
+                                f(Plot_ID_4INLA,model='iid')+
+                                f(Datasource_ID_4INLA,model='iid')+
+                                f(Plot_ID_4INLAR,iYear,model='iid')+
+                                f(Location_4INLAR,iYear,model='iid')                      +
+                                f(Datasource_ID_4INLAR,iYear,model='iid')+
+                                f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                              control.compute = list(dic=TRUE,waic=TRUE),
+                              data=bf)
+
+
+
+#see slopes: 
+summary_df <- unique(bf[,c("Plot_ID","Datasource_ID",
+                                     "Plot_ID_4INLA","Datasource_ID_4INLA",
+                                     "Plot_ID_4INLAR","Datasource_ID_4INLAR")])
+
+RandEfDataset<-unique(bf[,c("Datasource_ID", "Datasource_ID_4INLA", "Datasource_ID_4INLAR")])
+RandEfPlot<-unique(bf[,c("Datasource_ID", "Datasource_ID_4INLA", "Datasource_ID_4INLAR",
+                                   "Location",       "Location_4INLA",      "Location_4INLAR", 
+                                   "Plot_ID",        "Plot_ID_4INLA",       "Plot_ID_4INLAR" )])
+#pull out random intercepts and slopes:
+
+#data source ID
+intercepts     <- inlaBF$summary.random$Datasource_ID_4INLA
+slopes         <- inlaBF$summary.random$Datasource_ID_4INLAR
+slopes_Location<-inlaBF$summary.random$Location_4INLAR
+slopes_plot    <-inlaBF$summary.random$Plot_ID_4INLAR
+names(intercepts)[2:8] <- paste("DataID_Intercept_", names(intercepts)[2:8]) # names for dataset intercepts
+names(slopes)[2:8] <- paste("DataID_Slope_", names(slopes)[2:8])             # names for dataset slopes
+names(slopes_Location)[2:8] <-paste("Loc_slp_", names(slopes_Location)[2:8]) # names for Location slopes
+names(slopes_plot)[2:8] <-paste("Plot_slp_", names(slopes_plot)[2:8])        # names for plot slopes
+
+# datasource level slopes for Fig 1
+RandEfDataset <- merge(RandEfDataset,intercepts, by.x="Datasource_ID_4INLA", by.y="ID")
+RandEfDataset <- merge(RandEfDataset,slopes, by.x="Datasource_ID_4INLAR", by.y="ID")
+
+# add up fixed slope and random slopes
+load("metadata_per_dataset.RData")
+RandEfDataset<- merge(RandEfDataset, metadata_per_dataset, by = "Datasource_ID")
+RandEfDataset$fixedSlp<- inla1$summary.fixed$mean[2]
+RandEfDataset$fixedIntercept<- inla1$summary.fixed$mean[1]
+RandEfDataset$slope <- RandEfDataset$'DataID_Slope_ mean'+ RandEfDataset$fixedSlp # sum of fixed and random slopes  
+RandEfDataset$intercept <- RandEfDataset$'DataID_Intercept_ mean'+ RandEfDataset$fixedIntercept # sum of fixed and random slopes  
+
+
+# plot level random effects for Fig 4: merge together all elements
+RandEfPlot <- merge(RandEfPlot,intercepts, by.x="Datasource_ID_4INLA", by.y="ID") # not really needed here
+RandEfPlot <- merge(RandEfPlot,slopes,          by.x="Datasource_ID_4INLAR", by.y="ID")
+RandEfPlot <- merge(RandEfPlot,slopes_Location, by.x="Location_4INLAR", by.y="ID")
+RandEfPlot <- merge(RandEfPlot,slopes_plot, by.x="Plot_ID_4INLAR", by.y="ID")
+RandEfPlot <- merge(metadata_per_plot, RandEfPlot )
+# add up fixed slope, dataset random + location Random, + plot random 
+RandEfPlot$fixedSlp<- inla1$summary.fixed$mean[2]
+RandEfPlot$slope <- RandEfPlot$fixedSlp +  RandEfPlot$'DataID_Slope_ mean'  + RandEfPlot$'Plot_slp_ mean' +RandEfPlot$'Loc_slp_ mean' 
