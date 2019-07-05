@@ -434,12 +434,13 @@ metadata_per_plot<-  merge4 %>%
     TOTAL_N = sum(Number, na.rm = T)
   )
 dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
-newest<- metadata_per_plot
-write.csv(metadata_per_plot, "metadata per plot 20190531.csv")
+newest<- as.data.frame(metadata_per_plot)
+write.csv(metadata_per_plot, "metadata per plot 20190705.csv")
 #save(metadata_per_plot, file ="metadata_per_plot.RData")
 
+
 new<- read.csv("metadata per plot 20190405.csv")
-old<-read.csv("metadata per plot 20190122.csv")   #1509
+old<-read.csv("metadata per plot 20190531.csv")   #1509
 older<-read.csv("metadata per plot 20181123.csv") #1486
 
 
@@ -622,7 +623,7 @@ load( "all.selectedArth.RData")
 
 all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
                    Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
- #  104096 # 54761 with ecn.m means   52390 with SE-FW stdzd
+ #  104096 # 54761 with ecn.m means   52390 with SE-FW stdzd  52340 on 5-7-19 CC fixed, taxonomy fixed
 dim(all.aggr.insects)
 length(unique(all.aggr.insects$Plot_ID)) # 1628 # now 1416 SE FW 1533
 
@@ -630,7 +631,7 @@ all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Locatio
                           Year + Period + Date  + Country + Region + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
 #  54781 # seems correct - 50.000 obs from UK ecn moths  # now 52736 with SE fW stdzd
 dim(all.aggr.arth)
-length(unique(all.aggr.arth$Plot_ID)) # 1628   now 1416 SEFW
+length(unique(all.aggr.arth$Plot_ID)) # 1628   now 1416 SEFW  52340 5-7-19
 
 
 
@@ -776,7 +777,7 @@ save(completeData, file = "completeData.RData")
 #checks: 
 
 sum(is.na(completeData$Continent))  # should be 0 
-sum(is.na(completeData$Number)) # 25000 now 8895
+sum(is.na(completeData$Number)) # 25000 now 8895  8912 on 5jul2019
 sum(is.na(completeData$Location))
 sum(is.na(completeData$Datasource_ID))
 sum(is.na(completeData$Stratum)) # looks good
