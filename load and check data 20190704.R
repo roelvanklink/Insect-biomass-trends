@@ -19,6 +19,23 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
 #studies1 <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies) 
 #write.csv(studies, file = "studies.csv")
 
+#Add taxonomic level to Taxon table
+taxa$Level<- NA
+taxa$Level[taxa$Phylum!= ""]<- "Phylum"
+taxa$Level[taxa$Class!= ""]<- "Class"
+taxa$Level[taxa$Subclass!= ""]<- "Subclass"
+taxa$Level[taxa$Order!= ""]<- "Order"
+taxa$Level[taxa$Suborder!= ""]<- "Suborder"
+taxa$Level[taxa$Family!= ""]<- "Family"
+taxa$Level[taxa$Subfamily!= ""]<- "Subfamily"
+taxa$Level[taxa$Genus!= ""]<- "Genus"
+taxa$Level[taxa$Species!= ""]<- "Species"
+taxa$Level <- factor(taxa$Level, ordered = TRUE, 
+                    levels = c("Phylum",  "Class", "Subclass", "Order","Suborder",  "Family",
+                               "Subfamily","Genus" ,"Species" ))
+taxa$Rank<-as.numeric(taxa$Level)        
+
+
 # some changes to groupings
 levels(studies$Continent)[levels(studies$Continent) == "South America"]  <- "Latin America"
 levels(studies$Continent)[levels(studies$Continent) == "Central America"]  <- "Latin America"
@@ -47,7 +64,7 @@ plots<- plots[, c("Plot_ID", "Datasource_ID", "Location", "Plot_name", "Details.
                  "Process_of_change", "notes_change", "invasives", "Coord_system", "Original_Latitude", "Original_Longitude", "Latitude",
                  "Longitude", "Elevation", "Source_geogr_data")]
 names(taxa) # no redundancy
-taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon",     "Note")]
+taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon", "Level", "Rank", "Note")]
   
 # extra files to append to database file
 Biotime <- read.csv( file = "BioTIME final 2019.csv");#head(Biotime)
@@ -80,7 +97,7 @@ ecn.gb<- read.csv(file ="ECN ground beetles final nw.csv", header = T)
 
 ecn.m2<-  read.csv(file ="ECN moths final_2.csv", header = T)
 ecn.m<-  read.csv(file ="ECN moths final.csv", header = T)
-Sweden<-read.csv("SEFW fnal 201904.csv", header = T) ; Sweden$Plot_name<- as.factor(Sweden$Plot_name)
+Sweden<-read.csv("SEFW fnal 201907.csv", header = T) ; Sweden$Plot_name<- as.factor(Sweden$Plot_name)
 NZ<- read.csv(file = "NZ river monitoring final.csv", header = T)
 Kellogg<- read.csv(file = "Kellogg final.csv", header = T)
 Ireland<- read.csv(file = "IRfinal1.csv", header = T)
