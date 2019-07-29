@@ -10,7 +10,7 @@ library(beepr)
 setwd("C:/Users/roelv/Dropbox/Insect Biomass Trends/csvs") # home
 setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
 
-taxa<-read.csv( file = "taxa 3.0.csv"); dim(taxa)
+taxa<-read.csv( file = "taxa 3.1.csv"); dim(taxa)
 plots<-read.csv( file = "Plots.csv"); dim(plots)
 samples <-read.csv( file = "Sample_Info.csv"); dim(samples)
 database <-read.csv( file = "Data.csv"); dim(database)
@@ -219,6 +219,8 @@ dim(test)   # 815047    -> 678569 with standardized SE-FW data
  #+ 26 from gpdd (for each plot and year 2 values are entered, probably differnet seasons, but not specified for butterflies and moths) 
  # + 4 from greenland. These are true duplicates in the original data. All 0 duplicates have been removed. Low numbers 
  # 1 US butterflies Swengel, 
+ # 400+ fromSweden FW are caused by their separation in Litoral, sublitoral and profundal. These  look consistent trough time 
+ # are merged in our analysis.
  
 dups<- test[duplicated(test), ]
 dups$Datasource_name<- droplevels(dups$Datasource_name)
@@ -271,14 +273,6 @@ sum(duplicated(Luquillo[, -1]))
 tail(subset(dups, Datasource_name == "LTER Luquillo canopy1" ))
 
 
-head(Sweden2) # ll duplicates ahve been removed
-sum(duplicated(Sweden2[, -1])) #11256
-SEdups<- Sweden2[duplicated(Sweden2[, -1]), ]
-
-SEdups[c(seq(1,1001, by = 50)),]
-#That's a lot of NA's 
-test<- (subset(SEdups,  !is.na(SEdups$Number)))
-tail(subset(SEdups, Plot_ID == 1235), 50)
 
 
 # check for duplicate taxa
@@ -412,7 +406,7 @@ merge4$Period[is.na(merge4$Period)]<-1  # replace missing Period data with 1
 merge4$Period[merge4$Period == ""]<-1  # replace missing Period data with 1
 
 sum(is.na(merge4$Plot_ID))
-sum(is.na(merge4$Number)) #4199 on 29-1-2019  4197 on 29-3-19
+sum(is.na(merge4$Number)) #4199 on 29-1-2019  4197 on 29-3-19  # 956 on 29-7-2019
 sum(is.na(merge4$Year ))
 
 
@@ -452,8 +446,8 @@ metadata_per_plot<-  merge4 %>%
   )
 dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
 newest<- as.data.frame(metadata_per_plot)
-write.csv(metadata_per_plot, "metadata per plot 20190705.csv")
-#save(metadata_per_plot, file ="metadata_per_plot.RData")
+write.csv(metadata_per_plot, "metadata per plot 20190729.csv")
+save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 
 new<- read.csv("metadata per plot 20190405.csv")
@@ -503,7 +497,7 @@ dim(merge4.1)# 675919 on 5-4-19 -  still good on 31-5-19
 
 
 #Selection  2: remove NA in Number  ####
-nas<-subset(merge4.1, is.na(Number) ) ;dim(nas) #4199
+nas<-subset(merge4.1, is.na(Number) ) ;dim(nas) #4199  956 on 29-7-19
 merge4.2<-subset(merge4.1, !is.na(Number) ) # 
 dim(merge4.2)
 length(unique(merge4.2$Datasource_name)) # 158
