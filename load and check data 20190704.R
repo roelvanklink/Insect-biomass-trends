@@ -191,7 +191,7 @@ test <- rbind(
   Swengel.workfile, 
   Wijster[, -(1)], 
   database[, -c(1,6, 17,18)]  )
-dim(test)   # 815047    -> 678569 with standardized SE-FW data 
+dim(test)   # 815047    -> 678569 with standardized SE-FW data  676643 on 13-8-19
 #
 
 
@@ -204,16 +204,17 @@ dim(test)   # 815047    -> 678569 with standardized SE-FW data
 
 # 1) do we have duplicate data?
  
- sum(duplicated(database)) #
- database[duplicated(database), ] # this needs t be checked thoroughly 
+ #
+dups<-  database[duplicated(database), ] # this needs t be checked thoroughly 
+dim(dups)
   # Owen 1984 wk 34 has been removed because many species were present 5 times. Remaining duplicate: 1 male, 1 female  
  # iceland have 0 
  # LTER NTL are nematodes
  
  
- 
- sum(duplicated(test)) # = ok 947   
- # Accepted duplicates: 11 from database (all removed before analysis) 
+ dups<- test[duplicated(test), ]
+ dim(dups) # =   1363 on 13-8-19
+ # Accepted duplicates: 9 from database (all removed before analysis) 
  #+ 512 from Biotime (Konza prairie has some subplots that are not clear at the plot level. Assumed sampled consistently) 
  #+ 393 from Cedar creek (intertaxon different designations) 
  #+ 26 from gpdd (for each plot and year 2 values are entered, probably differnet seasons, but not specified for butterflies and moths) 
@@ -222,7 +223,7 @@ dim(test)   # 815047    -> 678569 with standardized SE-FW data
  # 400+ fromSweden FW are caused by their separation in Litoral, sublitoral and profundal. These  look consistent trough time 
  # are merged in our analysis.
  
-dups<- test[duplicated(test), ]
+
 dups$Datasource_name<- droplevels(dups$Datasource_name)
 table(dups$Datasource_name)
 head(dups)
@@ -230,7 +231,7 @@ head(dups)
 tail(dups, 15)
 
 
-head( Biotime[duplicated(Biotime), ])
+dups.bt<-( Biotime[duplicated(Biotime), ])
 sum(duplicated(Biotime[, -(1:2)])) # 512 = correct
 # most datasets had data per date instead of per year. is now fixed, except
 # konza also has discrete dates, PLUS 512 duplicates that belong to different subplots. These are to be ignored. We assume same sampling effort over time. see column SAMPLE_DESC in biotime 
@@ -291,7 +292,7 @@ subset(test, Taxon == "MELA1")
 taxa[duplicated(taxa),]
 taxa$Taxon[duplicated(taxa$Taxon)]
 
-dim(test)
+dim(test) #676643
 test1<-merge(test, taxa,  by = "Taxon") ; beep(1)#
 dim(test1) #
 
@@ -446,7 +447,7 @@ metadata_per_plot<-  merge4 %>%
   )
 dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
 newest<- as.data.frame(metadata_per_plot)
-write.csv(metadata_per_plot, "metadata per plot 20190729.csv")
+write.csv(metadata_per_plot, "metadata per plot 20190813.csv")
 save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 
@@ -489,7 +490,7 @@ merge4$duration.ok<- ! merge4$Plot_ID %in% short.plots # length = ok
 
 # only select plots that have sufficient duration
 merge4.1<- subset(merge4, duration.ok == T)
-dim(merge4.1)# 675919 on 5-4-19 -  still good on 31-5-19
+dim(merge4.1)# 673993 on 13-8-19
 
 
 
@@ -569,6 +570,17 @@ merge5.ins<-subset(merge4.5, Taxon_redundancy == "" | Taxon_redundancy == "lower
 merge5.arth<-subset(merge4.4, Taxon_redundancy == "" |Taxon_redundancy == "lower_resolution") # deselect redundant data, adn take lowest traxonomic aggregation provided 
 merge5.arth.higherTax<-subset(merge4.4, Taxon_redundancy == "" |Taxon_redundancy == "higher_resolution") # deselect redundant data, but take highest taxonomic res provided
 
+# dataframe with biomass and abundane data for all 
+t1<-subset(merge4.5, Abundance.Biomass == "A"); dim(t1)
+t1<-subset(t1,  Taxon_redundancy == ""  | Taxon_redundancy == "lower_resolution") ; dim(t1)
+t1<-subset(merge4.5, Abundance.Biomass == "A" & Taxon_redundancy == "" | Taxon_redundancy == "lower_resolution"); dim(t1)
+t2<-subset(merge4.5, Abundance.Biomass == "B") ;dim(t2)
+t2<-subset(t2,  Taxon_redundancy == ""  | Taxon_redundancy == "lower_resolution") ; dim(t2)
+t3<-subset(merge4.5, Abundance.Biomass == "AB") ; dim(t3)
+t3<-subset(t3,   Taxon_redundancy != "should be removed" & Taxon_redundancy != "includes worms" & 
+           Taxon_redundancy != "unclear tax consistency" &  Taxon_redundancy != "abundance per group" ) ; dim(t3)
+merge5AB.ins<- rbind(t1, t2, t3) ; dim(merge5AB.ins)
+
 
 dim(merge4.5)-dim(merge5.ins)
 dim(merge4.4)- dim(merge5.arth)
@@ -586,11 +598,12 @@ unique(merge4.4$Datasource_ID)[! unique(merge4.4$Datasource_ID) %in% unique(merg
 
 all.selectedIns<-merge5.ins
 all.selectedArth<- merge5.arth
+all.ABinsects <- merge5AB.ins
 allSelectedArthHigherTax<- merge5.arth.higherTax
 save(all.selectedIns, file = "all.selectedIns.RData")
 save(all.selectedArth, file = "all.selectedArth.RData")
 save(allSelectedArthHigherTax, file = "allSelectedArthHigherTax.RData")
-
+save(all.ABinsects, file = "all.ABinsects.RData")
 
 
 
@@ -644,6 +657,9 @@ all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Locatio
 dim(all.aggr.arth)
 length(unique(all.aggr.arth$Plot_ID)) # 1628   now 1416 SEFW  52340 5-7-19
 
+all.aggr.insectsAB<-dcast(all.ABinsects,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
+                          Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
+dim(all.aggr.insectsAB)
 
 
 #compare to old version 
@@ -655,7 +671,7 @@ merge(m1, arth, by = "Var1", all.y = T)
 
 save(all.aggr.insects, file = "all.aggr.insects.RData")
 save(all.aggr.arth, file = "all.aggr.arth.RData")
-
+save(all.aggr.insectsAB, file = "all.aggr.insectsAB.RData")
 
 
 
@@ -667,6 +683,7 @@ save(all.aggr.arth, file = "all.aggr.arth.RData")
 #####and aggregated data 
 load("all.aggr.insects.RData")
 load("all.aggr.arth.RData")
+
 
 
 # do these df's have different dims? 
@@ -709,9 +726,39 @@ for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
   completeData<-rbind (completeData,myData)
   
 }
-dim(completeData)
+dim(completeData) #61650 on 13-8-19
 
 
+
+
+completeDataAB<- NULL
+for(i in 1:length(unique(all.aggr.insectsAB$Plot_ID))){
+  
+  plt<- unique(all.aggr.insectsAB$Plot_ID)[i]
+  myData<- all.aggr.insectsAB[all.aggr.insectsAB$Plot_ID == plt , ]
+  
+  #expand grid to include NAs  
+  constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
+  allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                         Year= min(myData$Year):max(myData$Year))
+  allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
+  
+  #add observed data
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+                   by=c("Year","Plot_ID"),all=T)
+  # add descriptors
+  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm",
+                                            "Continent", "Country", "Country_State", "Region", "Stratum" )]),
+                  by="Plot_ID",all=T)
+  if(!all(is.na(myData$Period))){
+    myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
+                                                length(myData$Period[is.na(myData$Period)]),
+                                                replace=T) }
+  print(plt)
+  completeDataAB<-rbind (completeDataAB,myData)
+  
+}
+dim(completeDataAB) #61650 on 13-8-19
 
 
 
@@ -742,7 +789,7 @@ for(i in 1:length(unique(all.aggr.arth $Plot_ID))){
   completeDataArth<-rbind (completeDataArth,myData)
   
 }
-dim(completeDataArth)
+dim(completeDataArth) #same as insects on 13-8-19 
 
 
 
@@ -804,7 +851,6 @@ completeDataArth <- addIndicies(completeDataArth)
 
 dim(completeData) # old: 129203    new: 129649 # don;t know what's wrong with the old one 
 dim(completeDataArth) # old: 129694  new 129694
-
 sum(is.na(completeData$Number)) # 25155
 sum(is.na(completeDataArth$Number)) # 25180
 
@@ -847,7 +893,7 @@ biomes<- read.csv( "biomesEdited 2019.csv", header = T)
 dim(completeData)
 dim(completeDataArth) #31 cols
 
-#check all plots are in the biomes file
+#check for missing plots from the biomes file
 unique(completeData$Plot_ID)[!unique(completeData$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
 unique(completeDataArth$Plot_ID)[!unique(completeDataArth$Plot_ID) %in%  unique(biomes$Plot_ID)] # all there
 
@@ -881,7 +927,9 @@ completeDataArth<- merge(completeDataArth, PA[, c("NAME", "ORIG_NAME", "DESIG_EN
 
 dim(completeData)
 
+
 save(completeData, file = "completeData.RData")
+save(completeDataArth, file = "completeDataArth.RData")
 
 
 
@@ -935,7 +983,7 @@ CHELSA<- merge(CHELSATmeanSlopes[, c(1:3, 8,9) ], CHELSAPrecSlopes[, c(1:2, 7,8)
 dim(CHELSA)
 head(CHELSA)
 completeData <- merge(completeData, CHELSA, all.x = T)
-
+dim(completeData)
 
 
 #load CRU
@@ -978,7 +1026,7 @@ metadata_per_dataset<-  all.selectedIns %>%
     Continent = unique(Continent), 
     Realm = unique(Realm)
     )
-dim(metadata_per_dataset) #  should be 155
+dim(metadata_per_dataset) #  should be 157
 
 
 write.csv(metadata_per_dataset, "metadata per dataset.csv")
@@ -1030,108 +1078,6 @@ summ<-metadata_per_dataset %>%
   datasets = length(unique(Datasource_ID)), plots = sum(NUMBER_OF_PLOTS))
 summ %>% print(n = Inf)
 
-
-
-
-# pesticide data load  # looks unreliable to me ####
-pesticideData<-read.csv("FAO pesticides per country.csv", header = T)
-head(pesticideData)
-cropAreaData<-  read.csv("FAO crop cover per country.csv", header = T)
-
-pesticideData<- subset(pesticideData, Item == "Insecticides")
-cropAreaData<-  subset(cropAreaData, Item == "Cropland")
-
-# china has differnet names in the two files  but also only has total pesticide use
-pesticideData$Area[pesticideData$Area == "China, mainland"] <- "China"
-# merge tem together
-full.data<- merge (pesticideData, cropAreaData, by = c("Area", "Area.Code", "Year"), all.x = T) 
-dim(full.data)
-# calculate pesticide load per 1000ha
-full.data$PesticidePer1000ha<- full.data$Value.x / full.data$Value.y
-
-# which countries for which we have data are not in this list? 
-pestCountries<- unique(full.data$Area)
-countriesInData<-unique(completeData$Country)
-countriesInData[! countriesInData %in% pestCountries]
-
-pestCountries[! pestCountries %in% cropCountries]
-
-
-#Correct country names
-completeData$Country2<- as.character(completeData$Country)
-completeData$Country2[completeData$Country2 == "Kazachstan"] <- "Kazakhstan"
-completeData$Country2[completeData$Country2 == "Vietnam"] <- "Viet Nam"
-completeData$Country2[completeData$Country2 == "Czech republic"] <- "Czechia"
-completeData$Country2[completeData$Country2 == "Russia"] <- "Russian Federation"
-completeData$Country2[completeData$Country2 == "Taiwan"] <- "China, Taiwan Province of"
-completeData$Country2[completeData$Country2 == "South Korea"] <- "Republic of Korea"
-completeData$Country2[completeData$Country2 == "USA"] <- "United States of America"
-completeData$Country2[completeData$Country2 == "West Africa"] <- "Ghana"
-completeData$Country2[completeData$Country2 == "China"] <- "China, mainland"
-
-countriesInData<-unique(completeData$Country2) # new list 
-
-
-test<- subset(full.data, Area %in% countriesInData)
-library(ggplot2)
-qplot(Year, PesticidePer1000ha, data=test)+
-  facet_wrap(~Area, scales="free")
-
-
-
-summ.data<- test %>% group_by (Area) %>%
-  summarize( mean = mean(PesticidePer1000ha),
-  sd = sd(PesticidePer1000ha) )
-  
-ggplot(summ.data, aes(x=Area, y=mean)) + 
-  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
-  coord_flip()+  geom_line() +  geom_point()  
-
-summ.data<- test %>% group_by (Area) %>%
-  summarize( mean = mean(Value.x),
-             sd = sd(Value.x) )
-ggplot(summ.data, aes(x=Area, y=mean)) + 
-  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
-  coord_flip()+  geom_line() +  geom_point()  
-
-
-
-# merge the pesticide data into the completedata
-
-completeDataPest<- merge(completeData, full.data, by.x = "")
-
-
-
-
-
-
-
-
-#
-ggplot(pframe, aes(x = Year)) + 
-  geom_histogram( data = subset(pframe, Realm == "Terrestrial"), binwidth = 1, fill="black", alpha = 1) +
-  geom_histogram( data = subset(pframe, Realm == "Freshwater"), binwidth = 1, fill="dodgerblue", alpha = 1) +
-facet_wrap(~ Realm, ncol = 1)  +
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
-        strip.background = element_blank(),  strip.text = element_blank()) +
-  scale_y_continuous(position = "right")+
-  ylab ("Number of studies")
-
-sum(metadata_per_plot$Realm == "Terrestrial")/nrow(metadata_per_plot) # 61%
-sum(metadata_per_plot$Realm == "Freshwater")/nrow(metadata_per_plot) # 38%
-
-table(metadata_per_plot$Realm)
-table(metadata_per_dataset$Realm)
-table(metadata_per_plot$PA)
-table(metadata_per_dataset$Realm, metadata_per_dataset$Continent)
-table(metadata_per_plot$Realm, metadata_per_plot$Continent)
-table(metadata_per_plot$PA, metadata_per_plot$Continent)
-
-
-#
-sum(metadata_per_plot$PA == "yes")/nrow(metadata_per_plot) # 34% from PA's current estimates are under 15% of the terrestrial area is protected
-sum(metadata_per_plot$PA == "no")
 
 
 
@@ -1307,3 +1253,108 @@ completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                         return(myData)
                         
                       })
+
+##############
+## NOT USED
+
+# pesticide data load  # looks unreliable to me ####
+pesticideData<-read.csv("FAO pesticides per country.csv", header = T)
+head(pesticideData)
+cropAreaData<-  read.csv("FAO crop cover per country.csv", header = T)
+
+pesticideData<- subset(pesticideData, Item == "Insecticides")
+cropAreaData<-  subset(cropAreaData, Item == "Cropland")
+
+# china has differnet names in the two files  but also only has total pesticide use
+pesticideData$Area[pesticideData$Area == "China, mainland"] <- "China"
+# merge tem together
+full.data<- merge (pesticideData, cropAreaData, by = c("Area", "Area.Code", "Year"), all.x = T) 
+dim(full.data)
+# calculate pesticide load per 1000ha
+full.data$PesticidePer1000ha<- full.data$Value.x / full.data$Value.y
+
+# which countries for which we have data are not in this list? 
+pestCountries<- unique(full.data$Area)
+countriesInData<-unique(completeData$Country)
+countriesInData[! countriesInData %in% pestCountries]
+
+pestCountries[! pestCountries %in% cropCountries]
+
+
+#Correct country names
+completeData$Country2<- as.character(completeData$Country)
+completeData$Country2[completeData$Country2 == "Kazachstan"] <- "Kazakhstan"
+completeData$Country2[completeData$Country2 == "Vietnam"] <- "Viet Nam"
+completeData$Country2[completeData$Country2 == "Czech republic"] <- "Czechia"
+completeData$Country2[completeData$Country2 == "Russia"] <- "Russian Federation"
+completeData$Country2[completeData$Country2 == "Taiwan"] <- "China, Taiwan Province of"
+completeData$Country2[completeData$Country2 == "South Korea"] <- "Republic of Korea"
+completeData$Country2[completeData$Country2 == "USA"] <- "United States of America"
+completeData$Country2[completeData$Country2 == "West Africa"] <- "Ghana"
+completeData$Country2[completeData$Country2 == "China"] <- "China, mainland"
+
+countriesInData<-unique(completeData$Country2) # new list 
+
+
+test<- subset(full.data, Area %in% countriesInData)
+library(ggplot2)
+qplot(Year, PesticidePer1000ha, data=test)+
+  facet_wrap(~Area, scales="free")
+
+
+
+summ.data<- test %>% group_by (Area) %>%
+  summarize( mean = mean(PesticidePer1000ha),
+             sd = sd(PesticidePer1000ha) )
+
+ggplot(summ.data, aes(x=Area, y=mean)) + 
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
+  coord_flip()+  geom_line() +  geom_point()  
+
+summ.data<- test %>% group_by (Area) %>%
+  summarize( mean = mean(Value.x),
+             sd = sd(Value.x) )
+ggplot(summ.data, aes(x=Area, y=mean)) + 
+  geom_errorbar(aes(ymin=mean-sd, ymax=mean+sd), width=.1) +
+  coord_flip()+  geom_line() +  geom_point()  
+
+
+
+# merge the pesticide data into the completedata
+
+completeDataPest<- merge(completeData, full.data, by.x = "")
+
+
+
+
+
+
+
+
+#
+ggplot(pframe, aes(x = Year)) + 
+  geom_histogram( data = subset(pframe, Realm == "Terrestrial"), binwidth = 1, fill="black", alpha = 1) +
+  geom_histogram( data = subset(pframe, Realm == "Freshwater"), binwidth = 1, fill="dodgerblue", alpha = 1) +
+  facet_wrap(~ Realm, ncol = 1)  +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"), 
+        strip.background = element_blank(),  strip.text = element_blank()) +
+  scale_y_continuous(position = "right")+
+  ylab ("Number of studies")
+
+sum(metadata_per_plot$Realm == "Terrestrial")/nrow(metadata_per_plot) # 61%
+sum(metadata_per_plot$Realm == "Freshwater")/nrow(metadata_per_plot) # 38%
+
+table(metadata_per_plot$Realm)
+table(metadata_per_dataset$Realm)
+table(metadata_per_plot$PA)
+table(metadata_per_dataset$Realm, metadata_per_dataset$Continent)
+table(metadata_per_plot$Realm, metadata_per_plot$Continent)
+table(metadata_per_plot$PA, metadata_per_plot$Continent)
+
+
+#
+sum(metadata_per_plot$PA == "yes")/nrow(metadata_per_plot) # 34% from PA's current estimates are under 15% of the terrestrial area is protected
+sum(metadata_per_plot$PA == "no")
+
+
