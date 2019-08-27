@@ -14,6 +14,7 @@ setwd("~/Dropbox/Insect Biomass Trends/csvs")#diana mac
 
 load("completeData.Rdata")
 load("completeDataArth.RData")
+load("completeDataAB.RData")
 load("E:/inla1.RData")
 load("all.results.RData")
 load("metadata_per_dataset.RData")
@@ -35,7 +36,7 @@ col.scheme.strat<-c( "Air" = "peru", "Herb layer" = "peru", "Soil surface" = "pe
                      "Underground" = "peru"  ,"Water" = "dodgerblue2")
 col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "")
 col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "white")
-
+col.scheme.AB <- c("biomass" = "red", "abundance" = "blue")
 
 col.scheme.global<- c(  "Global"  = "grey10", "Observed" = "grey70")  #
 col.scheme.black<- c(  "Global"  = "black", "Observed" = "black")  #
@@ -158,7 +159,8 @@ all.results<- c(all.results, Empty_model_inla1 =  list(inla1$summary.fixed))
 
 # Check for confounding factors####
 
-inla1.1 <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration + cYear:Country_state
+
+inla1.1 <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration + cYear:Country_state +
                 f(Period_4INLA,model='iid')+
                   f(Plot_ID_4INLA,model='iid')+
                   f(Location_4INLA,model='iid')+
@@ -169,7 +171,7 @@ inla1.1 <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration + cYear:C
                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
               data=completeData) # 
-# not working 
+#  
 save(inla1.1, file = "/data/Roel/inla1.1.RData")
 load("H:/inla1.1.1.RData")
 load("H:/inla1.1.2.RData")
@@ -177,6 +179,8 @@ load("H:/inla1.1.2.RData")
 
 all.results<-c(all.results, confoundersStartYear = list(inla1.1.1$summary.fixed))
 all.results<-c(all.results, confoundersDuration = list(inla1.1.2$summary.fixed))
+
+
 
 
 
@@ -1011,7 +1015,7 @@ all.results<-c(all.results, PA_model = list(inlaFpaInt$summary.fixed)) # save fi
 save(inlaFpaInt, file = "/data/Roel/inlaFpaInt.RData")
 
 
-load("E:/inlaFpaInt.RData")
+load("E:/All INLA files insect biomass 1st submission (april 2019)/inlaFpaInt.RData")
 data.frame(
 var =   rownames(inlaFpaInt$summary.fixed)[4:7], 
 mean = (10^(inlaFpaInt$summary.fixed[4:7,1] )-1)  *100, # proportional changes per year
