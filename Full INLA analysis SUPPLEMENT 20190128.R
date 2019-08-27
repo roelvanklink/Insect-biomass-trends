@@ -7,6 +7,7 @@ setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
 
 load("completeData.Rdata")
 load("completeDataArth.RData")
+load("completeDataAB.RData")
 load("E:/inlaF.RData")
 load("metadata_per_dataset.RData")
 completeDataArth$Stratum[completeDataArth$Plot_ID == 930 ]<- "Soil surface"
@@ -26,7 +27,265 @@ sum( RandEfDataset$'DataID_Slope_ 0.025quant' <0 & RandEfDataset$'DataID_Slope_ 
 
 
 
-# subsampling : excluding plos with only 2 yrs data 
+# robustness checks
+
+# effects of the priors
+
+# random effects and overall error with narrower prior 
+inlaFprior0.5 <- inla(log10(Number+1) ~ cYear:Realm+ Realm + 
+                        f(Period_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+ # prior for random effects 
+                        f(Location_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
+                        f(Plot_ID_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
+                        f(Datasource_ID_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
+                        f(Plot_ID_4INLAR,iYear,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
+                        f(Location_4INLAR,iYear,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5)))) +
+                        f(Datasource_ID_4INLAR,iYear,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
+                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      control.family = list(
+                        hyper = list(
+                          prec = list( prior = "loggamma", param = c(1,0.5)))), # this is the prior for the error
+                      control.compute = list(dic=TRUE,waic=TRUE),
+                      data=completeData) 
+
+
+load("E:/inlaFprior0.5-5434477.RData")
+load("E:/inlaFprior0.1-5434916.RData")
+load("E:/inlaF-5433204.RData") # load normal file
+summary(inlaFprior0.5)# no effects left . prior is too narrow 
+summary(inlaFprior0.1)
+summary(inlaF)
+
+
+
+# differences between biomass and abundance data (uses dataframe with both Units for datasets that have both)
+metadata_AB<-  completeDataAB %>% 
+  group_by( Realm, Unit) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)))
+metadata_AB
+
+
+
+# abundance vs biomass (overall model)
+inla1.AB <- inla(log10(Number+1) ~ cYear: Unit +  Unit +
+                   f(Period_4INLA,model='iid')+
+                   f(Plot_ID_4INLA,model='iid')+
+                   f(Location_4INLA,model='iid')+
+                   f(Datasource_ID_4INLA,model='iid')+
+                   f(Plot_ID_4INLAR,iYear,model='iid')+
+                   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 control.compute = list(dic=TRUE,waic=TRUE),
+                 data=completeDataAB) # 
+save(inla1.AB, file = "/data/Roel/inla1.AB.RData")
+
+load("E:/inlaABmodels-5429694.RData")
+summary(inla1.AB) # biomass is actually positive! This is maybe due to the FW datasets (fw = 21 vs terr =11 datasets)
+
+# abundance vs biomass and realm
+inla1.ABrealm <- inla(log10(Number+1) ~ cYear: Realm: Unit +  Unit +Realm +
+                        f(Period_4INLA,model='iid')+
+                        f(Plot_ID_4INLA,model='iid')+
+                        f(Location_4INLA,model='iid')+
+                        f(Datasource_ID_4INLA,model='iid')+
+                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                        f(Location_4INLAR,iYear,model='iid')+
+                        f(Datasource_ID_4INLAR,iYear,model='iid')+
+                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      control.compute = list(dic=TRUE,waic=TRUE),
+                      data=completeDataAB) # 
+save(inla1.ABrealm, file = "/data/Roel/inla1.ABrealm.RData")
+
+#graph
+load("E:/inlaABrealm-5429693.RData")
+summary(inla1.ABrealm)
+data.frame(
+  var =   rownames(inla1.ABrealm$summary.fixed)[4:7], 
+  mean = (10^(inla1.ABrealm$summary.fixed[4:7,1] )-1)  *100, # proportional changes per year
+  CI2.5 = (10^(inla1.ABrealm$summary.fixed[4:7,3] )-1 ) *100,#0.025 CI
+  CI97.5 = (10^(inla1.ABrealm$summary.fixed[4:7,5] )-1 ) *100# 0.975
+)
+10^(inla1.ABrealm$summary.fixed[4:7,1] *10)-1 # proportional changes per decade
+
+
+
+ABSlope<- inla1.ABrealm$summary.fixed[4:7,]
+vars<-data.frame(do.call(rbind, strsplit(rownames(ABSlope), split = ":")))
+ABSlope<-cbind(ABSlope, vars)
+ABSlope$Realm<-gsub("Realm", "", ABSlope$X2)
+ABSlope$Unit<-gsub("Unit", "", ABSlope$X1)
+ABSlope$AB <-ABSlope$Unit
+ABSlope<- merge(ABSlope, metadata_AB)
+ABSlope$text = paste0("(", ABSlope$Datasources, " | ", ABSlope$Plots, ") ")
+
+
+brks<- c(-0.010, -0.005, 0, 0.005, 0.01, 0.015)
+perc<-(10^(brks )  *100) - 100
+l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
+e<- c("","","","","","","")
+
+
+ABplot<- ggplot(data.frame(ABSlope))+
+  geom_crossbar(aes(x=Realm,   y=mean, fill = Unit,
+                    ymin=X0.025quant , ymax=X0.975quant), position="dodge",alpha=0.8 ,  width =0.7)+
+  geom_hline(yintercept=0,linetype="dashed")+
+  coord_flip()+
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.01, 0.024))+
+  xlab ("")+ ylab("Trend slope  \n % change per year")+
+  geom_text(aes(x = Realm , y = 0.020, fill = Unit,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
+  scale_fill_manual(name="Unit",
+                    breaks=c("biomass", "abundance"),
+                    labels=c("Biomass", "Abundance"), 
+                    values = col.scheme.AB) + 
+  theme_clean
+
+png("AB plot.png", width=2000, height=700, res = 360)
+PAplot
+dev.off()
+
+
+
+#############
+# test different subsets
+
+
+# Excluding North America
+
+completeData1<- subset(completeData, Continent != "North America")
+# almost half of the data out
+
+inlaFrealmExclNAm <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
+                            f(Period_4INLA,model='iid')+
+                            f(Location_4INLA,model='iid')+
+                            f(Plot_ID_4INLA,model='iid')+
+                            f(Datasource_ID_4INLA,model='iid')+
+                            f(Plot_ID_4INLAR,iYear,model='iid')+
+                            f(Location_4INLAR,iYear,model='iid')                      +
+                            f(Datasource_ID_4INLAR,iYear,model='iid')+
+                            f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                          control.compute = list(dic=TRUE,waic=TRUE),
+                          data=completeData1)
+
+load("E:/inlaRealmExclNAm-5429691.RData")
+
+metadata_realm.ExclNa<-  completeData1 %>% 
+  group_by(Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID))) 
+
+realmSlope<- inlaFrealmExclNAm $summary.fixed[ 3:4,]
+rownames(realmSlope)<- c("Freshwater" , "Terrestrial" )
+
+realmPlot<-ggplot(data.frame(realmSlope))+
+  geom_crossbar(aes(x=rownames(realmSlope),y=mean, fill = rownames(realmSlope),
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  coord_flip()+  ylim(-0.01, 0.02)+  xlab ("")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  ylab ("Trend slope")+
+  ggtitle("Realms") +
+  theme_clean +
+  theme(legend.position="bottom" ,
+        legend.title=element_blank()) 
+
+
+# only europe and NA 
+
+completeData2<- subset(completeData, Continent == "North America" | Continent == "Europe")
+# almost half of the data out
+
+inlaFrealmNAmEur <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
+                            f(Period_4INLA,model='iid')+
+                            f(Location_4INLA,model='iid')+
+                            f(Plot_ID_4INLA,model='iid')+
+                            f(Datasource_ID_4INLA,model='iid')+
+                            f(Plot_ID_4INLAR,iYear,model='iid')+
+                            f(Location_4INLAR,iYear,model='iid')                      +
+                            f(Datasource_ID_4INLAR,iYear,model='iid')+
+                            f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                          control.compute = list(dic=TRUE,waic=TRUE),
+                          data=completeData2)
+#still sign 
+
+
+completeDataE<- subset(completeData,  Continent == "Europe")
+inlaFrealmEur <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
+                           f(Period_4INLA,model='iid')+
+                           f(Location_4INLA,model='iid')+
+                           f(Plot_ID_4INLA,model='iid')+
+                           f(Datasource_ID_4INLA,model='iid')+
+                           f(Plot_ID_4INLAR,iYear,model='iid')+
+                           f(Location_4INLAR,iYear,model='iid')                      +
+                           f(Datasource_ID_4INLAR,iYear,model='iid')+
+                           f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                         control.compute = list(dic=TRUE,waic=TRUE),
+                         data=completeDataE)
+
+completeDataNA<- subset(completeData,  Continent == "North America")
+inlaFrealmNA <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
+                        f(Period_4INLA,model='iid')+
+                        f(Location_4INLA,model='iid')+
+                        f(Plot_ID_4INLA,model='iid')+
+                        f(Datasource_ID_4INLA,model='iid')+
+                        f(Plot_ID_4INLAR,iYear,model='iid')+
+                        f(Location_4INLAR,iYear,model='iid')                      +
+                        f(Datasource_ID_4INLAR,iYear,model='iid')+
+                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      control.compute = list(dic=TRUE,waic=TRUE),
+                      data=completeDataNA)
+
+completeDataLA<- subset(completeData,  Continent == "Latin America")
+inlaFrealmLA <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data=completeDataLA)
+
+completeDataAs<- subset(completeData,  Continent == "Asia")
+inlaFrealmAs <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data=completeDataAs)
+
+
+
+completeDataAU<- subset(completeData,  Continent == "Australia")
+inlaFrealmAU <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
+                       f(Period_4INLA,model='iid')+
+                       f(Location_4INLA,model='iid')+
+                       f(Plot_ID_4INLA,model='iid')+
+                       f(Datasource_ID_4INLA,model='iid')+
+                       f(Plot_ID_4INLAR,iYear,model='iid')+
+                       f(Location_4INLAR,iYear,model='iid')                      +
+                       f(Datasource_ID_4INLAR,iYear,model='iid')+
+                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                     control.compute = list(dic=TRUE,waic=TRUE),
+                     data=completeDataAU)
+
+
+
+
+
+
+
+##########
+#excluding plos with only 2 yrs data 
 library(tidyverse)
 plotDuration<- completeData %>% 
   group_by(Plot_ID) %>%  summarise(
@@ -57,7 +316,7 @@ inlaSubset <- inla(log10(Number+1) ~ cYear:Realm + Realm +
 
 
 
-
+###################################################################################################
 
 # all arthropods #####
 
