@@ -16,8 +16,8 @@ samples <-read.csv( file = "Sample_Info.csv"); dim(samples)
 database <-read.csv( file = "Data.csv"); dim(database)
 database<- subset(database, Note != "remove");dim(database)
 studies<-read.csv(file = "studies.csv", header = T); dim(studies)
-#studies1 <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies) 
-#write.csv(studies, file = "studies.csv")
+#studies1 <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies1) 
+#write.csv(studies1, file = "studies.csv")
 
 #Add taxonomic level to Taxon table
 taxa$Level<- NA
@@ -67,30 +67,30 @@ names(taxa) # no redundancy
 taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon", "Level", "Rank", "Note")]
   
 # extra files to append to database file
-Biotime <- read.csv( file = "BioTIME final 2019.csv");#head(Biotime)
+Biotime <- read.csv( file = "BioTIME final 2019.csv"); levels(Biotime$Unit)[levels(Biotime$Unit) == "Abundance"]<- "abundance"; levels(Biotime$Unit)[levels(Biotime$Unit) == "Biomass"]<- "biomass"  #head(Biotime)
 Schuch <-read.csv( file = "sel.schuch.data.csv"); head(Schuch)
 Schuch$Sample_ID[Schuch$Datasource_name == "Germany Marchand Schuch"] <-  318
 Schuch$Sample_ID[Schuch$Datasource_name == "Germany Schiemenz Schuch"] <-  319
 Swengel.temp <-read.csv(file = "Swengel temp aggregated.csv"); #head(Swengel.temp)
 Hungary <- read.csv (file = "Valtonen_long.csv"); #head(Hungary)
-Finland <- read.csv (file = "Kuusamon_long.csv"); #head(Finland)
+Finland <- read.csv (file = "Kuusamon_long.csv"); Finland$Unit <- "abundance" #head(Finland)
 Breitenbach <- read.csv(file = "Breitenbach.csv")
 Krefeld <- read.csv( file = "Germany biomass Krefeld.csv", header = T) #head(Krefeld)
 Wijster <- read.csv( file = "Netherlands Ground beetles.csv", header = T) #head(Wijster)
 Lauwersmeer<- read.csv( file = "lauwersmeer final.csv", header = T)
-Luquillo<- read.csv(file = "LTER Luquillo all canopy arthropods.csv", header = T)
+Luquillo<- read.csv(file = "LTER Luquillo all canopy arthropods.csv", header = T); Luquillo$Unit <- "abundance"
 levels(Luquillo$Taxon)[levels(Luquillo$Taxon) == "MELA"]<-"MELA1"      # is duplicate name in taxon list
 levels(Luquillo$Taxon)[levels(Luquillo$Taxon) == "CHRYS"]<-"CHRYSOPID" # is duplicate name in taxon list
 Luquillo<-subset(Luquillo, Taxon != "LAM") # remove 'Leaf Area Missing'
-GPDD <-read.csv( file = "GPDD data.csv", header = T)
+GPDD <-read.csv( file = "GPDD data.csv", header = T); GPDD$Unit<- "abundance"
 Greenland<- read.csv( file = "Greenland.csv", header = T); Greenland$Taxon<-gsub(" ", "_", Greenland$Taxon)
 California <-read.csv( "Cali freshwater Resh.csv", header = T)
 CC<- read.csv(file = "cedarcreekBEF.csv", header = T) ; CC$Number<-as.numeric(as.character(CC$Number))
 AZ<- read.csv(file = "LTER Arizona Pitfalls NEW2019.csv", header = T);levels(AZ$Taxon)<-c(levels(AZ$Taxon), "NONE")  ; AZ$Taxon[is.na(AZ$Taxon)]<-"NONE"
 AZ2<- read.csv(file = "sycamore creek formatted.csv", header = T)
-sev.ants<- read.csv(file = "sev antnests formatted.csv", header = T) 
-sev.gh  <- read.csv(file = "sev grasshoppers formatted.csv", header = T)
-sev.pf  <- read.csv(file = "sev pitfalls formatted.csv", header = T)
+sev.ants<- read.csv(file = "sev antnests formatted.csv", header = T) ; sev.ants$Unit<- "abundance"
+sev.gh  <- read.csv(file = "sev grasshoppers formatted.csv", header = T); sev.gh$Unit<- "abundance"
+sev.pf  <- read.csv(file = "sev pitfalls formatted.csv", header = T); sev.pf$Unit<- "abundance"
 ecn.but<- read.csv(file = "ECN butterflies final.csv", header = T)
 levels(ecn.but$Taxon)[levels(ecn.but$Taxon) == "NONE" ] <- "Butterflies"
 ecn.gb<- read.csv(file ="ECN ground beetles final nw.csv", header = T)
@@ -191,7 +191,7 @@ test <- rbind(
   Swengel.workfile, 
   Wijster[, -(1)], 
   database[, -c(1,6, 17,18)]  )
-dim(test)   # 815047    -> 678569 with standardized SE-FW data  676643 on 13-8-19
+dim(test)   # 815047    -> 678569 with standardized SE-FW data  676643 on 13-8-19    677482 on 23-8-19
 #
 
 
@@ -213,7 +213,7 @@ dim(dups)
  
  
  dups<- test[duplicated(test), ]
- dim(dups) # =   1363 on 13-8-19
+ dim(dups) # =   1363 on 23-8-19
  # Accepted duplicates: 9 from database (all removed before analysis) 
  #+ 512 from Biotime (Konza prairie has some subplots that are not clear at the plot level. Assumed sampled consistently) 
  #+ 393 from Cedar creek (intertaxon different designations) 
@@ -292,7 +292,7 @@ subset(test, Taxon == "MELA1")
 taxa[duplicated(taxa),]
 taxa$Taxon[duplicated(taxa$Taxon)]
 
-dim(test) #676643
+dim(test) #677482 
 test1<-merge(test, taxa,  by = "Taxon") ; beep(1)#
 dim(test1) #
 
@@ -305,7 +305,7 @@ dim(plots)
 
 
 test2<-merge(plots, studies, by = "Datasource_ID") # 
-dim(test2) # correct, because black rock forest is not in studies
+dim(test2) # correct, because black rock forest is not in studies, also some mosquito studies not yet in plots
 
 plots[!plots$Datasource_ID %in% studies$Datasource_ID, ] # black rock forest was disqualified 
 
@@ -407,7 +407,7 @@ merge4$Period[is.na(merge4$Period)]<-1  # replace missing Period data with 1
 merge4$Period[merge4$Period == ""]<-1  # replace missing Period data with 1
 
 sum(is.na(merge4$Plot_ID))
-sum(is.na(merge4$Number)) #4199 on 29-1-2019  4197 on 29-3-19  # 956 on 29-7-2019
+sum(is.na(merge4$Number)) #4199 on 29-1-2019  4197 on 29-3-19  # 959 on 23-8-2019
 sum(is.na(merge4$Year ))
 
 
@@ -447,7 +447,7 @@ metadata_per_plot<-  merge4 %>%
   )
 dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
 newest<- as.data.frame(metadata_per_plot)
-write.csv(metadata_per_plot, "metadata per plot 20190813.csv")
+write.csv(metadata_per_plot, "metadata per plot 20190823.csv")
 save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 
@@ -493,7 +493,9 @@ merge4.1<- subset(merge4, duration.ok == T)
 dim(merge4.1)# 673993 on 13-8-19
 
 
-
+# remove plots with 0 observations 
+empty.plots<- subset(metadata_per_plot, TOTAL_N == 0)$Plot_ID
+merge4.1<- merge4.1[! merge4.1$Plot_ID %in% empty.plots]
 
 
 
@@ -505,7 +507,7 @@ length(unique(merge4.2$Datasource_name)) # 158
 
 
 # Selection 3: remove species richness #####
-merge4.3<- subset(merge4.2, Unit != "richness")
+merge4.3<- subset(merge4.2, Unit_in_data != "richness")
 dim(merge4.3)
 
 
@@ -520,7 +522,7 @@ dim(merge4.3)
 others<-subset(merge4.3, Phylum !=  "Arthropoda" & Phylum != "invertebrata" ); dim(others)
 merge4.4<-subset(merge4.3, Phylum ==  "Arthropoda" | Phylum == "invertebrata" | Phylum == "Invertebrata")
 dim(merge4.4)
-length(unique(merge4.4$Datasource_name)) # 155
+length(unique(merge4.4$Datasource_name)) # 161
 setdiff(merge4.3$Datasource_name, merge4.4$Datasource_name) # only Russia earthworms data disappeared
 
 all.arthropods.dataset<- merge4.4
@@ -544,7 +546,7 @@ merge4.5<-subset(merge4.5, Class !=  "Diplopoda" )
 merge4.5<-subset(merge4.5, Class !=  "Symphyla" )
 
 unique(merge4.5$Class)
-dim(merge4.5) # 753143
+dim(merge4.5) #
 length(unique(merge4.5$Datasource_name))
 
 all.insects.dataset<- merge4.5
@@ -579,8 +581,9 @@ t2<-subset(t2,  Taxon_redundancy == ""  | Taxon_redundancy == "lower_resolution"
 t3<-subset(merge4.5, Abundance.Biomass == "AB") ; dim(t3)
 t3<-subset(t3,   Taxon_redundancy != "should be removed" & Taxon_redundancy != "includes worms" & 
            Taxon_redundancy != "unclear tax consistency" &  Taxon_redundancy != "abundance per group" ) ; dim(t3)
-merge5AB.ins<- rbind(t1, t2, t3) ; dim(merge5AB.ins)
+merge5AB.ins<- rbind(t1, t2, t3) ; dim(merge5AB.ins)  # 642716 on 26-8-19
 
+unique(merge5AB.ins[, c("Datasource_ID", "Datasource_name", "Abundance.Biomass", "Unit_in_data", "Unit") ])
 
 dim(merge4.5)-dim(merge5.ins)
 dim(merge4.4)- dim(merge5.arth)
@@ -591,8 +594,8 @@ length(unique(merge5.ins$Datasource_name))
 length(unique(merge5.arth.higherTax$Datasource_name))
 
 
-#anything missing? 
-unique(merge4.4$Datasource_ID)[! unique(merge4.4$Datasource_ID) %in% unique(merge5.arth$Datasource_ID)]
+#anything missing or inconsistent?  
+unique(merge4.4$Datasource_ID)[! unique(merge4.4$Datasource_ID) %in% unique(merge5.arth$Datasource_ID)] # looks good
 
 
 
@@ -643,23 +646,23 @@ save(ABcomparison.arthr, file = "ABcomparison.arthr.RData")
 
 load( "all.selectedIns.RData")
 load( "all.selectedArth.RData")
-
+load("all.ABinsects.RData")
 
 all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
                    Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
- #  104096 # 54761 with ecn.m means   52390 with SE-FW stdzd  52340 on 5-7-19 CC fixed, taxonomy fixed
+ #  52780 on 23-8-19
 dim(all.aggr.insects)
 length(unique(all.aggr.insects$Plot_ID)) # 1628 # now 1416 SE FW 1533
 
 all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name + Unit +  
                           Year + Period + Date  + Country + Region + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
-#  54781 # seems correct - 50.000 obs from UK ecn moths  # now 52736 with SE fW stdzd
+#  52780 on 23-8-19
 dim(all.aggr.arth)
 length(unique(all.aggr.arth$Plot_ID)) # 1628   now 1416 SEFW  52340 5-7-19
 
 all.aggr.insectsAB<-dcast(all.ABinsects,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
                           Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
-dim(all.aggr.insectsAB)
+dim(all.aggr.insectsAB) # 56587 on 23-8-19
 
 
 #compare to old version 
@@ -683,13 +686,14 @@ save(all.aggr.insectsAB, file = "all.aggr.insectsAB.RData")
 #####and aggregated data 
 load("all.aggr.insects.RData")
 load("all.aggr.arth.RData")
-
+load("all.aggr.insectsAB.RData")
 
 
 # do these df's have different dims? 
 dim(all.aggr.arth); dim(all.aggr.insects) # same
-sum(all.aggr.arth$Number) ; sum(all.aggr.insects$Number) # 1.5mln difference is possible
-anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
+check<- sum(all.aggr.arth$Number) ; sum(all.aggr.insects$Number) # 1.5mln difference is possible
+anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13]);dim(check) # no differences 
+check<- anti_join(all.aggr.insectsAB[,1:13], all.aggr.insects[,1:13]) ;dim(check) # 3807 differing rows
 # fixes: Utah FW: added 0 insects to three dates with no insects in 1994
 # Russia FW2: zooplankton should have been removed: are now marked as taxonredundant
 # Russia FW:  zooplankton should have been removed: are now marked as taxonredundant
@@ -698,7 +702,7 @@ anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13])
 
 # numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
 
-#1533 plots 
+#1545 plots 
 completeData<- NULL
 for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
   
@@ -723,10 +727,18 @@ for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
                                                 length(myData$Period[is.na(myData$Period)]),
                                                 replace=T) }
   print(plt)
+  
+  std<- sd(myData$Number, na.rm = T)
+  myData$scaledNumber <- myData$Number / std
+  
   completeData<-rbind (completeData,myData)
   
 }
-dim(completeData) #61650 on 13-8-19
+dim(completeData) #61650 on 13-8-19  62145 on 23-8-19
+
+
+subset(completeData, Plot_ID == 1700)
+subset(completeData, Number < 0)
 
 
 
@@ -738,14 +750,15 @@ for(i in 1:length(unique(all.aggr.insectsAB$Plot_ID))){
   myData<- all.aggr.insectsAB[all.aggr.insectsAB$Plot_ID == plt , ]
   
   #expand grid to include NAs  
-  constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
+  constantData <- unique(myData[,c("Plot_ID","Datasource_ID", "Unit")])#these are defo unique
   allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                        # Unit = unique(myData$Unit),
                          Year= min(myData$Year):max(myData$Year))
-  allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
+  allgrid <- merge(allgrid, constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
-                   by=c("Year","Plot_ID"),all=T)
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number", "Unit")],  #"classes",
+                   by=c("Year","Plot_ID", "Unit"),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm",
                                             "Continent", "Country", "Country_State", "Region", "Stratum" )]),
@@ -755,10 +768,14 @@ for(i in 1:length(unique(all.aggr.insectsAB$Plot_ID))){
                                                 length(myData$Period[is.na(myData$Period)]),
                                                 replace=T) }
   print(plt)
+  std<- sd(myData$Number, na.rm = T)
+  myData$scaledNumber <- myData$Number / std
+  
+  
   completeDataAB<-rbind (completeDataAB,myData)
   
 }
-dim(completeDataAB) #61650 on 13-8-19
+dim(completeDataAB) # 66402  on 13-8-19   67008 on 23-8-19
 
 
 
@@ -786,10 +803,13 @@ for(i in 1:length(unique(all.aggr.arth $Plot_ID))){
                                                 length(myData$Period[is.na(myData$Period)]),
                                                 replace=T) }
   print(plt)
+  std<- sd(myData$Number, na.rm = T)
+  myData$scaledNumber <- myData$Number / std
+  
   completeDataArth<-rbind (completeDataArth,myData)
   
 }
-dim(completeDataArth) #same as insects on 13-8-19 
+dim(completeDataArth) #same as insects on 23-8-19 
 
 
 
@@ -831,11 +851,9 @@ completeData <- addIndicies(completeData)
 dim(completeData)
 save(completeData, file = "completeData.RData")
 
-
 #checks: 
-
 sum(is.na(completeData$Continent))  # should be 0 
-sum(is.na(completeData$Number)) # 25000 now 8895  8912 on 5jul2019
+sum(is.na(completeData$Number)) #  8967 on 23-8-19
 sum(is.na(completeData$Location))
 sum(is.na(completeData$Datasource_ID))
 sum(is.na(completeData$Stratum)) # looks good
@@ -843,17 +861,31 @@ unique(completeData$Stratum)
 
 
 
+completeDataAB <- addIndicies(completeDataAB)
+levels(completeDataAB$Unit)[levels(completeDataAB$Unit) == "density"]<- "abundance" # replace density with abundance 
+completeDataAB$Unit<- droplevels(completeDataAB$Unit)
+dim(completeDataAB)
+save(completeDataAB, file = "completeDataAB.RData")
 
-#step 2 add indicies to the dataset for INLA
+#checks: 
+sum(is.na(completeDataAB$Continent))  # should be 0 
+sum(is.na(completeDataAB$Number)) # 9791 on 23-8-19
+sum(is.na(completeDataAB$Location))
+sum(is.na(completeDataAB$Datasource_ID))
+sum(is.na(completeDataAB$Stratum)) # looks good
+unique(completeDataAB$Stratum)
+unique(completeDataAB$Unit)
+
+
+
+
 
 completeDataArth <- addIndicies(completeDataArth)
-
 
 dim(completeData) # old: 129203    new: 129649 # don;t know what's wrong with the old one 
 dim(completeDataArth) # old: 129694  new 129694
 sum(is.na(completeData$Number)) # 25155
 sum(is.na(completeDataArth$Number)) # 25180
-
 sum(is.na(completeData$Location)) # should be 0
 sum(is.na(completeDataArth$Location)) # 
 sum(is.na(completeData$biome)) # should be 0
@@ -1201,6 +1233,136 @@ metadata_per_country<- metadata_per_plot %>%
 print(subset(metadata_per_country, NumberStudies >3 | NumberPlots >20), n = Inf)
 
 
+# metadata overlap terrestrial aquatic species 
+
+
+
+
+
+# sum of wrongly assigned specimens 
+# percentage wrong of total 
+
+load( "all.selectedIns.RData")
+
+all.selectedIns$larvalHabitat <- "Terrestrial"
+
+unknown<- c("NS_NS_NS_NS", "na_na", "na?_na?",   "none_none", "unk_unk",  "Other_insects", "Other.insects", "Predators", "All_chortobionts",
+"Other_Insects", "Flying_invertebrates", "insects", "NONE", "MIN", "Insecta", "all_insects", "medium_insects", "large_insects", "Other_taxa", "Other",
+"Other_invertebrates", "All_macroinvertebrates", "Others", "Total_classified_invertebrates", "Total", "All_invertebrates", "EUGLEN" ,"All_Macroinvertebrates", "#N/A" )
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon %in% unknown    ] <- "Unknown"
+
+
+all.selectedIns$larvalHabitat[all.selectedIns$Order == "Plecoptera"    ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Order == "Trichoptera"   ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Order == "Ephemeroptera" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Order == "Odonata"       ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Order == "Megaloptera"   ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Order == "Coleoptera"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "Heteropterans"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "Heteroptera"]  <- "Aquatic/Terrestrial"
+
+# all unknown diptera and coleoptera
+Dipt.taxa<- c(as.character(taxa[grep("Dipt", taxa$Taxon), ]$Taxon), as.character(taxa[grep("DIPT", taxa$Taxon), ]$Taxon), "DipA", "DipL", "MDP")
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon %in% Dipt.taxa  ]<- "Aquatic/Terrestrial"
+Cole.taxa<- c(as.character(taxa[grep("Coleopt", taxa$Taxon), ]$Taxon), "COLE", "COLEO", "CASECOL", "ColL", "ColA")
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon %in% Cole.taxa  ]<- "Aquatic/Terrestrial"
+aq.macrof<- c("All_freshwater_invertebrates", "Macroinvertebrate", "Freshwater_invertebrates", "Freshwater_fauna", "Zoobenthos", "Zoobentos", "freshwater_fauna")
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon %in% aq.macrof    ] <- "Aquatic"
+
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Dytiscidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Haliplidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Gyrinidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Ceratopogonidae" ] <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Chironomidae" ] <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Chaoboridae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Culicidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Simuliidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Gerridae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Notonectidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Corixidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Hydrometridae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Micronectidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Naucoridae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Hydrachnidae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Ephydridae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Veliidae"] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Limoniidae"] <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Psychodidae"] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Elmidae"] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Scirtidae"] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Athericidae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Empididae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Nepidae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Sisyridae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Arrenuridae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Pleidae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Belostomatidae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Mesoveliidae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Aphelocheiridae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Hebridae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Culicidae"]  <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Pyralidae"]  <- "Aquatic/Terrestrial"
+#hydrophilidae
+all.selectedIns$larvalHabitat[all.selectedIns$Subfamily == "Hydrophilinae" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Subfamily == "Cymatinae" ] <- "Aquatic"
+
+
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Helochares" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Argyroneta" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Parapoynx" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Elophila" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Acentria" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Elophila" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Nymphula" ] <- "Aquatic"
+
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Anacaena" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Prionocera" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Genus == "Limnophora" ] <- "Aquatic"
+
+
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "Scrapers" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "Shredders" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "Collector-gatherers" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "Collector-filterers" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "EPT" ] <- "Aquatic"
+all.selectedIns$larvalHabitat[all.selectedIns$Taxon == "Hygraula_nitens" ] <- "Aquatic"
+
+
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Rhagionidae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Tipulidae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Stratiomyidae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Stratiomyiidae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Tabanidae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Pediciidae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Family == "Ptychopteridae"]  <- "Aquatic/Terrestrial"
+all.selectedIns$larvalHabitat[all.selectedIns$Subclass == "Acari"]  <- "Aquatic/Terrestrial"
+
+
+
+
+
+metadata_per_habitat<- all.selectedIns %>% 
+  group_by(Realm, Datasource_name, larvalHabitat) %>%
+  summarise(
+    SpeciesNumber = length(unique(Taxon)),
+    Individuals = round(sum(Number)), 1)
+
+
+tab<- dcast(metadata_per_habitat, Realm +Datasource_name~ larvalHabitat, value.var = "Individuals", sum)
+
+tab$fraction<- NA
+tab$fraction[tab$Realm == "Terrestrial"]<- tab$Aquatic[tab$Realm == "Terrestrial"] / (tab$Terrestrial[tab$Realm == "Terrestrial"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Terrestrial"]) 
+tab$fraction[tab$Realm == "Freshwater"]<- tab$Terrestrial[tab$Realm == "Freshwater"] / (tab$Aquatic[tab$Realm == "Freshwater"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Freshwater"]) 
+tab$fraction<- round(tab$fraction*100, 3)
+tab$right[tab$Realm == "Terrestrial"]<- (tab$Terrestrial[tab$Realm == "Terrestrial"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Terrestrial"])
+tab$right[tab$Realm == "Freshwater"] <-(tab$Aquatic[tab$Realm == "Freshwater"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Freshwater"])
+tab$wrong[tab$Realm == "Terrestrial"]<-  tab$Aquatic[tab$Realm == "Terrestrial"]  
+tab$wrong[tab$Realm == "Freshwater"]<-   tab$Terrestrial[tab$Realm == "Freshwater"]  
+tab
+
+100*(sum(tab$wrong)/ sum(tab$right)) #0.04%
+
+subset(all.selectedIns , Datasource_name == "Greenland arthropods" & larvalHabitat == "Aquatic/Terrestrial")[, 1:20]
 
 
 
@@ -1208,23 +1370,36 @@ print(subset(metadata_per_country, NumberStudies >3 | NumberPlots >20), n = Inf)
 
 
 
+# same for ecn moths
+setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends\\ECN data\\\\UK Environmental Change Network (ECN) moth data_ 1992-2015")
+setwd("C:\\Users\\roelv\\Dropbox\\Insect Biomass Trends\\ECN data\\UK Environmental Change Network (ECN) moth data_ 1992-2015")
+
+load("ecn.mraw.RData")
+
+test<- merge(ecn.m, taxa, by= "Taxon")
+dim(test)
+
+unique(anti_join(ecn.m, taxa)$Taxon)
+
+ecn.m$larvalHabitat <- "Terrestrial"
+ecn.m$larvalHabitat[ecn.m$Genus == "Parapoynx" ] <- "Aquatic"
+ecn.m$larvalHabitat[ecn.m$Genus == "Elophila" ] <- "Aquatic"
+ecn.m$larvalHabitat[ecn.m$Genus == "Acentria" ] <- "Aquatic"
+ecn.m$larvalHabitat[ecn.m$Genus == "Elophila" ] <- "Aquatic"
+ecn.m$larvalHabitat[ecn.m$Genus == "Nymphula" ] <- "Aquatic"
+
+ECNmetadata_per_habitat<- ecn.m %>% 
+  group_by( Site_name, larvalHabitat) %>%
+  summarise(
+    SpeciesNumber = length(unique(Taxon)),
+    Individuals = round(sum(VALUE)), 1)
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-#thrash
+#TRASH ######
 
 #require(plyr)    OBSOLETE
 completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
@@ -1254,7 +1429,7 @@ completeData <- ddply(all.aggr.insects,.(Realm,Continent,Datasource_ID),
                         
                       })
 
-##############
+
 ## NOT USED
 
 # pesticide data load  # looks unreliable to me ####
