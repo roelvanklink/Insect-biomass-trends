@@ -10,20 +10,26 @@ library(INLA)
 setwd("C:/Users/roelv/Dropbox/Insect Biomass Trends/csvs") # home
 setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
 
-
-beetles<- "grey50"
-aq <- "dodgerblue4"
-rest <- "red"
-color.scheme.taxa<- c( "Acari" = rest, "Opiliones" = rest ,"Collembola" = rest   ,"Myriapoda" = rest  ,
-                       "Terrestrial Isopods" = rest ,"Thysanoptera"  = rest      , "Neuroptera"  = rest ,  "Orthoptera" = rest, "Dermaptera" = "rest",
+beetles<- "#999999"#"grey50"
+aq <- "#56B4E9" # "dodgerblue2"
+rest <- "#D55E00" #"red"
+hym <- "#F0E442"
+dip <- "#0072B2"
+lepi<-  "#E69F00"
+non <- "#CC79A7"
+neo <-   "#009E73"
+soil <-   "#0072B2"
+color.scheme.taxa<- c( "Acari" = non, "Opiliones" = non ,"Collembola" = non   ,"Myriapoda" = non  ,
+                       "Terrestrial Isopods" = non      , "Neuroptera"  = rest ,  "Orthoptera" = rest, "Dermaptera" = rest,
                        "Aquatic Coleoptera" = aq ,"Aquatic Diptera" = aq ,"Chironomidae" = aq ,"Aquatic Crustaceans" = aq ,
+                       "Aquatic Acari" = aq , "Aquatic Lepidoptera" = aq ,
                        "Ephemeroptera" = aq, "Megaloptera" = aq, "Odonata" = aq, "Plecoptera" = aq, "Trichoptera" = aq,
-                       "Araneae" = rest, 
-                       "Other Hymenoptera" = rest, "Bees" = rest, "Formicidae" = rest, "Symphyta" = rest , "Vespidae" = rest, 
-                       "Syrphidae"   = rest  , "Other Diptera" = rest , 
+                       "Araneae" = non, "Blattodea" = rest, 
+                       "Other Hymenoptera" = hym, "Bees" = hym, "Formicidae" = hym, "Symphyta" = hym , "Vespidae" = hym, 
+                       "Syrphidae"   = dip  , "Other Diptera" = dip , 
                        "Other Coleoptera" = beetles  ,"Staphylinidae" = beetles  , "Coccinellidae"  = beetles ,"Curculionidae" =  beetles , "Carabidae" = beetles  , 
-                       "Heteroptera" = "green" ,  "Auchenorrhyncha"  = "green","Sternorrhyncha" = "green" , "Psocoptera" ="green",  
-                       "Moths" = "blue"   , "Butterflies"  = "red")
+                      "Hemiptera"= neo,  "Heteroptera" = neo ,  "Auchenorrhyncha"  = neo,"Sternorrhyncha" = neo , "Psocoptera" = neo,  "Thysanoptera"  = neo, 
+                       "Moths" = lepi   , "Butterflies"  = lepi)
 
 theme_clean<- theme_grey() + theme(panel.grid.major = element_blank(), 
                                    panel.grid.minor = element_blank(),
@@ -281,6 +287,18 @@ metadata_TaxCoarse<-  subset(completeData.TaxCoarse, !is.na(Number))   %>%
     End_year = max(Year, na.rm = T)) 
 print(metadata_TaxCoarse, n=Inf)
 
+color.scheme.taxa.coarse<- c("Trombidiformes" = non,  "Acari" = non, "Opiliones" = non ,"Collembola" = non   ,"Myriapoda" = non  , "Crustacea" = non,
+                       "Terrestrial Isopods" = non      , "Neuroptera"  = rest ,  "Orthoptera" = beetles, "Dermaptera" = beetles,
+                       "Aquatic Coleoptera" = aq ,"Aquatic Diptera" = aq ,"Chironomidae" = aq ,"Aquatic Crustaceans" = aq ,
+                       "Aquatic Acari" = aq , "Aquatic Lepidoptera" = aq ,
+                       "Ephemeroptera" = beetles, "Megaloptera" = rest, "Odonata" = beetles, "Plecoptera" = beetles, "Trichoptera" = rest,
+                       "Araneae" = non, "Blattodea" = beetles, 
+                       "Other Hymenoptera" = hym, "Bees" = hym, "Formicidae" = hym, "Symphyta" = hym , "Vespidae" = hym, 
+                       "Syrphidae"   = dip  , "Other Diptera" = dip , 
+                       "Other Coleoptera" = beetles  ,"Staphylinidae" = beetles  , "Coccinellidae"  = beetles ,"Curculionidae" =  beetles , "Carabidae" = beetles  , 
+                       "Hemiptera"= neo,  "Heteroptera" = neo ,  "Auchenorrhyncha"  = neo,"Sternorrhyncha" = neo , "Psocoptera" = neo,  "Thysanoptera"  = neo, 
+                       "Moths" = lepi   , "Butterflies"  = lepi, "Lepidoptera" = rest , "Coleoptera" = rest, "Hymenoptera" = rest, "Diptera" = rest)
+
 
 
 
@@ -317,16 +335,36 @@ perc<-(10^(brks )  *100) - 100
 l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 e<- c("","","","","","","")
 
+taxSlope$X1<- 
+  ordered(taxSlope$X1, levels = c("Acari", "Trombidiformes" , "Opiliones" ,"Araneae", "Myriapoda"  ,"Terrestrial Isopods" , "Crustacea",
+                                              "Collembola"   ,
+                                              
+                                              "Aquatic Acari",  "Aquatic Coleoptera" ,"Aquatic Diptera" ,"Chironomidae" ,
+                                              "Aquatic Crustaceans" , "Aquatic Hymenoptera", "Water spiders" , "Aquatic Lepidoptera",
+                                              "Ephemeroptera", "Odonata", "Plecoptera", 
+                                              "Orthoptera", "Blattodea" , "Dermaptera",
+                                              "Thysanoptera" ,"Psocoptera", "Hemiptera", "Sternorrhyncha" ,"Auchenorrhyncha" ,"Heteroptera" , 
+                                              "Coleoptera", "Other Coleoptera"   ,"Staphylinidae" , "Coccinellidae"  ,"Curculionidae" , "Carabidae"  , 
+                                              "Megaloptera", "Neuroptera"  ,
+                                              "Hymenoptera",  "Other Hymenoptera",  "Symphyta" , "Formicidae", "Vespidae", "Bees",
+                                              "Diptera", "Other Diptera" ,"Syrphidae"    , 
+                                              "Trichoptera",
+                                              "Lepidoptera", "Moths"    , "Butterflies"))
+
 
 ggplot(data.frame(subset(taxSlope, Datasources >4 )))+
   geom_crossbar(aes(x=X1,y=mean, fill = X1,
-                    ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7, fill = "grey70")+
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge", width = 0.7)+
+  scale_fill_manual(values = color.scheme.taxa.coarse)+
   coord_flip()+
   xlab ("")+ ylab("Trend slope  \n % change per year")+ #
   geom_hline(yintercept=0,linetype="dashed")+
-  geom_text(aes(x = X1 , y = 0.028, label = text), size = 3) +
-  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.04,0.05))+
-  theme_clean
+  geom_text(aes(x = X1 , y = 0.05, label = text), size = 3) +
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.04,0.07))+
+  theme_clean +
+  theme(legend.key=element_blank(),
+        legend.position='none')
+
 
 
 
@@ -386,17 +424,19 @@ taxSlope$text = paste0("(", taxSlope$Datasources, " | ", taxSlope$Plots, " | ", 
 
 # reorder for graph
 rownames(taxSlope)<-taxSlope$X1
-taxSlope$X1<- ordered(taxSlope$X1, levels = c("Acari" , "Opiliones" ,"Collembola"   ,"Myriapoda"  ,"Terrestrial Isopods" ,
-           "Thysanoptera" , "Neuroptera"  ,  "Orthoptera", 
+taxSlope$X1<- ordered(taxSlope$X1, levels = c("Acari" , "Opiliones" ,"Araneae", "Myriapoda"  ,"Terrestrial Isopods" ,
+                                              "Collembola"   ,
+              
            "Aquatic Acari",  "Aquatic Coleoptera" ,"Aquatic Diptera" ,"Chironomidae" ,
            "Aquatic Crustaceans" , "Aquatic Hymenoptera", "Water spiders" , "Aquatic Lepidoptera",
            "Ephemeroptera", "Megaloptera", "Odonata", "Plecoptera", "Trichoptera",
-           "Araneae", 
-           "Other Hymenoptera", "Bees", "Formicidae", "Symphyta" , "Vespidae", 
-           "Syrphidae"    , "Other Diptera" , 
-           "Other Coleoptera"   ,"Staphylinidae" , "Coccinellidae"  ,"Curculionidae" , "Carabidae"  , 
-           "Heteroptera" ,  "Auchenorrhyncha" ,"Sternorrhyncha" , "Psocoptera", 
-           "Blattodea" , "Dermaptera",
+          "Orthoptera", "Blattodea" , "Dermaptera",
+         "Sternorrhyncha" ,"Auchenorrhyncha" ,"Heteroptera" ,"Thysanoptera" ,"Psocoptera", 
+            "Other Coleoptera"   ,"Staphylinidae" , "Coccinellidae"  ,"Curculionidae" , "Carabidae"  , 
+            "Neuroptera"  ,
+           "Other Hymenoptera",  "Symphyta" , "Formicidae", "Vespidae", "Bees",
+            "Other Diptera" ,"Syrphidae"    , 
+            
            "Moths"    , "Butterflies"))
 
 #  taxSlope$X1 <- factor(taxSlope$X1, levels = taxSlope$X1[order(taxSlope$Datasources)])                                         
@@ -418,7 +458,7 @@ ggplot(data.frame(subset(taxSlope, Datasources >4 )))+
   scale_fill_manual(values = color.scheme.taxa)+
   geom_hline(yintercept=0,linetype="dashed")+
   geom_text(aes(x = X1 , y = 0.085, label = text), size = 3) +
-  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.060,0.10)) +
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.040,0.10)) +
   theme_clean + 
   theme(legend.key=element_blank(),
         legend.position='none')
