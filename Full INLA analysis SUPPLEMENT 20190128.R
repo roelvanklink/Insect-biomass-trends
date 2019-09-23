@@ -32,20 +32,40 @@ sum( RandEfDataset$'DataID_Slope_ 0.025quant' <0 & RandEfDataset$'DataID_Slope_ 
 # effects of the priors
 
 # random effects and overall error with narrower prior 
+prec.prior <- list(prec = list(prior = "loggamma", param = c(1, 0.5)))
 inlaFprior0.5 <- inla(log10(Number+1) ~ cYear:Realm+ Realm + 
-                        f(Period_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+ # prior for random effects 
-                        f(Location_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
-                        f(Plot_ID_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
-                        f(Datasource_ID_4INLA,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
-                        f(Plot_ID_4INLAR,iYear,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
-                        f(Location_4INLAR,iYear,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5)))) +
-                        f(Datasource_ID_4INLAR,iYear,model='iid', hyper = list(prec= list(prior = "loggamma", param  = c(1,0.5))))+
-                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                        f(Period_4INLA,model='iid', hyper = prec.prior)+ # prior for random effects 
+                        f(Location_4INLA,model='iid', hyper = prec.prior)+
+                        f(Plot_ID_4INLA,model='iid', hyper = prec.prior)+
+                        f(Datasource_ID_4INLA,model='iid', hyper = prec.prior)+
+                          f(Plot_ID_4INLAR,iYear,model='iid', hyper = prec.prior)+
+                          f(Location_4INLAR,iYear,model='iid', hyper = prec.prior) +
+                          f(Datasource_ID_4INLAR,iYear,model='iid', hyper = prec.prior)+
+                      f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                       control.family = list(
                         hyper = list(
                           prec = list( prior = "loggamma", param = c(1,0.5)))), # this is the prior for the error
                       control.compute = list(dic=TRUE,waic=TRUE),
                       data=completeData) 
+
+
+
+prec.prior <- list(prec = list(prior = "loggamma", param = c(0.1, 0.1)))
+inlaFprior0.1 <- inla(log10(Number+1) ~ cYear:Realm+ Realm + 
+                        f(Period_4INLA,model='iid', hyper = prec.prior)+ # prior for random effects 
+                        f(Location_4INLA,model='iid', hyper = prec.prior)+
+                        f(Plot_ID_4INLA,model='iid', hyper = prec.prior)+
+                        f(Datasource_ID_4INLA,model='iid', hyper = prec.prior)+
+                        f(Plot_ID_4INLAR,iYear,model='iid', hyper = prec.prior)+
+                        f(Location_4INLAR,iYear,model='iid', hyper = prec.prior) +
+                        f(Datasource_ID_4INLAR,iYear,model='iid', hyper = prec.prior)+
+                        f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                      control.family = list(
+                        hyper = list(
+                          prec = list( prior = "loggamma", param = c(0.1,0.1)))), # this is the prior for the error
+                      control.compute = list(dic=TRUE,waic=TRUE),
+                      data=completeData) 
+
 
 
 load("E:/inlaFprior0.5-5434477.RData")
@@ -70,48 +90,52 @@ metadata_AB
 # abundance vs biomass (overall model)
 inla1.AB <- inla(log10(Number+1) ~ cYear: Unit +  Unit +
                    f(Period_4INLA,model='iid')+
-                   f(Plot_ID_4INLA,model='iid')+
-                   f(Location_4INLA,model='iid')+
-                   f(Datasource_ID_4INLA,model='iid')+
-                   f(Plot_ID_4INLAR,iYear,model='iid')+
-                   f(Location_4INLAR,iYear,model='iid')                      +
-                   f(Datasource_ID_4INLAR,iYear,model='iid')+
+                   f(Plotunit_4INLA,model='iid')+
+                   f(Locunit_4INLA,model='iid')+
+                   f(DSunit_4INLA,model='iid')+
+                   f(Plotunit_4INLAR,iYear,model='iid')+
+                   f(Locunit_4INLAR,iYear,model='iid')                      +
+                   f(DSunit_4INLAR,iYear,model='iid')+
                    f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                  control.compute = list(dic=TRUE,waic=TRUE),
                  data=completeDataAB) # 
 save(inla1.AB, file = "/data/Roel/inla1.AB.RData")
 
-load("E:/inlaABmodels-5429694.RData")
-summary(inla1.AB) # biomass is actually positive! This is maybe due to the FW datasets (fw = 21 vs terr =11 datasets)
+as.data.frame(readRDS("inla1.AB2SUMMARY.rds"))
+inla1.AB<- readRDS("inla1.AB2TEST.rds")
+# biomass is actually positive! This is maybe due to the FW datasets (fw = 21 vs terr =11 datasets)
 
 # abundance vs biomass and realm
 inla1.ABrealm <- inla(log10(Number+1) ~ cYear: Realm: Unit +  Unit +Realm +
                         f(Period_4INLA,model='iid')+
-                        f(Plot_ID_4INLA,model='iid')+
-                        f(Location_4INLA,model='iid')+
-                        f(Datasource_ID_4INLA,model='iid')+
-                        f(Plot_ID_4INLAR,iYear,model='iid')+
-                        f(Location_4INLAR,iYear,model='iid')+
-                        f(Datasource_ID_4INLAR,iYear,model='iid')+
+                        f(Plotunit_4INLA,model='iid')+
+                        f(Locunit_4INLA,model='iid')+
+                        f(DSunit_4INLA,model='iid')+
+                        f(Plotunit_4INLAR,iYear,model='iid')+
+                        f(Locunit_4INLAR,iYear,model='iid')                      +
+                        f(DSunit_4INLAR,iYear,model='iid')+
                         f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                       control.compute = list(dic=TRUE,waic=TRUE),
                       data=completeDataAB) # 
 save(inla1.ABrealm, file = "/data/Roel/inla1.ABrealm.RData")
 
 #graph
-load("E:/inlaABrealm-5429693.RData")
-summary(inla1.ABrealm)
+inla1.ABrealm<-as.data.frame(readRDS("inla1.ABrealmSUMMARY.rds"))
+inla1.ABrealm<- readRDS("inla1.ABrealmTEST.rds")
+
+(inla1.ABrealm)
 data.frame(
-  var =   rownames(inla1.ABrealm$summary.fixed)[4:7], 
-  mean = (10^(inla1.ABrealm$summary.fixed[4:7,1] )-1)  *100, # proportional changes per year
-  CI2.5 = (10^(inla1.ABrealm$summary.fixed[4:7,3] )-1 ) *100,#0.025 CI
-  CI97.5 = (10^(inla1.ABrealm$summary.fixed[4:7,5] )-1 ) *100# 0.975
+  var =   rownames(inla1.ABrealm)[4:7], 
+  mean = (10^(inla1.ABrealm[4:7,1] )-1)  *100, # proportional changes per year
+  CI2.5 = (10^(inla1.ABrealm[4:7,3] )-1 ) *100,#0.025 CI
+  CI97.5 = (10^(inla1.ABrealm[4:7,5] )-1 ) *100# 0.975
 )
-10^(inla1.ABrealm$summary.fixed[4:7,1] *10)-1 # proportional changes per decade
+10^(inla1.ABrealm$mean[4:7] *10)-1 # proportional changes per decade
+10^(inla1.ABrealm$mean[4:7] *30)-1 # proportional changes per 30 yrs
 
 
 
-ABSlope<- inla1.ABrealm$summary.fixed[4:7,]
+ABSlope<- inla1.ABrealm[4:7,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(ABSlope), split = ":")))
 ABSlope<-cbind(ABSlope, vars)
 ABSlope$Realm<-gsub("Realm", "", ABSlope$X2)
@@ -119,30 +143,42 @@ ABSlope$Unit<-gsub("Unit", "", ABSlope$X1)
 ABSlope$AB <-ABSlope$Unit
 ABSlope<- merge(ABSlope, metadata_AB)
 ABSlope$text = paste0("(", ABSlope$Datasources, " | ", ABSlope$Plots, ") ")
+ABSlope$Unit[ABSlope$Unit == "abundance"]<- "Abundance" ; ABSlope$Unit[ABSlope$Unit == "biomass"] <- "Biomass" 
+ABSlope$Unit<- ordered(ABSlope$Unit, levels = rev(c("Abundance", "Biomass" )))
 
 
-brks<- c(-0.010, -0.005, 0, 0.005, 0.01, 0.015)
-perc<-(10^(brks )  *100) - 100
-l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
-e<- c("","","","","","","")
+#brks<- c(-0.010, -0.005, 0, 0.005, 0.01, 0.015)
+#perc<-(10^(brks )  *100) - 100
+#l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
+#e<- c("","","","","","","")
 
 
 ABplot<- ggplot(data.frame(ABSlope))+
-  geom_crossbar(aes(x=Realm,   y=mean, fill = Unit,
-                    ymin=X0.025quant , ymax=X0.975quant), position="dodge",alpha=0.8 ,  width =0.7)+
+  geom_errorbar(aes(x=Unit,ymin=mean-sd, ymax=mean+sd, color = Realm),
+                size = 2, width=0, position=position_dodge(width= 0.7))+  
+  geom_errorbar(aes(x=Unit,ymin=X0.025quant,ymax= X0.975quant, color = Realm),
+                width=0, position=position_dodge(width= 0.7))+  
+  geom_point(aes(x=Unit,   y=mean, shape = Realm,  fill = Realm, color = Realm),
+             size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
+  scale_color_manual(values = col.scheme.realm)+
+  scale_fill_manual(values = col.scheme.realm)+
+  scale_shape_manual(values = shps)+
   geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
-  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.01, 0.024))+
-  xlab ("")+ ylab("Trend slope  \n % change per year")+
-  geom_text(aes(x = Realm , y = 0.020, fill = Unit,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
-  scale_fill_manual(name="Unit",
-                    breaks=c("biomass", "abundance"),
-                    labels=c("Biomass", "Abundance"), 
-                    values = col.scheme.AB) + 
-  theme_clean
+  scale_y_continuous(breaks = brks,labels = l, limits=lims)+
+  xlab ("")+ ylab("")+  #Trend slope  \n % change per year
+  geom_text(aes(x = Unit , y = 0.032, label = text, fill = Realm),  
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
+  theme_clean +
+  theme(legend.key=element_blank(),
+        legend.position='none', 
+        axis.text.x=element_blank()) +
+  geom_text(aes(x = 2.3 , y = -0.025, label = "A"),  
+            size = 6, color = 1) 
 
+  
 png("AB plot.png", width=2000, height=700, res = 360)
-PAplot
+ABplot
 dev.off()
 
 
@@ -153,7 +189,7 @@ dev.off()
 
 # Excluding North America
 
-completeData1<- subset(completeData, Continent != "North America")
+
 # almost half of the data out
 
 inlaFrealmExclNAm <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
@@ -166,9 +202,17 @@ inlaFrealmExclNAm <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
                             f(Datasource_ID_4INLAR,iYear,model='iid')+
                             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                           control.compute = list(dic=TRUE,waic=TRUE),
-                          data=completeData1)
+                          data=subset(completeData, Continent != "North America"))
 
-load("E:/inlaRealmExclNAm-5429691.RData")
+inlaFrealmExclNAm<-  as.data.frame(read_rds("inlaFrealmExclNAmSUMMARY.rds"))
+data.frame(
+  var =   c("FW 1 yr" ,"Terr 1 yr", "FW 10 yr", "Terr 10 yr"), 
+  CI2.5 =  c((10^(inlaFrealmExclNAm  [3:4,3] )-1 ) *100, (10^(inlaFrealmExclNAm  [3:4,3] *10)-1)  *100),#0.025 CI
+  mean =   c((10^(inlaFrealmExclNAm  [3:4,1] )-1)  *100, (10^(inlaFrealmExclNAm  [3:4,1] *10)-1)  *100), # proportional changes per year
+  CI97.5 = c((10^(inlaFrealmExclNAm  [3:4,5] )-1 ) *100, (10^(inlaFrealmExclNAm  [3:4,5] *10)-1)  *100)# 0.975
+)
+
+
 
 metadata_realm.ExclNa<-  completeData1 %>% 
   group_by(Realm) %>%
@@ -318,6 +362,99 @@ inlaSubset <- inla(log10(Number+1) ~ cYear:Realm + Realm +
 
 ###################################################################################################
 
+# excluding biomass
+inlaFcontExclB <- get(load("inlaFcontExclB.RData"))
+
+
+metadata_cont<-  subset(completeData, Unit != "biomass") %>% 
+  group_by(Continent, Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)),
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T)) 
+metadata_cont
+
+contSlope<- inlaFcontExclB$summary.fixed[8:19,]
+vars<-data.frame(do.call(rbind, strsplit(rownames(contSlope), split = ":")))
+contSlope<-cbind(contSlope, vars)
+contSlope$Realm<-gsub("Realm", "", contSlope$X1);  contSlope$Continent<-gsub("Continent", "", contSlope$X2)
+contSlope<- merge(contSlope, metadata_cont)
+contSlope$text = paste0("(", contSlope$Datasources, " | ", contSlope$Plots, ")")
+contSlope$Continent<- ordered(contSlope$Continent, levels = rev(c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" )))
+
+# link % change to slope in log space
+brks<- c(-0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04)
+perc<-(10^(brks )  *100) - 100
+l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
+e<- c("","","","","","","")
+
+contPlot<- ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude africa,bc it has too wide CI's 
+  geom_crossbar(aes(x=Continent,   y=mean, fill = Realm, 
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  geom_hline(yintercept=0,linetype="dashed") +
+  geom_text(aes(x = Continent , y = 0.032, label = text, fill = Realm),  
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
+  coord_flip()+
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.028,0.036))+
+  xlab ("")+ ylab("")+ #Trend slope | \n % change per year
+  theme_clean +
+  theme(legend.key=element_blank(),
+        legend.position='none', 
+        axis.text.x=element_blank()) +
+  geom_text(aes(x = 5.3 , y = 0.025, label = "excl biomass"),  
+            size = 6, color = 1) 
+
+
+
+metadata_biom<-  subset(completeData, Unit != "biomass" ) %>% 
+  group_by(BiomeCoarse, Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)),
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T)) 
+metadata_biom
+
+
+
+biomSlope<- as.data.frame(readRDS("inlaFbiomExclB12SUMMARY.rds"))[6:13,]
+vars<-data.frame(do.call(rbind, strsplit(rownames(biomSlope), split = ":")))
+biomSlope<-cbind(biomSlope, vars)
+biomSlope$Realm<-gsub("Realm", "", biomSlope$X1);  biomSlope$BiomeCoarse<-gsub("BiomeCoarse", "", biomSlope$X2)
+biomSlope$Biome <-biomSlope$BiomeCoarse
+biomSlope<- merge(biomSlope, metadata_biom)
+biomSlope$text = paste0("(", biomSlope$Datasources, " | ", biomSlope$Plots, ") ")
+
+biomSlope$Biome<- ordered(biomSlope$Biome, levels = rev(c("Boreal/Alpine", "Temperate" , "Drylands", "Tropical"  )))
+
+brks<- c(-0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04)
+perc<-(10^(brks )  *100) - 100
+l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
+
+
+biomPlot<- ggplot(data.frame(biomSlope))+
+  geom_crossbar(aes(x=Biome,   y=mean, fill = Realm,
+                    ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
+  scale_fill_manual(values = col.scheme.realm)+
+  geom_hline(yintercept=0,linetype="dashed") +
+  geom_text(aes(x = Biome , y = 0.032, label = text, fill = Realm),  
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
+  coord_flip()+
+  #ylim(-0.025, 0.035)+
+  scale_y_continuous(breaks = brks,labels = l, limits=c(-0.029,0.036))+
+  xlab ("")+ ylab("Trend slope  \n % change per year")+
+  theme_clean +
+  theme(legend.key=element_blank(), 
+        legend.position="bottom")  + 
+  geom_text(aes(x = 4.3 , y = -0.025, label = "B"),  
+            size = 6, color = 1) 
+
+
+
+
+
 # all arthropods #####
 
 inlaFA <- inla(log10(Number+1) ~ cYear + 
@@ -376,7 +513,7 @@ theme_clean +
 
  # Strata
 
-inlaFAstrat <- inla(log10(Number+1) ~ cYear: Realm:Stratum + Realm + Stratum + 
+inlaFAstrat <- inla(log10(Number+1) ~ cYear:Stratum + Stratum  + 
                       f(Period_4INLA,model='iid')+
                       f(Location_4INLA,model='iid')+
                       f(Plot_ID_4INLA,model='iid')+
@@ -564,29 +701,31 @@ qplot(x=abundance,y=biomass, data=all.aggrAB.test,colour=as.factor(Plot_ID))+
 
 #################################################################################
 
-# Tables Drivers for DIC comparisons #####
+# Fig S3 diver effect size  #####
+
+
 
 names(all.results)
 
-urbanizationFW <- cbind(Realm = "Freshwater",  all.results$Changes_LUH2_FW[5:6,], variable = rownames(all.results$Changes_LUH2_FW[5:6,]))
-urbanizationTer<- cbind(Realm = "Terrestrial", all.results$Changes_LUH2_Terr[5:6,], variable = rownames(all.results$Changes_LUH2_Terr[5:6,]) )
-cover25kmFW    <- cbind(Realm = "Freshwater",  (all.results$Landuse_LUH2_FW)[5:6,], variable = rownames(all.results$Landuse_LUH2_FW[5:6,])  )
-cover25kmTer   <- cbind(Realm = "Terrestrial", all.results$Landuse_LUH2_Terrestrial[5:6,], variable = rownames(all.results$Landuse_LUH2_Terrestrial[5:6,])  )
-cover0.81FW    <- cbind(Realm = "Freshwater", all.results$Landuse_ESA_FW  [5:6,], variable = rownames(all.results$Landuse_ESA_FW[5:6,])    )
-cover0.81Ter   <- cbind(Realm = "Terrestrial",all.results$Landuse_ESA_terr[5:6,], variable = rownames(all.results$Landuse_ESA_terr[5:6,])     )
-deltaFwCRU     <- cbind(Realm = "Freshwater", all.results$relClimate_Change_CRU_FW[5:6,], variable = rownames(all.results$relClimate_Change_CRU_FW[5:6,])  )
-deltaTerCRU    <- cbind(Realm = "Terrestrial",all.results$relClimate_Change_CRU_Terr[5:6,], variable = rownames(all.results$relClimate_Change_CRU_Terr[5:6,]) ) 
-deltaFwCHELSA  <- cbind(Realm = "Freshwater", all.results$relClimate_Change_CHELSA_FW[5:6,], variable = rownames(all.results$relClimate_Change_CHELSA_FW[5:6,])  )
-deltaTerCHELSA <- cbind(Realm = "Terrestrial",all.results$relClimate_Change_CHELSA_Terr[5:6,], variable = rownames(all.results$relClimate_Change_CHELSA_Terr[5:6,]) )
+LUchangeFW     <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFchangesFWSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFchangesFWSUMMARY.rds"))[5:6,]))
+LUchangeTer    <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFchangesTerrSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFchangesTerrSUMMARY.rds"))[5:6,]))
+cover25kmFW    <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFlanduseFWSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseFWSUMMARY.rds"))[5:6,]))
+cover25kmTer   <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFlanduseTSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseTSUMMARY.rds"))[5:6,]))
+cover0.81FW    <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFlanduseESAfwSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseESAfwSUMMARY.rds"))[5:6,]))
+cover0.81Ter   <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFlanduseESAterrSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseESAterrSUMMARY.rds"))[5:6,]))
+deltaFwCRU     <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFClimChangesFWSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFClimChangesFWSUMMARY.rds"))[5:6,]))
+deltaTerCRU    <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFClimChangesTerrSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFClimChangesTerrSUMMARY.rds"))[5:6,]))
+deltaFwCHELSA  <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFCHELSAChangesFWSUMMARY.RDS"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFCHELSAChangesFWSUMMARY.RDS"))[5:6,]))
+deltaTerCHELSA <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFCHELSAChangesTerrSUMMARY.RDS"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFCHELSAChangesTerrSUMMARY.RDS"))[5:6,]))
 
 
    
-drivers<- rbind(urbanizationTer, urbanizationFW, cover25kmFW   , cover25kmTer, cover0.81Ter, cover0.81FW, 
+drivers<- rbind(LUchangeTer, LUchangeFW, cover25kmFW   , cover25kmTer, cover0.81Ter, cover0.81FW, 
              deltaTerCRU, deltaFwCRU, deltaTerCHELSA, deltaFwCHELSA)
 drivers$scale <- NA
-drivers$scale [drivers$mean + drivers$`0.975quant` <0.5]<-"small"
-drivers$scale [drivers$mean + drivers$`0.975quant` >0.5]<-"mid"
-drivers$scale [drivers$mean + drivers$`0.975quant` >5]<-"large"
+drivers$scale [ drivers$X0.975quant-drivers$X0.025quant  <0.5]<-"small"
+drivers$scale [drivers$X0.975quant-drivers$X0.025quant  >0.5]<-"mid"
+#drivers$scale [ drivers$X0.975quant-drivers$X0.025quant  >5]<-"large"
 
 
 # rename variables 
@@ -594,8 +733,8 @@ drivers$scale [drivers$mean + drivers$`0.975quant` >5]<-"large"
 drivers$name <- NA
 drivers$name[drivers$variable == "cYear:urbanization"] <- "Change in urban cover per 625 km2"
 drivers$name[drivers$variable == "cYear:cropification"] <- "Change in cropland cover per 625 km2"
-drivers$name[drivers$variable == "cYear:sqrt(End_cropArea)"] <- "sqrt fraction Cropland cover per 625 km2 at end"
-drivers$name[drivers$variable == "cYear:sqrt(End_urbanArea)"] <- "sqrt fraction Urban cover per 625 km2 at end"
+drivers$name[drivers$variable == "cYear:sqrt(End_cropArea)"] <- "sqrt % Cropland cover per 625 km2 at end"
+drivers$name[drivers$variable == "cYear:sqrt(End_urbanArea)"] <- "sqrt % Urban cover per 625 km2 at end"
 drivers$name[drivers$variable == "cYear:frcCrop900m"] <- "sqrt fraction Cropland cover per 0.81 km2 at end"
 drivers$name[drivers$variable == "cYear:frcUrban900m"] <- "sqrt fraction Urban cover per 0.81 km2 at end"
 drivers$name[drivers$variable == "cYear:relDeltaTmean"] <- "Relative change in mean temperature per 0.25 degr2 at end"
@@ -606,7 +745,7 @@ drivers$name[drivers$variable == "cYear:CHELSArelDeltaPrec"] <- "Relative change
 drivers$name<- factor(drivers$name, levels = rev(c( "Change in urban cover per 625 km2", 
                                                    "Change in cropland cover per 625 km2", 
                                                    "sqrt fraction Urban cover per 625 km2 at end", 
-                                                   "sqrt fraction Cropland cover per 625 km2 at end", 
+                                               "sqrt % Cropland per 0.81'~ km^2 at end"   ,  
                                                    "sqrt fraction Urban cover per 0.81 km2 at end",
                                                    "sqrt fraction Cropland cover per 0.81 km2 at end",
                                                    "Relative change in mean temperature per 0.25 degr2 at end",
@@ -614,10 +753,20 @@ drivers$name<- factor(drivers$name, levels = rev(c( "Change in urban cover per 6
                                                    "Relative change in mean temperature per 1 km2 at end" ,
                                                    "Relative change in monthly precipitation per 1 km2 at end")))                                              
 
+
+xlab ()
+
 sml<- ggplot( subset(drivers, scale =="small")   ) + 
-   geom_crossbar(aes(x=name,   y=mean, fill = Realm,
-                    ymin=`0.025quant` ,ymax= `0.975quant` ), position="dodge",alpha=1 ,  width =0.7)+
- scale_fill_manual(values = col.scheme.realm)+
+  geom_errorbar(aes(x=name,ymin=mean-sd, ymax=mean+sd, color = Realm),
+                size = 2, width=0, alpha = 0.7, position=position_dodge(width= 0.7))+  
+  geom_errorbar(aes(x=name, ymin=X0.025quant,ymax= X0.975quant, color = Realm),
+                width=0, position=position_dodge(width= 0.7))+  
+  geom_point(aes(x=name,   y=mean, shape = Realm,  color = Realm, fill = Realm),
+             size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
+ # scale_x_discrete("", labels = parse(text = name))+
+  #  geom_crossbar(aes(x=name,   y=mean, fill = Realm,
+#                    ymin=X0.025quant ,ymax= X0.975quant ), position="dodge",alpha=1 ,  width =0.7)+
+ scale_color_manual(values = col.scheme.realm)+
   xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
    theme_clean + 
@@ -627,9 +776,13 @@ sml<- ggplot( subset(drivers, scale =="small")   ) +
   facet_wrap(.~scale, scales = "free", nrow = 3)
 
 md<- ggplot( subset(drivers, scale =="mid")   ) + 
-  geom_crossbar(aes(x=name,   y=mean, fill = Realm,
-                    ymin=`0.025quant` ,ymax= `0.975quant` ), position="dodge",alpha=1 ,  width =0.7)+
-  scale_fill_manual(values = col.scheme.realm)+
+  geom_errorbar(aes(x=name,ymin=mean-sd, ymax=mean+sd, color = Realm),
+                size = 2, width=0, alpha = 0.7, position=position_dodge(width= 0.7))+  
+  geom_errorbar(aes(x=name, ymin=X0.025quant,ymax= X0.975quant, color = Realm),
+                width=0, position=position_dodge(width= 0.7))+  
+  geom_point(aes(x=name,   y=mean, shape = Realm,  color = Realm, fill = Realm),
+             size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
+  scale_color_manual(values = col.scheme.realm)+
   xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   theme_clean + 
@@ -638,9 +791,47 @@ md<- ggplot( subset(drivers, scale =="mid")   ) +
         strip.background = element_blank())+
   facet_wrap(.~scale, scales = "free", nrow = 3)
 
+
+
+library(gridExtra)
+grid.arrange(sml, md,  nrow = 2,  heights = c(7,3) )
+
+#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 lrg<- ggplot( subset(drivers, scale =="large")   ) + 
   geom_crossbar(aes(x=name,   y=mean, fill = Realm,
-                    ymin=`0.025quant` ,ymax= `0.975quant` ), position="dodge",alpha=1 ,  width =0.7)+
+                    ymin=X0.025quant ,ymax= X0.975quant ), position="dodge",alpha=1 ,  width =0.7)+
   scale_fill_manual(values = col.scheme.realm)+
   ylab ("Model estimate")+ xlab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
@@ -649,11 +840,3 @@ lrg<- ggplot( subset(drivers, scale =="large")   ) +
         strip.text = element_blank(), 
         strip.background = element_blank())+
   facet_wrap(.~scale, scales = "free", nrow = 3)
-
-
-library(gridExtra)
-grid.arrange(sml, md, lrg, nrow = 3,  heights = c(7,3, 2.2) )
-
-
-
-
