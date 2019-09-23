@@ -8,7 +8,7 @@ library(INLA)
 
 # load sheets of original database
 setwd("C:/Users/roelv/Dropbox/Insect Biomass Trends/csvs") # home
-setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
+setwd("C:\\Dropbox\\Insect Biomass Trends/csvs") # work
 
 beetles<- "#999999"#"grey50"
 aq <- "#56B4E9" # "dodgerblue2"
@@ -26,7 +26,7 @@ color.scheme.taxa<- c( "Acari" = non, "Opiliones" = non ,"Collembola" = non   ,"
                        "Ephemeroptera" = aq, "Megaloptera" = aq, "Odonata" = aq, "Plecoptera" = aq, "Trichoptera" = aq,
                        "Araneae" = non, "Blattodea" = rest, 
                        "Other Hymenoptera" = hym, "Bees" = hym, "Formicidae" = hym, "Symphyta" = hym , "Vespidae" = hym, 
-                       "Syrphidae"   = dip  , "Other Diptera" = dip , 
+                       "Syrphidae"   = dip  , "Culicidae" = dip , "Other Diptera" = dip , 
                        "Other Coleoptera" = beetles  ,"Staphylinidae" = beetles  , "Coccinellidae"  = beetles ,"Curculionidae" =  beetles , "Carabidae" = beetles  , 
                       "Hemiptera"= neo,  "Heteroptera" = neo ,  "Auchenorrhyncha"  = neo,"Sternorrhyncha" = neo , "Psocoptera" = neo,  "Thysanoptera"  = neo, 
                        "Moths" = lepi   , "Butterflies"  = lepi)
@@ -173,7 +173,9 @@ all.arth$Group[all.arth$Order == "Trichoptera"] <- "Trichoptera" # Trichoptera (
 sort(unique(all.arth[all.arth$Order == "Diptera", ]$Family))
 all.arth$Group[all.arth$Family == "Syrphidae" ] <- "Syrphidae"  #Diptera: Syrphidae (Fam terr)
 all.arth$Group[all.arth$Family == "Chironomidae" ] <- "Chironomidae"  # Diptera : Chironomidae (fam fw)
-all.arth$Group[all.arth$Order == "Diptera" &  all.arth$Realm == "Freshwater" & all.arth$Family != "Chironomidae" ] <- "Aquatic Diptera"  # other fw diptera 
+all.arth$Group[all.arth$Family == "Culicidae" ] <- "Culicidae"
+all.arth$Group[all.arth$Order == "Diptera" &  all.arth$Realm == "Freshwater" & all.arth$Family != 
+                 "Chironomidae" & all.arth$Family!= "Culicidae"  ] <- "Aquatic Diptera"  # other fw diptera 
 all.arth$Group[all.arth$Order == "Diptera" &  is.na(all.arth$Group) ]         <- "Other Diptera"  #  terrestrial diptera
 
 
@@ -252,7 +254,7 @@ dim(Group.aggr)
 
 # prep for inla 
 
-source("G:/work/2017 iDiv/2018 insect biomass/Insect-biomass-trends/Inla prep.R")
+source("D:/work/2017 iDiv/2018 insect biomass/Insect-biomass-trends/Inla prep.R")
 
 beep(2)
 #################################################################################

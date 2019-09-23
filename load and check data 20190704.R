@@ -8,7 +8,7 @@ library(beepr)
 
 # load sheets of original database
 setwd("C:/Users/roelv/Dropbox/Insect Biomass Trends/csvs") # home
-setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
+setwd("C:\\Dropbox\\Insect Biomass Trends/csvs") # work # work
 
 taxa<-read.csv( file = "taxa 3.1.csv"); dim(taxa)
 plots<-read.csv( file = "Plots.csv"); dim(plots)
@@ -20,180 +20,184 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
 #write.csv(studies1, file = "studies.csv")
 
 #Add taxonomic level to Taxon table
-taxa$Level<- NA
-taxa$Level[taxa$Phylum!= ""]<- "Phylum"
-taxa$Level[taxa$Class!= ""]<- "Class"
-taxa$Level[taxa$Subclass!= ""]<- "Subclass"
-taxa$Level[taxa$Order!= ""]<- "Order"
-taxa$Level[taxa$Suborder!= ""]<- "Suborder"
-taxa$Level[taxa$Family!= ""]<- "Family"
-taxa$Level[taxa$Subfamily!= ""]<- "Subfamily"
-taxa$Level[taxa$Genus!= ""]<- "Genus"
-taxa$Level[taxa$Species!= ""]<- "Species"
-taxa$Level <- factor(taxa$Level, ordered = TRUE, 
-                    levels = c("Phylum",  "Class", "Subclass", "Order","Suborder",  "Family",
-                               "Subfamily","Genus" ,"Species" ))
-taxa$Rank<-as.numeric(taxa$Level)        
-
-
-# some changes to groupings
-levels(studies$Continent)[levels(studies$Continent) == "South America"]  <- "Latin America"
-levels(studies$Continent)[levels(studies$Continent) == "Central America"]  <- "Latin America"
-levels(studies$Region)[levels(studies$Region) == "Russia Volga"]  <- "Russia Central & Volga"
-levels(studies$Region)[levels(studies$Region) == "Russia Central"]  <- "Russia Central & Volga"
-levels(studies$Region)[levels(studies$Region) == "Russia Ural"]  <- "Russia Ural & Siberia"
-levels(studies$Region)[levels(studies$Region) == "Russia Siberia"]  <- "Russia Ural & Siberia"
-levels(studies$Region)[levels(studies$Region) == "Russia Far East"]  <- "Asia East"
-
-# manual groupings of some datasets
-studies$Region[(studies$Region == "Germany" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
-studies$Region[(studies$Region == "United Kingdom" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
-studies$Region[(studies$Region == "Russia Northwest" & studies$Realm == "Terrestrial" ) ] <- "Europe rest North"
-
-
-
-# remove repeated column names
-names(studies) # no redundancy
-names(database) # remove redundant columns later
-names(samples) # remove redundant comuns
-samples<- samples[, c("Sample_ID", "Datasource_ID", "Data_source", "Extraction_method", "Sampling_method", "Stratum", 
-                  "Sample_area", "Ref.to.methods", "Number_of_replicates", "Aggregation_of_replicates", "Taxon_in_Data",            
-                  "Taxon_redundancy", "Original_unit", "Calculations", "Unit",  "Richness_precision", "Error_unit" )   ]
-names(plots) # remove redundant columns
-plots<- plots[, c("Plot_ID", "Datasource_ID", "Location", "Plot_name", "Details.plots",  "Experimental_Treatment", "Details_expt_trt",
-                 "Process_of_change", "notes_change", "invasives", "Coord_system", "Original_Latitude", "Original_Longitude", "Latitude",
-                 "Longitude", "Elevation", "Source_geogr_data")]
-names(taxa) # no redundancy
-taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon", "Level", "Rank", "Note")]
+  taxa$Level<- NA
+  taxa$Level[taxa$Phylum!= ""]<- "Phylum"
+  taxa$Level[taxa$Class!= ""]<- "Class"
+  taxa$Level[taxa$Subclass!= ""]<- "Subclass"
+  taxa$Level[taxa$Order!= ""]<- "Order"
+  taxa$Level[taxa$Suborder!= ""]<- "Suborder"
+  taxa$Level[taxa$Family!= ""]<- "Family"
+  taxa$Level[taxa$Subfamily!= ""]<- "Subfamily"
+  taxa$Level[taxa$Genus!= ""]<- "Genus"
+  taxa$Level[taxa$Species!= ""]<- "Species"
+  taxa$Level <- factor(taxa$Level, ordered = TRUE, 
+                      levels = c("Phylum",  "Class", "Subclass", "Order","Suborder",  "Family",
+                                 "Subfamily","Genus" ,"Species" ))
+  taxa$Rank<-as.numeric(taxa$Level)        
   
-# extra files to append to database file
-Biotime <- read.csv( file = "BioTIME final 2019.csv"); levels(Biotime$Unit)[levels(Biotime$Unit) == "Abundance"]<- "abundance"; levels(Biotime$Unit)[levels(Biotime$Unit) == "Biomass"]<- "biomass"  #head(Biotime)
-Schuch <-read.csv( file = "sel.schuch.data.csv"); head(Schuch)
-Schuch$Sample_ID[Schuch$Datasource_name == "Germany Marchand Schuch"] <-  318
-Schuch$Sample_ID[Schuch$Datasource_name == "Germany Schiemenz Schuch"] <-  319
-Swengel.temp <-read.csv(file = "Swengel temp aggregated.csv"); #head(Swengel.temp)
-Hungary <- read.csv (file = "Valtonen_long.csv"); #head(Hungary)
-Finland <- read.csv (file = "Kuusamon_long.csv"); Finland$Unit <- "abundance" #head(Finland)
-Breitenbach <- read.csv(file = "Breitenbach.csv")
-Krefeld <- read.csv( file = "Germany biomass Krefeld.csv", header = T) #head(Krefeld)
-Wijster <- read.csv( file = "Netherlands Ground beetles.csv", header = T) #head(Wijster)
-Lauwersmeer<- read.csv( file = "lauwersmeer final.csv", header = T)
-Luquillo<- read.csv(file = "LTER Luquillo all canopy arthropods.csv", header = T); Luquillo$Unit <- "abundance"
-levels(Luquillo$Taxon)[levels(Luquillo$Taxon) == "MELA"]<-"MELA1"      # is duplicate name in taxon list
-levels(Luquillo$Taxon)[levels(Luquillo$Taxon) == "CHRYS"]<-"CHRYSOPID" # is duplicate name in taxon list
-Luquillo<-subset(Luquillo, Taxon != "LAM") # remove 'Leaf Area Missing'
-GPDD <-read.csv( file = "GPDD data.csv", header = T); GPDD$Unit<- "abundance"
-Greenland<- read.csv( file = "Greenland.csv", header = T); Greenland$Taxon<-gsub(" ", "_", Greenland$Taxon)
-California <-read.csv( "Cali freshwater Resh.csv", header = T)
-CC<- read.csv(file = "cedarcreekBEF.csv", header = T) ; CC$Number<-as.numeric(as.character(CC$Number))
-AZ<- read.csv(file = "LTER Arizona Pitfalls NEW2019.csv", header = T);levels(AZ$Taxon)<-c(levels(AZ$Taxon), "NONE")  ; AZ$Taxon[is.na(AZ$Taxon)]<-"NONE"
-AZ2<- read.csv(file = "sycamore creek formatted.csv", header = T)
-sev.ants<- read.csv(file = "sev antnests formatted.csv", header = T) ; sev.ants$Unit<- "abundance"
-sev.gh  <- read.csv(file = "sev grasshoppers formatted.csv", header = T); sev.gh$Unit<- "abundance"
-sev.pf  <- read.csv(file = "sev pitfalls formatted.csv", header = T); sev.pf$Unit<- "abundance"
-ecn.but<- read.csv(file = "ECN butterflies final.csv", header = T)
-levels(ecn.but$Taxon)[levels(ecn.but$Taxon) == "NONE" ] <- "Butterflies"
-ecn.gb<- read.csv(file ="ECN ground beetles final nw.csv", header = T)
-
-ecn.m2<-  read.csv(file ="ECN moths final_2.csv", header = T)
-ecn.m<-  read.csv(file ="ECN moths final.csv", header = T)
-Sweden<-read.csv("SEFW fnal 201907.csv", header = T) ; Sweden$Plot_name<- as.factor(Sweden$Plot_name)
-NZ<- read.csv(file = "NZ river monitoring final.csv", header = T)
-Kellogg<- read.csv(file = "Kellogg final.csv", header = T)
-Ireland<- read.csv(file = "IRfinal1.csv", header = T)
-
-
-# make alternative color schemes
-col.scheme.cont<-c( "Europe"="green3", "Latin America"= "magenta", "North America"= "orange","Asia" = "purple3", 
-                    "Africa" = "blue", "Australia" = "red")
-col.scheme.realm<-c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "peru")
-
-
-# patch up Swengel for merge. #####
-#Still to do: original data before merge to homogeneous format, + Sample IDs, and sample file 
-Datasource_name <- "US butterflies Swengel"
-Taxon <-"Butterflies"
-Unit<- "abundance"
-Transformed_number<- NA;    Sex <- NA
-Error <- NA;               
-Sample_ID<-245
-
-Swengel.workfile<-data.frame(Datasource_name, 
-                             Plot_ID = Swengel.temp$Plot_ID, 
-                             Plot_name = Swengel.temp$Plot_name, 
-                             Sample_ID, 
-                             Year = Swengel.temp$Year,
-                             Period = Swengel.temp$Period,
-                             Date = as.factor(Swengel.temp$Date),
-                             Taxon, 
-                             Sex, 
-                             Unit, 
-                             Original_number  = Swengel.temp$Lepidoptera, 
-                             Transformed_number, 
-                             Number = Swengel.temp$Lepidoptera/Swengel.temp$miles, 
-                             Error
-)
-Swengel.workfile$Sample_ID[Swengel.workfile$Plot_ID>342 & Swengel.workfile$Plot_ID<390]<- 246
-Swengel.workfile$Sample_ID[Swengel.workfile$Plot_ID>389]<- 247
-
-
-#head(Swengel.workfile)
-#sample_n (Swengel.workfile, 50) # looks good 
-
-
-
-
-
-# metadata per dataset (aggregated over plots) - this can go into Studies file
-
-descriptors<- plots %>% 
-  group_by(Datasource_ID) %>%
-  summarise(#Duration = (max(Year) - min(Year))+1, 
-            mean_lat = mean(Latitude),
-            mean_long = mean(Longitude),
-            NUMBER_OF_PLOTS =  length(unique(Plot_ID)),
-            NUMBER_OF_LOCATIONS = length(unique(Location))#,
-          #  NUMBER_OF_SAMPLES = (),
-         #   NUMBER_OF_YEARS = length(unique(Year))
-           # NUMBER_OF_TAXA = length(unique(Taxon),
-          #  N = sum(Number)
-          )
-(descriptors)
-  save(descriptors, file = "Descriptors.RData")
-
-
-
-test <- rbind(
-   AZ[, -(1)], 
-  AZ2[, -(1)], 
-  Biotime[, -(1)],
-  Breitenbach[, -(1)],
-  California[, -(1)],
-  CC[, -(1)], 
-  ecn.gb[, -(1)],
-  ecn.but[, -(1)],
-  ecn.m[, -(1)],
-  Finland[, -(1)],
-  GPDD [, -(1:2)],
-  Greenland[, -(1)],
-  Ireland[, -(1)],
-  Hungary[, -(1:2)] ,
-  Kellogg[, -(1)],
-  Krefeld[, -(1)],
-  Lauwersmeer[, -1],
-  Luquillo[, -(1)], 
-  NZ[, -(1)],
-  sev.ants[, -(1)], 
-  sev.gh[, -(1)], 
-  sev.pf[, -(1)], 
-  Schuch[, -(1:2)],
-  Sweden [, -(1)],  
-  Swengel.workfile, 
-  Wijster[, -(1)], 
-  database[, -c(1,6, 17,18)]  )
-dim(test)   # 815047    -> 678569 with standardized SE-FW data  676643 on 13-8-19    677482 on 23-8-19
-#
-
+  
+  # some changes to groupings
+  levels(studies$Continent)[levels(studies$Continent) == "South America"]  <- "Latin America"
+  levels(studies$Continent)[levels(studies$Continent) == "Central America"]  <- "Latin America"
+  levels(studies$Region)[levels(studies$Region) == "Russia Volga"]  <- "Russia Central & Volga"
+  levels(studies$Region)[levels(studies$Region) == "Russia Central"]  <- "Russia Central & Volga"
+  levels(studies$Region)[levels(studies$Region) == "Russia Ural"]  <- "Russia Ural & Siberia"
+  levels(studies$Region)[levels(studies$Region) == "Russia Siberia"]  <- "Russia Ural & Siberia"
+  levels(studies$Region)[levels(studies$Region) == "Russia Far East"]  <- "Asia East"
+  
+  # manual groupings of some datasets
+  studies$Region[(studies$Region == "Germany" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
+  studies$Region[(studies$Region == "United Kingdom" & studies$Realm == "Freshwater" ) ] <- "Europe rest West"
+  studies$Region[(studies$Region == "Russia Northwest" & studies$Realm == "Terrestrial" ) ] <- "Europe rest North"
+  
+  
+  
+  # remove repeated column names
+  names(studies) # no redundancy
+  names(database) # remove redundant columns later
+  names(samples) # remove redundant comuns
+  samples<- samples[, c("Sample_ID", "Datasource_ID", "Data_source", "Extraction_method", "Sampling_method", "Stratum", 
+                    "Sample_area", "Ref.to.methods", "Number_of_replicates", "Aggregation_of_replicates", "Taxon_in_Data",            
+                    "Taxon_redundancy", "Original_unit", "Calculations", "Unit",  "Richness_precision", "Error_unit" )   ]
+  names(plots) # remove redundant columns
+  plots<- plots[, c("Plot_ID", "Datasource_ID", "Location", "Plot_name", "Details.plots",  "Experimental_Treatment", "Details_expt_trt",
+                   "Process_of_change", "notes_change", "invasives", "Coord_system", "Original_Latitude", "Original_Longitude", "Latitude",
+                   "Longitude", "Elevation", "Source_geogr_data")]
+  names(taxa) # no redundancy
+  taxa<-taxa[, c("ID","Phylum", "Class", "Subclass", "Suborder",  "Order", "Family","Subfamily", "Genus",     "Species",   "Taxon", "Level", "Rank", "Note")]
+    
+  # extra files to append to database file
+  Biotime <- read.csv( file = "BioTIME final 2019.csv"); levels(Biotime$Unit)[levels(Biotime$Unit) == "Abundance"]<- "abundance"; levels(Biotime$Unit)[levels(Biotime$Unit) == "Biomass"]<- "biomass"  #head(Biotime)
+  Schuch <-read.csv( file = "sel.schuch.data.csv"); head(Schuch)
+  Schuch$Sample_ID[Schuch$Datasource_name == "Germany Marchand Schuch"] <-  318
+  Schuch$Sample_ID[Schuch$Datasource_name == "Germany Schiemenz Schuch"] <-  319
+  Swengel.temp <-read.csv(file = "Swengel temp aggregated.csv"); #head(Swengel.temp)
+  Hungary <- read.csv (file = "Valtonen_long.csv"); #head(Hungary)
+  Finland <- read.csv (file = "Kuusamon_long.csv"); Finland$Unit <- "abundance" #head(Finland)
+  Breitenbach <- read.csv(file = "Breitenbach.csv")
+  Krefeld <- read.csv( file = "Germany biomass Krefeld.csv", header = T) #head(Krefeld)
+  Wijster <- read.csv( file = "Netherlands Ground beetles.csv", header = T) #head(Wijster)
+  Lauwersmeer<- read.csv( file = "lauwersmeer final.csv", header = T)
+  Luquillo<- read.csv(file = "LTER Luquillo all canopy arthropods.csv", header = T); Luquillo$Unit <- "abundance"
+  levels(Luquillo$Taxon)[levels(Luquillo$Taxon) == "MELA"]<-"MELA1"      # is duplicate name in taxon list
+  levels(Luquillo$Taxon)[levels(Luquillo$Taxon) == "CHRYS"]<-"CHRYSOPID" # is duplicate name in taxon list
+  Luquillo<-subset(Luquillo, Taxon != "LAM") # remove 'Leaf Area Missing'
+  GPDD <-read.csv( file = "GPDD data.csv", header = T); GPDD$Unit<- "abundance"
+  Greenland<- read.csv( file = "Greenland.csv", header = T); Greenland$Taxon<-gsub(" ", "_", Greenland$Taxon)
+  California <-read.csv( "Cali freshwater Resh.csv", header = T)
+  CC<- read.csv(file = "cedarcreekBEF.csv", header = T) ; CC$Number<-as.numeric(as.character(CC$Number))
+  AZ<- read.csv(file = "LTER Arizona Pitfalls NEW2019.csv", header = T);levels(AZ$Taxon)<-c(levels(AZ$Taxon), "NONE")  ; AZ$Taxon[is.na(AZ$Taxon)]<-"NONE"
+  AZ2<- read.csv(file = "sycamore creek formatted.csv", header = T)
+  sev.ants<- read.csv(file = "sev antnests formatted.csv", header = T) ; sev.ants$Unit<- "abundance"
+  sev.gh  <- read.csv(file = "sev grasshoppers formatted.csv", header = T); sev.gh$Unit<- "abundance"
+  sev.pf  <- read.csv(file = "sev pitfalls formatted.csv", header = T); sev.pf$Unit<- "abundance"
+  ecn.but<- read.csv(file = "ECN butterflies final.csv", header = T)
+  levels(ecn.but$Taxon)[levels(ecn.but$Taxon) == "NONE" ] <- "Butterflies"
+  ecn.gb<- read.csv(file ="ECN ground beetles final nw.csv", header = T)
+  
+  ecn.m2<-  read.csv(file ="ECN moths final_2.csv", header = T)
+  ecn.m<-  read.csv(file ="ECN moths final.csv", header = T)
+  Sweden<-read.csv("SEFW fnal 201907.csv", header = T) ; Sweden$Plot_name<- as.factor(Sweden$Plot_name)
+  NZ<- read.csv(file = "NZ river monitoring final.csv", header = T)
+  Kellogg<- read.csv(file = "Kellogg final.csv", header = T)
+  Ireland<- read.csv(file = "IRfinal1.csv", header = T)
+  florida<- read.csv(file = "Florida mosquitos.csv", header = T)
+  iowa<- read.csv(file = "Iowa mosquitos.csv", header = T); iowa<- (subset(iowa, Year <2019))
+  
+  
+  # make alternative color schemes
+  col.scheme.cont<-c( "Europe"="green3", "Latin America"= "magenta", "North America"= "orange","Asia" = "purple3", 
+                      "Africa" = "blue", "Australia" = "red")
+  col.scheme.realm<-c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "peru")
+  
+  
+  # patch up Swengel for merge. #####
+  #Still to do: original data before merge to homogeneous format, + Sample IDs, and sample file 
+  Datasource_name <- "US butterflies Swengel"
+  Taxon <-"Butterflies"
+  Unit<- "abundance"
+  Transformed_number<- NA;    Sex <- NA
+  Error <- NA;               
+  Sample_ID<-245
+  
+  Swengel.workfile<-data.frame(Datasource_name, 
+                               Plot_ID = Swengel.temp$Plot_ID, 
+                               Plot_name = Swengel.temp$Plot_name, 
+                               Sample_ID, 
+                               Year = Swengel.temp$Year,
+                               Period = Swengel.temp$Period,
+                               Date = as.factor(Swengel.temp$Date),
+                               Taxon, 
+                               Sex, 
+                               Unit, 
+                               Original_number  = Swengel.temp$Lepidoptera, 
+                               Transformed_number, 
+                               Number = Swengel.temp$Lepidoptera/Swengel.temp$miles, 
+                               Error
+  )
+  Swengel.workfile$Sample_ID[Swengel.workfile$Plot_ID>342 & Swengel.workfile$Plot_ID<390]<- 246
+  Swengel.workfile$Sample_ID[Swengel.workfile$Plot_ID>389]<- 247
+  
+  
+  #head(Swengel.workfile)
+  #sample_n (Swengel.workfile, 50) # looks good 
+  
+  
+  
+  
+  
+  # metadata per dataset (aggregated over plots) - this can go into Studies file
+  
+  descriptors<- plots %>% 
+    group_by(Datasource_ID) %>%
+    summarise(#Duration = (max(Year) - min(Year))+1, 
+              mean_lat = mean(Latitude),
+              mean_long = mean(Longitude),
+              NUMBER_OF_PLOTS =  length(unique(Plot_ID)),
+              NUMBER_OF_LOCATIONS = length(unique(Location))#,
+            #  NUMBER_OF_SAMPLES = (),
+           #   NUMBER_OF_YEARS = length(unique(Year))
+             # NUMBER_OF_TAXA = length(unique(Taxon),
+            #  N = sum(Number)
+            )
+  (descriptors)
+    save(descriptors, file = "Descriptors.RData")
+  
+  
+  
+  test <- rbind(
+     AZ[, -(1)], 
+    AZ2[, -(1)], 
+    Biotime[, -(1)],
+    Breitenbach[, -(1)],
+    California[, -(1)],
+    CC[, -(1)], 
+    ecn.gb[, -(1)],
+    ecn.but[, -(1)],
+    ecn.m[, -(1)],
+    Finland[, -(1)],
+    GPDD [, -(1:2)],
+    Greenland[, -(1)],
+    Ireland[, -(1)],
+    Hungary[, -(1:2)] ,
+    Kellogg[, -(1)],
+    Krefeld[, -(1)],
+    Lauwersmeer[, -1],
+    Luquillo[, -(1)], 
+    NZ[, -(1)],
+    sev.ants[, -(1)], 
+    sev.gh[, -(1)], 
+    sev.pf[, -(1)], 
+    Schuch[, -(1:2)],
+    Sweden [, -(1)],  
+    Swengel.workfile, 
+    Wijster[, -(1)], 
+    florida[, -(1)], 
+    iowa[, -(1)],
+    database[, -c(1,6, 17,18)]  )
+  dim(test)   # 685481 on 6-9-2019
+  #
+  
 
 
 
@@ -292,7 +296,7 @@ subset(test, Taxon == "MELA1")
 taxa[duplicated(taxa),]
 taxa$Taxon[duplicated(taxa$Taxon)]
 
-dim(test) #677482 
+dim(test) #685505
 test1<-merge(test, taxa,  by = "Taxon") ; beep(1)#
 dim(test1) #
 
@@ -305,7 +309,7 @@ dim(plots)
 
 
 test2<-merge(plots, studies, by = "Datasource_ID") # 
-dim(test2) # correct, because black rock forest is not in studies, also some mosquito studies not yet in plots
+dim(test2) # correct, because black rock forest is not in studies
 
 plots[!plots$Datasource_ID %in% studies$Datasource_ID, ] # black rock forest was disqualified 
 
@@ -323,10 +327,11 @@ dim(test2) # all there
 test3<-(merge(test2, samples, by = "Sample_ID"))
 dim(test3) 
 
-setdiff(samples$Sample_ID, unique(test2$Sample_ID)) # all checked and correct 24.1.19
+setdiff(samples$Sample_ID, unique(test2$Sample_ID)) # 
 #  # 39,175, 176, 177,  ar unused sampleIDs 257 is not used biomass converted AZ pitfalls, 
 # 263 is blackrock forest (disqualified) 
-# 325 spittlebug morphs (not standardized) , 349 doesn't exist yet 
+# 325 spittlebug morphs (not standardized)
+
 sort(setdiff(unique(test2$Sample_ID), unique(test3$Sample_ID)))
 
 unique(test2$Sample_ID) [!unique(test2$Sample_ID)  %in%  samples$Sample_ID] # 0
@@ -376,17 +381,17 @@ dim(merge1) # all there
 # merge with samples
 merge2<-(merge(merge1, samples, by = "Sample_ID"))
 dim(merge2) # all there. 
-length(unique(merge2$Datasource_ID)) #158
+length(unique(merge2$Datasource_ID)) #168
 
 # merge with plot # mind that column 'Datasource ID is in both 
-merge3<- merge(merge2, plots)#, by = "Plot_ID"
+merge3<- merge(merge2, plots )#, by = c("Plot_ID", "Datasource_ID", "Plot_name") 
 dim(merge3) # all there 
 names(merge3)
 
 # merge with studies 
 merge4<- merge(merge3, studies)
-dim(merge4)
 names(merge4)[order(names(merge4))]
+dim(merge4)
 beep(2)
 ############################################################################################################################################
 
@@ -406,8 +411,10 @@ sum(is.na(merge4$Period))
 merge4$Period[is.na(merge4$Period)]<-1  # replace missing Period data with 1
 merge4$Period[merge4$Period == ""]<-1  # replace missing Period data with 1
 
+levels(merge4$Unit)[levels(merge4$Unit) == "density"]<- "abundance"
+
 sum(is.na(merge4$Plot_ID))
-sum(is.na(merge4$Number)) #4199 on 29-1-2019  4197 on 29-3-19  # 959 on 23-8-2019
+sum(is.na(merge4$Number)) #
 sum(is.na(merge4$Year ))
 
 
@@ -445,9 +452,9 @@ metadata_per_plot<-  merge4 %>%
     NUMBER_OF_TAXA = length(unique(Taxon)),
     TOTAL_N = sum(Number, na.rm = T)
   )
-dim(metadata_per_plot) # 1661   now 1566 on 5.4.19
+dim(metadata_per_plot) # 1711 on 3-9-2019
 newest<- as.data.frame(metadata_per_plot)
-write.csv(metadata_per_plot, "metadata per plot 20190823.csv")
+write.csv(metadata_per_plot, "metadata per plot 20190917.csv")
 save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 
@@ -478,7 +485,7 @@ load("metadata_per_plot.RData")
 # which  datasets have short plots?
 unique(subset(metadata_per_plot, Duration < 10)$Datasource_name) # 
 
-subset(metadata_per_plot, Duration < 10) # 41 plots
+subset(metadata_per_plot, Duration < 10) # 43 plots
 subset(metadata_per_plot, Duration < 9) # 23 plots
 
 # remove all plots < 9 years 
@@ -490,20 +497,20 @@ merge4$duration.ok<- ! merge4$Plot_ID %in% short.plots # length = ok
 
 # only select plots that have sufficient duration
 merge4.1<- subset(merge4, duration.ok == T)
-dim(merge4.1)# 673993 on 13-8-19
+dim(merge4.1)# 682831  on 6-9-2019
 
 
 # remove plots with 0 observations 
 empty.plots<- subset(metadata_per_plot, TOTAL_N == 0)$Plot_ID
-merge4.1<- merge4.1[! merge4.1$Plot_ID %in% empty.plots]
+merge4.1<- merge4.1[! merge4.1$Plot_ID %in% empty.plots, ]
 
 
 
 #Selection  2: remove NA in Number  ####
-nas<-subset(merge4.1, is.na(Number) ) ;dim(nas) #4199  956 on 29-7-19
+nas<-subset(merge4.1, is.na(Number) ) ;dim(nas) #
 merge4.2<-subset(merge4.1, !is.na(Number) ) # 
 dim(merge4.2)
-length(unique(merge4.2$Datasource_name)) # 158
+length(unique(merge4.2$Datasource_name)) # 167
 
 
 # Selection 3: remove species richness #####
@@ -512,17 +519,17 @@ dim(merge4.3)
 
 
 
-full.dataset<- merge4.3
+full.dataset<- merge4.3 # 680714 on 6-9-19
 save(full.dataset, file = "full.dataset.RData") # 
 
 
 
 # selection 4.4: deselect non arthropods ##### 
-dim(merge4.3)
+dim(merge4.3) #   
 others<-subset(merge4.3, Phylum !=  "Arthropoda" & Phylum != "invertebrata" ); dim(others)
 merge4.4<-subset(merge4.3, Phylum ==  "Arthropoda" | Phylum == "invertebrata" | Phylum == "Invertebrata")
-dim(merge4.4)
-length(unique(merge4.4$Datasource_name)) # 161
+dim(merge4.4) # 660589 6-9-19
+length(unique(merge4.4$Datasource_name)) # 166
 setdiff(merge4.3$Datasource_name, merge4.4$Datasource_name) # only Russia earthworms data disappeared
 
 all.arthropods.dataset<- merge4.4
@@ -530,6 +537,7 @@ save(all.arthropods.dataset, file = "all.arthropods.dataset.RData")
 
 
 # deselect  crustaceans
+unique(all.arthropods.dataset$Class)
 unique(merge4.4$Class)
 merge4.5<-subset(merge4.4, Class !=  "Crustacea" )
 merge4.5<-subset(merge4.5, Class !=  "Crustaceae" )
@@ -546,8 +554,8 @@ merge4.5<-subset(merge4.5, Class !=  "Diplopoda" )
 merge4.5<-subset(merge4.5, Class !=  "Symphyla" )
 
 unique(merge4.5$Class)
-dim(merge4.5) #
-length(unique(merge4.5$Datasource_name))
+dim(merge4.5) # 654254 on 6-9-19
+length(unique(merge4.5$Datasource_ID))
 
 all.insects.dataset<- merge4.5
 
@@ -563,7 +571,7 @@ save(all.insects.dataset, file = "all.insects.dataset.RData")  #
 
 #selection 5: 
 # deselect redundant taxa
-redund<- subset(merge4.4, Taxon_redundancy != "");dim(redund) # some 22500
+redund<- subset(merge4.4, Taxon_redundancy != "");dim(redund) # some 23800
 dim(subset(merge4.4, Taxon_redundancy == "higher_resolution"))
 dim(subset(merge4.4, Taxon_redundancy == "lower_resolution"))
 
@@ -573,15 +581,14 @@ merge5.arth<-subset(merge4.4, Taxon_redundancy == "" |Taxon_redundancy == "lower
 merge5.arth.higherTax<-subset(merge4.4, Taxon_redundancy == "" |Taxon_redundancy == "higher_resolution") # deselect redundant data, but take highest taxonomic res provided
 
 # dataframe with biomass and abundane data for all 
-t1<-subset(merge4.5, Abundance.Biomass == "A"); dim(t1)
-t1<-subset(t1,  Taxon_redundancy == ""  | Taxon_redundancy == "lower_resolution") ; dim(t1)
 t1<-subset(merge4.5, Abundance.Biomass == "A" & Taxon_redundancy == "" | Taxon_redundancy == "lower_resolution"); dim(t1)
+t1<-subset(t1,  Taxon_redundancy == ""  | Taxon_redundancy == "lower_resolution") ; dim(t1)
 t2<-subset(merge4.5, Abundance.Biomass == "B") ;dim(t2)
 t2<-subset(t2,  Taxon_redundancy == ""  | Taxon_redundancy == "lower_resolution") ; dim(t2)
 t3<-subset(merge4.5, Abundance.Biomass == "AB") ; dim(t3)
 t3<-subset(t3,   Taxon_redundancy != "should be removed" & Taxon_redundancy != "includes worms" & 
-           Taxon_redundancy != "unclear tax consistency" &  Taxon_redundancy != "abundance per group" ) ; dim(t3)
-merge5AB.ins<- rbind(t1, t2, t3) ; dim(merge5AB.ins)  # 642716 on 26-8-19
+           Taxon_redundancy != "unclear tax consistency" &  Taxon_redundancy != "abundance per group" & Taxon_redundancy != "all flying invertebrates" ) ; dim(t3)
+merge5AB.ins<- rbind(t1, t2, t3) ; dim(merge5AB.ins)  # 650554 on 6-9-19
 
 unique(merge5AB.ins[, c("Datasource_ID", "Datasource_name", "Abundance.Biomass", "Unit_in_data", "Unit") ])
 
@@ -589,9 +596,9 @@ dim(merge4.5)-dim(merge5.ins)
 dim(merge4.4)- dim(merge5.arth)
 dim(merge4.4)- dim(merge5.arth.higherTax)
 
-length(unique(merge5.arth$Datasource_name))
-length(unique(merge5.ins$Datasource_name))
-length(unique(merge5.arth.higherTax$Datasource_name))
+length(unique(merge5.arth$Datasource_ID))
+length(unique(merge5.ins$Datasource_ID))
+length(unique(merge5.arth.higherTax$datasource_ID))
 
 
 #anything missing or inconsistent?  
@@ -648,21 +655,36 @@ load( "all.selectedIns.RData")
 load( "all.selectedArth.RData")
 load("all.ABinsects.RData")
 
-all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
-                   Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
- #  52780 on 23-8-19
-dim(all.aggr.insects)
-length(unique(all.aggr.insects$Plot_ID)) # 1628 # now 1416 SE FW 1533
+all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum +  Plot_ID + Plot_name + Unit  + #
+                   Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE); dim(all.aggr.insects)
+ #  60551 on 6-9-19
+
+length(unique(all.aggr.insects$Plot_ID)) # 1678 on 5-9-2019
 
 all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name + Unit +  
-                          Year + Period + Date  + Country + Region + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
-#  52780 on 23-8-19
-dim(all.aggr.arth)
-length(unique(all.aggr.arth$Plot_ID)) # 1628   now 1416 SEFW  52340 5-7-19
+                          Year + Period + Date  + Country + Region + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE);dim(all.aggr.arth)
+#  60551
+
+length(unique(all.aggr.arth$Plot_ID)) #1678
 
 all.aggr.insectsAB<-dcast(all.ABinsects,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
                           Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
-dim(all.aggr.insectsAB) # 56587 on 23-8-19
+dim(all.aggr.insectsAB) # 6482 on 20190906
+
+
+# check if exclusion of biomass gives the same dataframe for insects 
+A<- subset(all.aggr.insects, Unit != "biomass") ;dim(A)
+AB<- subset(all.aggr.insectsAB, Unit != "biomass"); dim(AB)
+
+mis<- anti_join(A, AB)
+dim(mis) # should be 0
+unique(mis$Datasource_name)
+
+mis<- anti_join(AB, A)
+dim(mis)  # should be 0
+unique(mis$Datasource_name)
+unique(mis$Plot_ID)
+
 
 
 #compare to old version 
@@ -691,23 +713,19 @@ load("all.aggr.insectsAB.RData")
 
 # do these df's have different dims? 
 dim(all.aggr.arth); dim(all.aggr.insects) # same
-check<- sum(all.aggr.arth$Number) ; sum(all.aggr.insects$Number) # 1.5mln difference is possible
+sum(all.aggr.arth$Number) - sum(all.aggr.insects$Number) # 1.5mln difference is possible
 anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13]);dim(check) # no differences 
-check<- anti_join(all.aggr.insectsAB[,1:13], all.aggr.insects[,1:13]) ;dim(check) # 3807 differing rows
-# fixes: Utah FW: added 0 insects to three dates with no insects in 1994
-# Russia FW2: zooplankton should have been removed: are now marked as taxonredundant
-# Russia FW:  zooplankton should have been removed: are now marked as taxonredundant
-# 20 sites in Sweden missing
+check<- anti_join(all.aggr.insectsAB[,1:13], all.aggr.insects[,1:13]) ;dim(check) # 3831 differing rows
 
 
-# numbers before 29-3-19: before: 54761 insects ; after: 80314  ;  54781 arthropod values, after: 80359
-
-#1545 plots 
-completeData<- NULL
-for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
+#  
+all.aggr.insectsA<- subset(all.aggr.insects, Unit == "abundance")
+dim(all.aggr.insectsA)
+completeDataA<- NULL
+for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
   
-  plt<- unique(all.aggr.insects$Plot_ID)[i]
-  myData<- all.aggr.insects[all.aggr.insects$Plot_ID == plt , ]
+  plt<- unique(all.aggr.insectsA$Plot_ID)[i]
+  myData<- all.aggr.insectsA[all.aggr.insectsA$Plot_ID == plt , ]
   
   #expand grid to include NAs  
   constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
@@ -719,63 +737,120 @@ for(i in 1:length(unique(all.aggr.insects$Plot_ID))){
   myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
                    by=c("Year","Plot_ID"),all=T)
   # add descriptors
-  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm",
-                                            "Continent", "Country", "Country_State", "Region", "Stratum" )]),
+  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
+                                            "Continent",  "Country", "Country_State", "Region", "Stratum" )]),
                   by="Plot_ID",all=T)
   if(!all(is.na(myData$Period))){
     myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
                                                 length(myData$Period[is.na(myData$Period)]),
                                                 replace=T) }
-  print(plt)
+  #print(plt)
   
   std<- sd(myData$Number, na.rm = T)
   myData$scaledNumber <- myData$Number / std
   
-  completeData<-rbind (completeData,myData)
+  completeDataA<-rbind (completeDataA,myData)
   
 }
-dim(completeData) #61650 on 13-8-19  62145 on 23-8-19
 
 
-subset(completeData, Plot_ID == 1700)
+dim(completeDataA) #  67729 on 17-9-19
+beep(2)
 subset(completeData, Number < 0)
 
 
 
 
-completeDataAB<- NULL
-for(i in 1:length(unique(all.aggr.insectsAB$Plot_ID))){
+completeDataB1<- NULL
+all.aggr.insectsB1<- subset(all.aggr.insects, Unit == "biomass")
+dim(all.aggr.insectsB1)
+for(i in 1:length(unique(all.aggr.insectsB1$Plot_ID))){
   
-  plt<- unique(all.aggr.insectsAB$Plot_ID)[i]
-  myData<- all.aggr.insectsAB[all.aggr.insectsAB$Plot_ID == plt , ]
+  plt<- unique(all.aggr.insectsB1$Plot_ID)[i]
+  myData<- all.aggr.insectsB1[all.aggr.insectsB1$Plot_ID == plt , ]
   
   #expand grid to include NAs  
-  constantData <- unique(myData[,c("Plot_ID","Datasource_ID", "Unit")])#these are defo unique
+  constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
   allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                        # Unit = unique(myData$Unit),
                          Year= min(myData$Year):max(myData$Year))
-  allgrid <- merge(allgrid, constantData,by=c("Plot_ID"),all.x=T)
+  allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number", "Unit")],  #"classes",
-                   by=c("Year","Plot_ID", "Unit"),all=T)
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+                   by=c("Year","Plot_ID"),all=T)
   # add descriptors
-  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm",
-                                            "Continent", "Country", "Country_State", "Region", "Stratum" )]),
+  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
+                                            "Continent",  "Country", "Country_State", "Region", "Stratum" )]),
                   by="Plot_ID",all=T)
   if(!all(is.na(myData$Period))){
     myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
                                                 length(myData$Period[is.na(myData$Period)]),
                                                 replace=T) }
-  print(plt)
+  #print(plt)
+  
   std<- sd(myData$Number, na.rm = T)
   myData$scaledNumber <- myData$Number / std
   
   
-  completeDataAB<-rbind (completeDataAB,myData)
+  completeDataB1<-rbind (completeDataB1,myData)
   
 }
-dim(completeDataAB) # 66402  on 13-8-19   67008 on 23-8-19
+dim(completeDataB1)
+completeData<- rbind(completeDataA, completeDataB1)
+
+dim(completeData) # 70202 on 17-9-19
+beep(2)
+dim(subset(completeData, Unit != "biomass")) #67729 on 6-9-19
+
+
+
+
+all.aggr.insectsB2<- subset(all.aggr.insectsAB, Unit == "biomass")
+dim(all.aggr.insectsB2)
+
+completeDataB2<- NULL
+for(i in 1:length(unique(all.aggr.insectsB2$Plot_ID))){
+  
+  plt<- unique(all.aggr.insectsB2$Plot_ID)[i]
+  myData<- all.aggr.insectsB2[all.aggr.insectsB2$Plot_ID == plt , ]
+  
+  #expand grid to include NAs  
+  constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
+  allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
+                         Year= min(myData$Year):max(myData$Year))
+  allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
+  
+  #add observed data
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+                   by=c("Year","Plot_ID"),all=T)
+  # add descriptors
+  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
+                                            "Continent",  "Country", "Country_State", "Region", "Stratum" )]),
+                  by="Plot_ID",all=T)
+  if(!all(is.na(myData$Period))){
+    myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
+                                                length(myData$Period[is.na(myData$Period)]),
+                                                replace=T) }
+  #print(plt)
+  
+  std<- sd(myData$Number, na.rm = T)
+  myData$scaledNumber <- myData$Number / std
+  
+  
+  completeDataB2<-rbind (completeDataB2,myData)
+  
+}
+
+dim(completeDataB2)
+completeDataAB<- rbind(completeDataA, completeDataB2)
+
+dim(completeDataAB) # 74973 on 17-9-19
+beep(2)
+dim(subset(completeData, Unit != "biomass")) #67729 on 6-9-19
+
+
+
+
 
 
 
@@ -795,7 +870,7 @@ for(i in 1:length(unique(all.aggr.arth $Plot_ID))){
   myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
                    by=c("Year","Plot_ID"),all=T)
   # add descriptors
-  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm",
+  myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
                                             "Continent", "Country", "Country_State", "Region", "Stratum" )]),
                   by="Plot_ID",all=T)
   if(!all(is.na(myData$Period))){
@@ -809,8 +884,8 @@ for(i in 1:length(unique(all.aggr.arth $Plot_ID))){
   completeDataArth<-rbind (completeDataArth,myData)
   
 }
-dim(completeDataArth) #same as insects on 23-8-19 
-
+dim(completeDataArth) #same as insects on 17-9-19
+beep(2)
 
 
 
@@ -848,12 +923,12 @@ addIndicies <- function(myData){
 }
 
 completeData <- addIndicies(completeData)
-dim(completeData)
+dim(completeData) # 70202
 save(completeData, file = "completeData.RData")
 
 #checks: 
 sum(is.na(completeData$Continent))  # should be 0 
-sum(is.na(completeData$Number)) #  8967 on 23-8-19
+sum(is.na(completeData$Number)) #  9253 on 17-9
 sum(is.na(completeData$Location))
 sum(is.na(completeData$Datasource_ID))
 sum(is.na(completeData$Stratum)) # looks good
@@ -862,14 +937,25 @@ unique(completeData$Stratum)
 
 
 completeDataAB <- addIndicies(completeDataAB)
-levels(completeDataAB$Unit)[levels(completeDataAB$Unit) == "density"]<- "abundance" # replace density with abundance 
+completeDataAB$DSunit_4INLA <- interaction(completeDataAB$Datasource_ID,completeDataAB$Unit)
+completeDataAB$DSunit_4INLA <- as.numeric(factor(completeDataAB$DSunit_4INLA))
+completeDataAB$Locunit_4INLA <- interaction(completeDataAB$Location,completeDataAB$Unit)
+completeDataAB$Locunit_4INLA <- as.numeric(factor(completeDataAB$Locunit_4INLA))
+completeDataAB$Plotunit_4INLA <- interaction(completeDataAB$Plot_ID, completeDataAB$Unit)
+completeDataAB$Plotunit_4INLA <- as.numeric(factor(completeDataAB$Plotunit_4INLA))
+# random slopes
+completeDataAB$Plotunit_4INLAR <- completeDataAB$Plotunit_4INLA+max(completeDataAB$Plotunit_4INLA)
+completeDataAB$DSunit_4INLAR   <- completeDataAB$DSunit_4INLA+max(completeDataAB$DSunit_4INLA)
+completeDataAB$Locunit_4INLAR <- completeDataAB$Locunit_4INLA+max(completeDataAB$Locunit_4INLA)
+
+unique(completeDataAB$Unit)
 completeDataAB$Unit<- droplevels(completeDataAB$Unit)
-dim(completeDataAB)
+dim(completeDataAB) # 74973 on 17-9-19
 save(completeDataAB, file = "completeDataAB.RData")
 
 #checks: 
 sum(is.na(completeDataAB$Continent))  # should be 0 
-sum(is.na(completeDataAB$Number)) # 9791 on 23-8-19
+sum(is.na(completeDataAB$Number)) # 9961 on 17-9-2019
 sum(is.na(completeDataAB$Location))
 sum(is.na(completeDataAB$Datasource_ID))
 sum(is.na(completeDataAB$Stratum)) # looks good
@@ -882,10 +968,10 @@ unique(completeDataAB$Unit)
 
 completeDataArth <- addIndicies(completeDataArth)
 
-dim(completeData) # old: 129203    new: 129649 # don;t know what's wrong with the old one 
-dim(completeDataArth) # old: 129694  new 129694
-sum(is.na(completeData$Number)) # 25155
-sum(is.na(completeDataArth$Number)) # 25180
+dim(completeData) # 70202
+dim(completeDataArth) # 70202
+sum(is.na(completeData$Number)) # 9253
+sum(is.na(completeDataArth$Number)) # 9216
 sum(is.na(completeData$Location)) # should be 0
 sum(is.na(completeDataArth$Location)) # 
 sum(is.na(completeData$biome)) # should be 0
@@ -910,6 +996,7 @@ completeData$cStartYear <- completeData$Start_year - median(completeData$Start_y
 completeData$cDuration <- completeData$Duration - median(completeData$Duration)
 completeDataArth$cStartYear <- completeDataArth$Start_year - median(completeDataArth$Start_year)
 completeDataArth$cDuration <- completeDataArth$Duration - median(completeDataArth$Duration)
+completeDataArth$cEndYear <- completeDataArth$End_year - median(completeDataArth$End_year)
 
 
 save(completeDataArth, file = "completeDataArth.RData")
@@ -921,7 +1008,7 @@ save(completeData, file = "completeData.RData")
 
 load("completeData.RData")
 
-biomes<- read.csv( "biomesEdited 2019.csv", header = T)
+biomes<- read.csv( "biomesEdited 20190910.csv", header = T)
 dim(completeData)
 dim(completeDataArth) #31 cols
 
@@ -977,8 +1064,8 @@ unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% LU$Plot_ID] # l
 
 
 
-completeData <- merge(completeData, LU[, c(2, 19:28)], by = "Plot_ID"); dim(completeData)
-completeDataArth <- merge(completeDataArth, LU[, c(2, 19:28)], by = "Plot_ID"); dim(completeDataArth)
+completeData <- merge(completeData, LU[, c(1, 18:25)], by = "Plot_ID"); dim(completeData)
+completeDataArth <- merge(completeDataArth, LU[, c(1, 18:15)], by = "Plot_ID"); dim(completeDataArth)
 head(completeData)
 
 hist(completeData$End_cropArea) # somewhat biased
@@ -988,7 +1075,8 @@ hist(subset(completeData, Realm == "Terrestrial")$End_urbanArea) # somewhat bias
 
 # ESA CCI data 
 load("percCover900m.RData")
- dim(percCover900m)
+
+ tail(percCover900m)
 dim(completeData) ; length(unique(completeData$Plot_ID))
 
 # which are missing? These are all old plots 
@@ -1013,13 +1101,13 @@ load("CHELSATmeanSlopes.RData")
 load("CHELSAPrecSlopes.Rdata")
 CHELSA<- merge(CHELSATmeanSlopes[, c(1:3, 8,9) ], CHELSAPrecSlopes[, c(1:2, 7,8) ])
 dim(CHELSA)
-head(CHELSA)
+tail(CHELSA)
 completeData <- merge(completeData, CHELSA, all.x = T)
 dim(completeData)
 
 
 #load CRU
-load( "CRUtpSlopes.RData")
+load( "CRUtpSlopes201909.RData")
 
 dim(CRUtpSlopes)
 
@@ -1039,7 +1127,7 @@ save(completeData, file = "completeData.RData")
 
 # metadata for suppl material #####
 load( "all.selectedIns.RData") # check version date
-
+levels(all.selectedIns$Realm)[levels(all.selectedIns$Realm) == "Terrestrial "]<- "Terrestrial"
 
 metadata_per_dataset<-  all.selectedIns %>% 
   group_by(Datasource_ID) %>%
@@ -1058,7 +1146,7 @@ metadata_per_dataset<-  all.selectedIns %>%
     Continent = unique(Continent), 
     Realm = unique(Realm)
     )
-dim(metadata_per_dataset) #  should be 157
+dim(metadata_per_dataset) #  should be 167
 
 
 write.csv(metadata_per_dataset, "metadata per dataset.csv")
