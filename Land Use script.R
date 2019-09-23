@@ -7,18 +7,26 @@ load("metadata_per_plot.RData")
 
 # land-use harmonization databse: 
 LU<-read.table("landuseData (2).txt", header = T)
+LUsept<- read.table("landuseData_newplots.txt", header = T)
 dim(LU)
 head(LU)
 tail(LU)
 
+#append old and new files 
+
+cols<- intersect(names(LU), names(LUsept))
+
+LU<- rbind(LU[, cols], LUsept[, cols])
+
+LU$Datasource_ID[LU$Plot_ID  == 1739]<- 1527
 
 # LUH2
 
 #how much changed?
-(sum(LU$End_forestArea) - sum(LU$Start_forestArea)) / sum(LU$Start_forestArea) # forest: +0.039%
-(sum(LU$End_cropArea) - sum(LU$Start_cropArea)) / sum(LU$Start_cropArea) # crop: -0.09%
+(sum(LU$End_forestArea) - sum(LU$Start_forestArea)) / sum(LU$Start_forestArea) # forest: +0.45
+(sum(LU$End_cropArea) - sum(LU$Start_cropArea)) / sum(LU$Start_cropArea) # crop: -0.098
 (sum(LU$End_pastureArea) - sum(LU$Start_pastureArea)) / sum(LU$Start_pastureArea) # pasture: -0.045
-(sum(LU$End_urbanArea) - sum(LU$Start_urbanArea)) / sum(LU$Start_urbanArea) # urban: +0.19%
+(sum(LU$End_urbanArea) - sum(LU$Start_urbanArea)) / sum(LU$Start_urbanArea) # urban: +0.19
 
 # that's not insubstantial, potentially interesting
 
@@ -48,10 +56,17 @@ save(LU, file = "LU.RData")
 # ESA Land Cover State products
 LU2<-read.table("LU_CCIESA_1992on (2).txt", header = T)
 LU2nbrs<- read.table("LU_CCIESA_neighbours_1992on (2).txt", header = T)
+
+LU2nw<-read.table("LU_CCIESA_1992on_newplots.txt", header = T)
+LU2nbrsnw<- read.table("LU_CCIESA_neighbours_1992on_newplots.txt", header = T)
+
+LU2<- rbind(LU2, LU2nw)
+LU2nbrs<- rbind(LU2nbrs, LU2nbrsnw)
+
 hist(LU2$X2015, breaks=seq(5,225,by=1)) # distribution of sites over different categories 
 # were there any changes in landcover in this period? 
 changed<- (LU2[(LU2$X1992 - LU2$X2015 != 0)   , c(1,24:26) ]) # 67 sites  have a  change = 4%
-nrow(changed) / nrow (metadata_per_plot) # 4.2%
+nrow(changed) / nrow (metadata_per_plot) # 5.3%
 # which changes do we have 
 unique(changed[,1:2])
 
@@ -61,6 +76,8 @@ unique(changed[,1:2])
 
 LU2nbrs<- LU2nbrs[, c(25,1:24)]
 LU2IDs<-LU2[, c(1,26,27)]
+LU2IDs$Datasource_ID[LU$Plot_ID  == 1739]<- 1527
+
 LU2<- LU2[, 1:25]
 LU2<- unique(LU2) # keep only 1 value for each mainCell
 
@@ -69,7 +86,7 @@ dim(LU2)/9  # 1023 unique cells
 dim(LU2nbrs)
 
 fullLU2<-merge(LU2, LU2IDs) # 
-dim(fullLU2)/9  #= 1566 plots! correct 
+dim(fullLU2)/9  #= 1711 plots! correct 
 
 changed<- (fullLU2[(fullLU2$X1992 - fullLU2$X2015 != 0)   , c(1,24:26) ])
 nrow(changed)/ nrow(fullLU2)
