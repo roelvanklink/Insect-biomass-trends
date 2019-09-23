@@ -1,6 +1,6 @@
 # prep data of protected areas
 setwd("C:/Users/roelv/Dropbox/Insect Biomass Trends/csvs") # home
-setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
+setwd("C:\\Dropbox\\Insect Biomass Trends/csvs") # work
 
 PA<- read.table("ProtectedAreas.txt", header = T)
 tail(PA)
@@ -31,3 +31,21 @@ PA$REP_AREA[PA$Plot_ID >155 & PA$Plot_ID < 180]<- 270 # Oulanka National Park FI
 
 write.csv(PA, "ProtectedAreasEdited.csv")
 
+
+
+PA<- read.csv(file = "ProtectedAreasEdited.csv", header = T, stringsAsFactors = F)
+PAnew<- read.table("ProtectedAreas_newplots.txt", header = T , stringsAsFactors = F)
+
+
+PAnew$PA<- "yes"
+PAnew$PA[is.na(PAnew$ORIG_NAME)]<- "no"
+
+sum(PAnew$PA == "yes")
+sum(PAnew$PA == "no")
+
+nms<- intersect(names(PA), names(PAnew))
+
+tst<- rbind(PA[, nms], PAnew[, nms]) # looks fine 
+
+
+write.csv(tst, "ProtectedAreasEdited.csv")
