@@ -39,7 +39,7 @@ shps<- c("Freshwater" = 24, "Terrestrial" = 21)
 col.scheme.strat<-c( "Air" = "peru", "Herb layer" = "peru", "Soil surface" = "peru", "Trees" = "peru", 
                      "Underground" = "peru"  ,"Water" = "dodgerblue2")
 col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "")
-col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "red")
+col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "tomato")
 col.scheme.AB <- c("biomass" = "red", "abundance" = "blue")
 
 col.scheme.global<- c(  "Global"  = "grey10", "Observed" = "grey70")  #
@@ -853,6 +853,8 @@ grid.arrange(contPlot, biomPlot, nrow = 2, heights = c(4,5) )
 #below code shows how to convert precision to standard deviation
 
 #pull out variance
+inlaRealm<- readRDS("InlaRealmTEST.rds")
+
 inla1<-inlaRealm
 tauPlot <-inla1$marginals.hyperpar$`Precision for Plot_ID_4INLA`
 tauDatasource <-inla1$marginals.hyperpar$`Precision for Datasource_ID_4INLA`
@@ -1176,31 +1178,31 @@ l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 e<- c("","","","","","","")
 
 
-PAplot
+PAplot <- 
 ggplot(data.frame(paSlope))+
   geom_errorbar(aes(x=Realm,ymin=mean-sd, ymax=mean+sd, color = PA),
                 size = 2, width=0, position=position_dodge(width= 0.7))+  
   geom_errorbar(aes(x=Realm,ymin=X0.025quant,ymax= X0.975quant, color = PA),
                 width=0, position=position_dodge(width= 0.7))+  
-  geom_point(aes(x=Realm,   y=mean,  fill = PA), shape = 21,
+  geom_point(aes(x=Realm,   y=mean,  fill = PA, color = PA), shape = 21,
              size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
-#  geom_crossbar(aes(x=Realm,   y=mean, fill = PA,
-#                    ymin=X0.025quant,ymax=X0.975quant),position="dodge",alpha=0.8 ,  width =0.7)+
   geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   scale_y_continuous(breaks = brks,labels = l, limits=c(-0.01, 0.015))+
   xlab ("")+ ylab("Trend slope  \n % change per year")+
   geom_text(aes(x = Realm , y = 0.014, fill = PA,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
-  scale_color_manual(name="Protection\nstatus",
+  scale_color_manual(name="Protection status",
                     breaks=c("no", "yes"),
                     labels=c("Unprotected", "Protected"), 
                     values = col.scheme.PA) + 
-  scale_fill_manual(name="Protection\nstatus",
+  scale_fill_manual(name="Protection status",
                      breaks=c("no", "yes"),
                      labels=c("Unprotected", "Protected"), 
                      values = col.scheme.PA) + 
-  
-  theme_clean
+  guides(fill = guide_legend(reverse = TRUE), color = guide_legend(reverse = TRUE), shape =  guide_legend(reverse = TRUE)) +
+  theme_clean +
+  theme(legend.position="bottom") 
+ 
 
 png("PA plot.png", width=2000, height=700, res = 360)
 PAplot
