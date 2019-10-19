@@ -97,6 +97,7 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
   
   ecn.m2<-  read.csv(file ="ECN moths final_2.csv", header = T)
   ecn.m<-  read.csv(file ="ECN moths final.csv", header = T)
+  ecn.m3<-  read.csv(file ="ECN moths final_3 20191015.csv", header = T)
   Sweden<-read.csv("SEFW fnal 201907.csv", header = T) ; Sweden$Plot_name<- as.factor(Sweden$Plot_name)
   NZ<- read.csv(file = "NZ river monitoring final.csv", header = T)
   Kellogg<- read.csv(file = "Kellogg final.csv", header = T)
@@ -245,9 +246,9 @@ dim(Ireland)
 sum(duplicated(Ireland[, -1])) # 608
 # I removed duplicate records. I assume they were entered twice in some database. No idea how this can happen. Th eoccurrence records were unique, however 
 
-head(ecn.m)
-dim(ecn.m)
-sum(duplicated(ecn.m[, -1])) #32147
+head(ecn.m3)
+dim(ecn.m3)
+sum(duplicated(ecn.m3[, -1])) #32147
 # added date to df; problem solved
 
 
@@ -718,7 +719,7 @@ anti_join(all.aggr.arth[,1:13], all.aggr.insects[,1:13]);dim(check) # no differe
 check<- anti_join(all.aggr.insectsAB[,1:13], all.aggr.insects[,1:13]) ;dim(check) # 3831 differing rows
 
 
-#  
+# 1)  Add NA's for abundance data
 all.aggr.insectsA<- subset(all.aggr.insects, Unit == "abundance")
 dim(all.aggr.insectsA)
 completeDataA<- NULL
@@ -754,13 +755,13 @@ for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
 }
 
 
-dim(completeDataA) #  67729 on 17-9-19
+dim(completeDataA) #  67729 on 17-9-19 (65787 with newly rarefied ECN moth data on 16-10-19)
 beep(2)
-subset(completeData, Number < 0)
+subset(completeDataA, Number < 0)
 
 
 
-
+# 2) add NA's for biomass data, excluding biomass data for datasets that report both units
 completeDataB1<- NULL
 all.aggr.insectsB1<- subset(all.aggr.insects, Unit == "biomass")
 dim(all.aggr.insectsB1)
@@ -804,7 +805,7 @@ dim(subset(completeData, Unit != "biomass")) #67729 on 6-9-19
 
 
 
-
+# 3) add NA's for biomass data, including datasets that report both units
 all.aggr.insectsB2<- subset(all.aggr.insectsAB, Unit == "biomass")
 dim(all.aggr.insectsB2)
 
@@ -994,6 +995,7 @@ completeDataArth<-merge(completeDataArth, confounders, by= "Plot_ID")
 # center yrs for INLA
 completeData$cStartYear <- completeData$Start_year - median(completeData$Start_year)
 completeData$cDuration <- completeData$Duration - median(completeData$Duration)
+completeData$cEndYear <- completeData$End_year - median(completeData$End_year)
 completeDataArth$cStartYear <- completeDataArth$Start_year - median(completeDataArth$Start_year)
 completeDataArth$cDuration <- completeDataArth$Duration - median(completeDataArth$Duration)
 completeDataArth$cEndYear <- completeDataArth$End_year - median(completeDataArth$End_year)
@@ -1075,17 +1077,27 @@ hist(subset(completeData, Realm == "Terrestrial")$End_urbanArea) # somewhat bias
 
 # ESA CCI data 
 load("percCover900m.RData")
+load( "percCover900m19922015.RData")
 
  tail(percCover900m)
-dim(completeData) ; length(unique(completeData$Plot_ID))
+ names(percCover900m19922015)[names(percCover900m19922015) == "frcCrop900m"]<- "frcCrop900m1992"
+ names(percCover900m19922015)[names(percCover900m19922015) == "frcUrban900m"]<- "frcUrban900m1992"
+ 
+ 
+ 
+ dim(completeData) ; length(unique(completeData$Plot_ID))
 
 # which are missing? These are all old plots 
 unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% percCover900m$Plot_ID]
 
 completeData<- merge(completeData, percCover900m [, c(1,32,33) ], by = "Plot_ID", all.x=T)
+completeData<- merge(completeData, percCover900m19922015 [, c(1,32,33) ], by = "Plot_ID", all.x=T)
+
 completeDataArth<- merge(completeDataArth, percCover900m [, c(1,32,33) ], by = "Plot_ID", all.x=T)
 dim(completeData)
 sum(is.na(completeData$frcCrop900m) ) 
+sum(is.na(completeData$frcCrop900m1992) ) 
+
 # 509 obs missing 
 
 
@@ -1435,27 +1447,34 @@ metadata_per_habitat<- all.selectedIns %>%
     SpeciesNumber = length(unique(Taxon)),
     Individuals = round(sum(Number)), 1)
 
-
+library(reshape2)
 tab<- dcast(metadata_per_habitat, Realm +Datasource_name~ larvalHabitat, value.var = "Individuals", sum)
 
 tab$fraction<- NA
 tab$fraction[tab$Realm == "Terrestrial"]<- tab$Aquatic[tab$Realm == "Terrestrial"] / (tab$Terrestrial[tab$Realm == "Terrestrial"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Terrestrial"]) 
 tab$fraction[tab$Realm == "Freshwater"]<- tab$Terrestrial[tab$Realm == "Freshwater"] / (tab$Aquatic[tab$Realm == "Freshwater"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Freshwater"]) 
-tab$fraction<- round(tab$fraction*100, 3)
+tab$percentage<- round(tab$fraction*100, 3)
 tab$right[tab$Realm == "Terrestrial"]<- (tab$Terrestrial[tab$Realm == "Terrestrial"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Terrestrial"])
 tab$right[tab$Realm == "Freshwater"] <-(tab$Aquatic[tab$Realm == "Freshwater"] + tab$`Aquatic/Terrestrial`[tab$Realm == "Freshwater"])
 tab$wrong[tab$Realm == "Terrestrial"]<-  tab$Aquatic[tab$Realm == "Terrestrial"]  
 tab$wrong[tab$Realm == "Freshwater"]<-   tab$Terrestrial[tab$Realm == "Freshwater"]  
 tab
-
-100*(sum(tab$wrong)/ sum(tab$right)) #0.04%
+tab$perc.wrong<- (tab$wrong / (tab$wrong+ tab$right)) *100
+100*(sum(tab$wrong)/ sum(tab$right+tab$wrong)) #0.028%
 
 subset(all.selectedIns , Datasource_name == "Greenland arthropods" & larvalHabitat == "Aquatic/Terrestrial")[, 1:20]
 
 
 
 
+# for kaaistoep because not all taxa were assessed in all years: 
+kaai<- subset(all.selectedIns, Datasource_name == "Netherlands lighttrap" )
 
+kaai.cast<- dcast(kaai, Year~Taxon, value.var = "Number")
+kaai.cast <-  kaai.cast[c(10,13:21), ]
+kaai.cast$aquatic<- kaai.cast$Ephemeroptera + kaai.cast$Trichoptera
+kaai.cast$terrestrial<- kaai.cast$Hemiptera + kaai.cast$Neuroptera  + kaai.cast$Coleoptera  +  kaai.cast$Moths
+sum(kaai.cast$aquatic) /sum( kaai.cast$aquatic+kaai.cast$terrestrial) 
 
 
 # same for ecn moths
