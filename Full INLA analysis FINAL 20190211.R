@@ -5,6 +5,7 @@ library(brinla)
 library(ggplot2)
 library(ggnewscale)
 library(tidyverse)
+library(reshape2)
 
 
 
@@ -33,18 +34,21 @@ theme_clean<- theme_grey() + theme(panel.grid.major = element_blank(),
 
 col.scheme.cont<-c( "Europe"="green3", "Latin America"= "magenta", "North America"= "orange","Asia" = "purple3", 
                     "Africa" = "blue", "Australia" = "red")
+col.scheme.biom <-c( "Tropical"="green3",  "Drylands"= "orange", 
+                     "Boreal/Alpine" = "blue", "Temperate" = "red")
 col.scheme.realm<-c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "peru")
 col.scheme.realm<- c(  "Freshwater"  = "dodgerblue2", "Terrestrial" = "chocolate4")  #coral4
 shps<- c("Freshwater" = 24, "Terrestrial" = 21)
 col.scheme.strat<-c( "Air" = "peru", "Herb layer" = "peru", "Soil surface" = "peru", "Trees" = "peru", 
                      "Underground" = "peru"  ,"Water" = "dodgerblue2")
 col.scheme.realm2<- c(  "Freshwater"  = "blue", "Terrestrial" = "")
-col.scheme.PA <- c(  "yes"  = "darkgreen", "no" = "tomato")
+col.scheme.PA <- c(  "yes"  = "darkgrey", "no" = "lightgrey")
 col.scheme.AB <- c("biomass" = "red", "abundance" = "blue")
 
 col.scheme.global<- c(  "Global"  = "grey10", "Observed" = "grey70")  #
 col.scheme.black<- c(  "Global"  = "black", "Observed" = "black")  #
 
+sz = 0.5
 brks<- c(-0.02, -0.01, 0, 0.01, 0.02, 0.03, 0.04)
 perc<-(10^(brks )  *100) - 100
 l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
@@ -185,10 +189,10 @@ data.frame(
 inlaConfounders <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration  +  #  + cYear:Country_state
                 f(Period_4INLA,model='iid')+
                   f(Plot_ID_4INLA,model='iid')+
-                #  f(Location_4INLA,model='iid')+
+                  f(Location_4INLA,model='iid')+
                   f(Datasource_ID_4INLA,model='iid')+
                    f(Plot_ID_4INLAR,iYear,model='iid')+
-                #   f(Location_4INLAR,iYear,model='iid')                      +
+                   f(Location_4INLAR,iYear,model='iid')                      +
                    f(Datasource_ID_4INLAR,iYear,model='iid')+
                   f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
               control.compute = list(dic=TRUE,waic=TRUE),
@@ -233,7 +237,6 @@ read_rds("inlaConfoundersTSUMMARY.rds")
 
 
 
-
 all.results<-c(all.results, confoundersStartYear = list(inla1.1.1$summary.fixed))
 all.results<-c(all.results, confoundersDuration = list(inla1.1.2$summary.fixed))
 
@@ -244,25 +247,33 @@ all.results<-c(all.results, confoundersDuration = list(inla1.1.2$summary.fixed))
 
 ############################################################
 #Pull out the random effects and slopes from the grand model
-
+# realm####
 #FINAL model for realms (no correlation slope and interceps)
-InlaRealm <- inla(log10(Number+1) ~ cYear:Realm+ Realm + 
+InlaRealm <- inla(log10(Number+1) ~  cYear:Realm+ Realm + 
                     f(Period_4INLA,model='iid')+
                     f(Location_4INLA,model='iid')+
                     f(Plot_ID_4INLA,model='iid')+
                     f(Datasource_ID_4INLA,model='iid')+
                     f(Plot_ID_4INLAR,iYear,model='iid')+
-                    f(Location_4INLAR,iYear,model='iid')                      +
+                    f(Location_4INLAR,iYear,model='iid') +
                     f(Datasource_ID_4INLAR,iYear,model='iid')+
                     f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                   control.compute = list(dic=TRUE,waic=TRUE),
+                  control.predictor = list(link = 1),
                   data=completeData) # has lower WAIC and DIC than InlaRealm2
 
 inlaRealmSum<- as.data.frame(readRDS("InlaRealmSUMMARY.rds"))
 inlaRealm<- readRDS("InlaRealmTEST.rds")
 
+completeData$preds <- inlaRealm$summary.fitted.values$mean  #need to have control.predictor = list(link = 1) in model
+library(ggplot2)
+ggplot(completeData,aes(x=preds,y=log10(Number+1)))+
+  geom_point()+
+  geom_abline(slope=1,intercept=0)+
+  facet_wrap(Continent~Realm, scales = "free")
 
-(inlaRealmSum)
+
+summary(inlaRealm)
 
 metadata_realm<-  completeData %>% 
   group_by(Realm) %>%
@@ -281,7 +292,7 @@ data.frame(
   CI97.5 = c((10^(inlaRealmSum  [3:4,5] )-1 ) *100, (10^(inlaRealmSum  [3:4,5] *10)-1)  *100)# 0.975
 )
 
-(10^(inlaRealm$summary.fixed  [4,1] *30)-1)  *100 # -33% in 50 years in terrestrial 
+(10^(inlaRealmSum  [4,1] *33)-1)  *100 # -22% in 30 years in terrestrial 
 
 table(inlaRealm$cpo$failure)
 cpo = inlaRealm$cpo$cpo
@@ -320,8 +331,9 @@ inlaF2 <- inla(log10(Number+1) ~ cYear:Realm+ Realm +
 
 
 
-inla1<- inlaRealm
 
+# get random effects #####
+inla1<- readRDS("inla1TEST.rds")
 #get list of unique plots and datasourceID
 summary_df <- unique(completeData[,c("Plot_ID","Datasource_ID",
                                      "Plot_ID_4INLA","Datasource_ID_4INLA",
@@ -347,9 +359,9 @@ RandEfDataset <- merge(RandEfDataset,slopes, by.x="Datasource_ID_4INLAR", by.y="
 # add up fixed slope and random slopes
 load("metadata_per_dataset.RData")
 RandEfDataset<- merge(RandEfDataset, metadata_per_dataset, by = "Datasource_ID")
-fx<-data.frame(Realm = c("Freshwater", "Terrestrial" ), # df for fixed effects
-               fixedSlp = inla1$summary.fixed$mean[3:4], 
-               fixedIntercept = c(inla1$summary.fixed$mean[1], inla1$summary.fixed$mean[1]+inla1$summary.fixed$mean[2] ) )
+fx<-data.frame(Realm = c("Freshwater", "Terrestrial" ), # df for fixed effects. because we use the moel with only 'year' no differences between realms
+               fixedSlp = inla1$summary.fixed$mean[2], 
+               fixedIntercept = (inla1$summary.fixed$mean[1]  ) )
 RandEfDataset<- merge(RandEfDataset, fx )
 RandEfDataset$slope <- RandEfDataset$'DataID_Slope_ mean'+ RandEfDataset$fixedSlp # sum of fixed and random slopes  
 RandEfDataset$intercept <- RandEfDataset$'DataID_Intercept_ mean'+ RandEfDataset$fixedIntercept # sum of fixed and random slopes  
@@ -366,8 +378,8 @@ RandEfPlot <- merge(RandEfPlot,slopes_Location, by.x="Location_4INLAR", by.y="ID
 RandEfPlot <- merge(RandEfPlot,slopes_plot, by.x="Plot_ID_4INLAR", by.y="ID")
 RandEfPlot <- merge(metadata_per_plot, RandEfPlot )
 fx<-data.frame(Realm = c("Freshwater", "Terrestrial" ), # df for fixed effects
-               fixedSlp = inla1$summary.fixed$mean[3:4], 
-               fixedIntercept = c(inla1$summary.fixed$mean[1], inla1$summary.fixed$mean[1]+inla1$summary.fixed$mean[2] ) )
+               fixedSlp = inla1$summary.fixed$mean[2], 
+               fixedIntercept = c(inla1$summary.fixed$mean[1]) )
 RandEfPlot<- merge(RandEfPlot, fx )
 # add up fixed slope, dataset random + location Random, + plot random 
 RandEfPlot$slope <- RandEfPlot$fixedSlp +  RandEfPlot$'DataID_Slope_ mean'  + RandEfPlot$'Plot_slp_ mean' +RandEfPlot$'Loc_slp_ mean' 
@@ -375,7 +387,7 @@ save(RandEfPlot, file = "RandEfPlot.RData")
 
 # plot spagetti plot (Dornelas)
 
-load("RandEfDataset.RData") # random slopes and intercepts
+RandEfDataset<- read_rds ("RandEfDataset.rds") # random slopes and intercepts
 load("metadata_per_dataset.RData") # 
 source("pframe.R") # predict lines
 
@@ -444,7 +456,9 @@ fw.wgs <-
 #                     limits = c(-0.02, +0.02), name = 'Trend \nslope') +#
     # limits = c(min(pts.rob$slope), max(pts.rob$slope))"PuBuGn"
   scale_colour_gradientn(colours = mypalett(100), limits=c(-0.02, 0.02))+
-   ggtitle("Freshwater fauna") 
+  theme(legend.position = "none")+
+  
+   ggtitle("B: Freshwater fauna") 
 
 png("map fw.png", width=4400, height=2000, res = 360)
 fw.wgs
@@ -454,13 +468,14 @@ dev.off()
 # terrestrial
 terr.wgs <-
   p.wgs+
- geom_point(data = subset(pts.rob, Realm =="Terrestrial")@data, size = 1.8, #pch = 21,color = "grey30" ,
+ geom_point(data = subset(pts.rob, Realm =="Terrestrial")@data, size = 1.3, #pch = 21,color = "grey30" ,
             aes(x = x,   y = y,  color = slope.lim, group = NULL) , 
             position=position_jitter(h=1, w=1)) +
 #  scale_color_viridis_c(space = "Lab" , begin = 0.2, end = 1,
 #                        limits = c(-0.02, +0.02), name = 'Trend \nslope') +# "PuBuGn"
     scale_colour_gradientn(colours = mypalett(100), limits=c(-0.02, 0.02))+
-    ggtitle("Terrestrial fauna") 
+  theme(legend.position = "none")+
+  ggtitle("A: Terrestrial fauna") 
 
 png("map terr.png", width=4400, height=2000, res = 360)
 terr.wgs
@@ -495,8 +510,8 @@ max(metadata_per_plot$Duration) #81
 
 sum(metadata_per_dataset$Realm == "Terrestrial") # 104
 sum(metadata_per_dataset$Realm == "Freshwater") # 63
-sum(metadata_per_plot$Realm == "Terrestrial") # 1063
-sum(metadata_per_plot$Realm == "Freshwater") # 615
+sum(metadata_per_plot$Realm == "Terrestrial") # 1092
+sum(metadata_per_plot$Realm == "Freshwater") # 619
 
 # percentage plots in protected Areas
 sum(metadata_per_plot$PA == "yes")/nrow(metadata_per_plot)
@@ -516,7 +531,32 @@ sum(RandEfDataset$`DataID_Slope_ 0.975quant`<0)/167 # 15datasets,  9.5% positive
 RandEfDataset[RandEfDataset$`DataID_Slope_ 0.975quant`<0, c(18:21,25, 30)]
 
 
+#Dataavailability plot
+
+sums<- dcast(subset(completeData, !is.na(Number)), Realm + Datasource_ID + Year ~"SumNumber", value.var = "Number" , sum)
+
+hist(sums$Year)
+ggplot(sums, aes(x=Year)) + 
+  geom_histogram(binwidth=1, color = "grey30", fill = "grey30") +
+  ylab ("Number of\nDatasets")+
+  xlim(1920, 2020)+
+  facet_wrap(.~Realm, scales = "free") +
+  theme_clean
+
+#outline only 
+hist1<- ggplot(sums, aes(x=Year, fill = Realm)) + 
+  geom_histogram(binwidth=1, position="dodge")
+df <- ggplot_build(hist1)$data[[1]][ , c("xmin", "y", "group")]
+ggplot(data = df, aes(x = xmin, y = y)) +
+       geom_step()+ 
+  facet_wrap(.~group, scales = "free") +
+  theme_clean
+
+  
+ggplot(subset(sums, Realm == "Freshwater"), aes(x=Year)) + geom_histogram(binwidth=1)
+
    
+
 ###################################################################################################################################################
 
 
@@ -597,6 +637,22 @@ inlaFcont <- inla(log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent +
                   control.compute = list(dic=TRUE,waic=TRUE),
                   data=completeData)
 
+inlaFcont<- readRDS("inlaFcontTEST.rds")
+completeData$preds <- inlaFcont$summary.fitted.values$mean  #need to have control.predictor = list(link = 1) in model
+library(ggplot2)
+ggplot(completeData,aes(x=preds,y=log10(Number+1)))+
+  geom_point (aes(color = Realm), size =sz)+
+  geom_abline(slope=1,intercept=0)+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  xlab ("Predicted values") + ylab ("Observed values")+
+  facet_wrap(Continent~Realm, scales = "free")+
+  theme_clean + 
+  theme( strip.background = element_blank())
+
+
+
+
+
 #model check: 
 inlaFcont<- readRDS("inlaFcontTEST.rds")
 plot(inlaFcont$cpo$cpo, main = "CPO")
@@ -644,8 +700,6 @@ ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # exclude afric
             position = position_dodge(width = 0.7), size = 3, color = 1) +
   coord_flip()+
   scale_y_continuous(breaks = brks,labels = l, limits=c(-0.03,0.036))+
-  
-  
   xlab ("")+ ylab("")+ #Trend slope | \n % change per year
   theme_clean +
   theme(legend.key=element_blank(),
@@ -854,8 +908,10 @@ grid.arrange(contPlot, biomPlot, nrow = 2, heights = c(4,5) )
 
 #pull out variance
 inlaRealm<- readRDS("InlaRealmTEST.rds")
+load("inlaPCcor0.r-5652192.RData")
 
 inla1<-inlaRealm
+inla1<- inlaFpcCor0
 tauPlot <-inla1$marginals.hyperpar$`Precision for Plot_ID_4INLA`
 tauDatasource <-inla1$marginals.hyperpar$`Precision for Datasource_ID_4INLA`
 tauPeriod <-inla1$marginals.hyperpar$`Precision for Period_4INLA`
@@ -891,225 +947,239 @@ data.frame(Plot_intercept = sigmaPlot,
 
 
 #################################################################################################
-# Random walk model #####
-compDat4RW<- completeData
-compDat4RW$Terrestrial<- as.numeric(compDat4RW$Realm == "Terrestrial")
-compDat4RW$Freshwater<- as.numeric(compDat4RW$Realm == "Freshwater")
-compDat4RW$iYear2<- compDat4RW$iYear
-compDat4RW$iYear3<- compDat4RW$iYear
-compDat4RW$iYear4<- compDat4RW$iYear
-compDat4RW$iYear5<- compDat4RW$iYear
-compDat4RW$iYear6<- compDat4RW$iYear
+# time slices #####
+metadata_full<-  completeData %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+                Plots =  length(unique(Plot_ID)))
+
+# grab data after certain years, exclude datasets with less than 10 years data in said period
 
 
-inlaRW <- inla( log10(Number+1) ~ Realm +
-                  f(iYear, Terrestrial, model='rw1') +
-                  f(iYear2, Freshwater, model='rw1') +
-                    f(Datasource_ID_4INLAR,iYear,model='iid')+
-                    f(Location_4INLA,model='iid')+
-                    f(Plot_ID,model='iid')+
-                    f(Period_4INLA,model='iid') , 
-                control.compute = list(dic=TRUE,waic=TRUE),     
-                data=compDat4RW)
-save(inlaRW, file =  "E:/inlaRW.RData")
-# check what this does 
-inlaRW2 <- inla( log10(Number+1) ~ Realm +
-                   f(iYear, Terrestrial, model='rw1') +
-                   f(iYear2, Freshwater, model='rw1') +
-                   
-                   f(Datasource_ID_4INLA,model='iid')+
-                   f(Location_4INLA,model='iid')+
-                   f(Plot_ID,model='iid')+
-                   f(Period_4INLA,model='iid')+ 
-                   f(Plot_ID_4INLAR,iYear3,model='iid')+
-                   f(Location_4INLAR,iYear4,model='iid')                      +
-                   f(Datasource_ID_4INLAR,iYear5,model='iid'),
-                 # f(iYear6,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                 
-                 control.compute = list(dic=TRUE,waic=TRUE),     
-                 data=compDat4RW)
-# exaclty the same
-load("inlaRW.RData")
-# cut off above max and below mean for each realm 
-terMax<- max(metadata_per_dataset$End[metadata_per_dataset$Realm == "Terrestrial"] )
-fwMax <- max(metadata_per_dataset$End[metadata_per_dataset$Realm == "Freshwater"] )
-terMin<- min(metadata_per_dataset$Start[metadata_per_dataset$Realm == "Terrestrial"] )
-fwMin <- min(metadata_per_dataset$Start[metadata_per_dataset$Realm == "Freshwater"] )
+cD1960 <- subset(completeData, Year >1959); dim(cD1960) # lost 345 observations
+dim(cD1960); dim(completeData) # 8000 difference
+metadata_1960<-  subset(cD1960, !is.na(Number )) %>% 
+  group_by( Plot_ID) %>%
+  summarise(  Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1)
+too.short<- subset(metadata_1960, Duration< 9)
+cD1960<- cD1960[! cD1960$Plot_ID  %in% too.short$Plot_ID  , ]
+length(unique(cD1960$Datasource_ID)) #165    # lost 2
+length(unique(cD1960$Plot_ID)) # 1667 # lost 11
+metadata_1960<-  cD1960 %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+                Plots =  length(unique(Plot_ID)))
+
+cD1970 <- subset(completeData, Year >1969)
+dim(cD1970); dim(completeData) # 8000 difference
+metadata_1970<-  subset(cD1970, !is.na(Number )) %>% 
+  group_by( Plot_ID) %>%
+  summarise(  Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1)
+too.short<- subset(metadata_1970, Duration< 9)
+cD1970<- cD1970[! cD1970$Plot_ID  %in% too.short$Plot_ID  , ]
+length(unique(cD1970$Datasource_ID)) #160
+length(unique(cD1970$Plot_ID)) #1599
+metadata_1970<-  cD1970 %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+                Plots =  length(unique(Plot_ID)))
 
 
-rwTerr<- inlaRW$summary.random$iYear
-rwTerr$Year<-  sort(unique(completeData$Year))
-rwTerr$Realm <- "Terrestrial"
-rwTerr$fixedInt<- inlaRW$summary.fixed[1,1] + inlaRW$summary.fixed[1,2]
-rwTerr<- subset(rwTerr, Year >= terMin & Year <=terMax )
+cD1980 <- subset(completeData, Year >1979)
+dim(cD1980); dim(completeData) # 8000 difference
+metadata_1980<-  subset(cD1980, !is.na(Number )) %>% 
+  group_by( Plot_ID) %>%
+  summarise(  Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1)
+too.short<- subset(metadata_1980, Duration< 9)
+cD1980<- cD1980[! cD1980$Plot_ID  %in% too.short$Plot_ID  , ] ; dim(cD1980)
+length(unique(cD1980$Datasource_ID)) #154
+length(unique(cD1980$Plot_ID)) #1553
+metadata_1980<-  cD1980 %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+                Plots =  length(unique(Plot_ID)))
 
-rwFW  <- inlaRW$summary.random$iYear2
-rwFW$Year<- sort(unique(completeData$Year))
-rwFW$Realm <- "Freshwater"
-rwFW$fixedInt<- inlaRW$summary.fixed[1,1]
-rwFW<- subset(rwFW, Year >= fwMin & Year <=fwMax )
+cD1990 <- subset(completeData, Year >1989)
+dim(cD1990); dim(completeData) # 10000 difference
+metadata_1990<-  subset(cD1990, !is.na(Number )) %>% 
+  group_by( Plot_ID) %>%
+  summarise(  Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1)
+too.short<- subset(metadata_1990, Duration< 9)
+cD1990<- cD1990[! cD1990$Plot_ID  %in% too.short$Plot_ID  , ] ; dim(cD1990)
+length(unique(cD1990$Datasource_ID)) #123
+length(unique(cD1990$Plot_ID)) #1428
+metadata_1990<-  cD1990 %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+                Plots =  length(unique(Plot_ID)))
 
-RW<- rbind(rwTerr, rwFW)
-
-
-ggplot(RW )+
-  geom_line(aes(x=Year,y=TerrMn, color = "Terrestrial")) +
-  geom_line(aes(x=Year,y=FwMn, color = "Freshwater")) +
-  geom_ribbon(aes(x=Year, ymin = FwMin,  ymax = FwMax, fill="Freshwater"),alpha=0.5)+
-  geom_ribbon(aes(x=Year, ymin = TerMin,  ymax = TerMax, fill= "Terrestrial"),alpha=0.5)+
-  scale_fill_manual(values = col.scheme.realm)   +
-  scale_color_manual(values = col.scheme.realm)   +
-    labs(y = "Arthropod abundance") + 
-    theme_clean
-
-
-
-
-# FULL FIG 1 #####
-RW$Realm<- factor(RW$Realm, levels = c("Terrestrial", "Freshwater")) # make sure that TErr is ordered first 
-labs<- data.frame(
-  x = c(1930, 1930), 
-  y = c(50000, 50000), 
-  Realm = c("Terrestrial", "Freshwater"), 
-  labs = c("A", "C"))
-
-# overal slopes 
+cD1995 <- subset(completeData, Year >1994)
+dim(cD1995); dim(completeData) # 10000 difference
+metadata_1995<-  subset(cD1995, !is.na(Number )) %>% 
+  group_by( Plot_ID) %>%
+  summarise(  Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1)
+too.short<- subset(metadata_1995, Duration< 9)
+cD1995<- cD1995[! cD1995$Plot_ID  %in% too.short$Plot_ID  , ] ; dim(cD1995)
+length(unique(cD1995$Datasource_ID)) #123
+length(unique(cD1995$Plot_ID)) #1428
+metadata_1995<-  cD1995 %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+                Plots =  length(unique(Plot_ID)))
 
 
+cD2000 <- subset(completeData, Year >1999)
+dim(cD2000)- dim(completeData) # 26625 difference
+metadata_2000<-  subset(cD2000, !is.na(Number )) %>% 
+  group_by( Plot_ID) %>%
+  summarise(  Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1)
+too.short<- subset(metadata_2000, Duration< 9)
+cD2000<- cD2000[! cD2000$Plot_ID  %in% too.short$Plot_ID  , ] ; dim(cD2000)
+length(unique(cD2000$Datasource_ID)) #73
+length(unique(cD2000$Plot_ID)) #1054
+metadata_2000<-  cD2000 %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)))
 
-fig1AC<-ggplot(data = RW, 
-       aes(x= Year, y=10^ (RW$mean+ RW$fixedInt),   colour = Realm)) + 
-  scale_y_log10() +  
-  labs(x = "", y = "Insect abundance / biomass") +
-  geom_line(data = RW,    aes(x=Year,  y= 10^ (RW$mean+ RW$fixedInt), colour=Realm), size = 1)+
-  geom_ribbon(data = RW, aes(x=Year, ymin = 10^(fixedInt + `0.025quant`),  
-                                     ymax = 10^(fixedInt + `0.975quant`), fill=Realm),alpha=0.4, color = NA)+
-  scale_colour_manual(values = col.scheme.realm, name = "Random walk model") +
-  scale_fill_manual (values = col.scheme.realm, name = "Random walk model")+
+cD2005 <- subset(completeData, Year >2004)
+dim(cD2005)- dim(completeData) # 38519 difference
+metadata_2005<-  subset(cD2005, !is.na(Number )) %>% 
+  group_by( Plot_ID) %>%
+  summarise(  Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1)
+too.short<- subset(metadata_2005, Duration< 9)
+cD2005<- cD2005[! cD2005$Plot_ID  %in% too.short$Plot_ID  , ] ; dim(cD2005)
+length(unique(cD2005$Datasource_ID)) #44
+length(unique(cD2005$Plot_ID)) #827
+metadata_2005<-  cD2005 %>%   group_by(Continent, Realm) %>%
+  summarise(    Datasources = length(unique(Datasource_ID)),
+                Plots =  length(unique(Plot_ID)))
+
+
+# load all RDS files 
+
+# realm
+inlaRealm1960<- as.data.frame(readRDS("InlaRealm1960SUMMARY.rds"))[3:4, ]
+inlaRealm$slice<- ">1960"
+inlaRealm1970<- as.data.frame(readRDS("inlaRealm1970SUMMARY.rds"))[3:4, ]
+inlaRealm1970$slice<- ">1970"
+inlaRealm1980<- as.data.frame(readRDS("inlaRealm1980SUMMARY.rds"))[3:4, ]
+inlaRealm1980$slice<- ">1980"
+inlaRealm1990<- as.data.frame(readRDS("inlaRealm1990SUMMARY.rds"))[3:4, ]
+inlaRealm1990$slice<- ">1990"
+inlaRealm2000<- as.data.frame(readRDS("inlaRealm2000SUMMARY.rds"))[3:4, ]
+inlaRealm2000$slice<- ">2000"
+realmSlices<- rbind(inlaRealm, inlaRealm1970, inlaRealm1980, inlaRealm1990, inlaRealm2000)
+realmSlices$Realm<- c("Freshwater", "Terrestrial")
+realmSlices$slice<- ordered(realmSlices$slice, levels = (c("Full", ">1970" , ">1980", ">1990", ">2000"  )))
+
+
+slicePlot<- ggplot(data.frame(realmSlices))+
+  geom_errorbar(aes(x=slice,ymin=mean-sd, ymax=mean+sd, color = Realm),
+                size = 2, width=0, position=position_dodge(width= 0.5))+  
+  geom_errorbar(aes(x=slice,ymin=X0.025quant,ymax=X0.975quant, color = Realm),
+                width=0, position=position_dodge(width= 0.5))+  
+  geom_point(aes(x=slice,   y=mean, shape = Realm,  fill = Realm, color = Realm),
+             size = 4, position=  position_dodge(width = 0.5), alpha=1 )+
+  scale_color_manual(values = col.scheme.realm)+
+  scale_fill_manual(values = col.scheme.realm)+
+  scale_shape_manual(values = shps)+
+  geom_hline(yintercept=0,linetype="dashed") +
+  xlab ("")+ ylab("Trend slope  \n % change per year")+
   theme_clean +
-  geom_text(aes(x, y, label=labs, group=NULL),data=labs,  
-            size = 6, color = 1) +
-  
-new_scale_color ()+
-  geom_line(data=pframe, aes(x= Year, y=unlog, group = Datasource_ID,  colour = Realm), size =0.2, alpha = 0.7)+
-  scale_colour_manual(values = col.scheme.realm, name = "Dataset trends")+
-facet_grid(Realm~.)+
-  theme(strip.text.y = element_blank())
+  theme(legend.key=element_blank(), 
+        legend.position="bottom")   
+#  geom_text(aes(x = 4.3 , y = -0.025, label = "C"),  
+ #           size = 6, color = 1) 
+metadata_1960$slice<- ">1960"
+metadata_1970$slice<- ">1970"
+metadata_1980$slice<- ">1980"
+metadata_1990$slice<- ">1990"
+metadata_1995$slice<- ">1995"
+metadata_2000$slice<- ">2000"
+metadata_2005$slice<- ">2005"
 
-ggsave(filename = "fig 1AC test5.pdf",
-       plot = print(fig1AC),
-      device = "pdf", 
-      colormodel = "cmyk", 
-      useDingbats = F)
-png("Fig 1AC.png", width=2000, height=2500, res = 360)
-fig1AC
-dev.off()
+metadata_cont<- rbind(metadata_1960, metadata_1970, metadata_1980, metadata_1990, metadata_1995, metadata_2000, metadata_2005)
 
 
 
-# fig 3 random fits per continent #####
-compDat4RW<- completeData
-compDat4RW$EuropeTerr<- as.numeric(compDat4RW$Continent == "Europe" & compDat4RW$Realm == "Terrestrial")
-compDat4RW$EuropeFw<-   as.numeric(compDat4RW$Continent == "Europe" & compDat4RW$Realm == "Freshwater")
-compDat4RW$NATerr<- as.numeric(compDat4RW$Continent == "North America" & compDat4RW$Realm == "Terrestrial")
-compDat4RW$NAFw<-   as.numeric(compDat4RW$Continent == "North America" & compDat4RW$Realm == "Freshwater")
-compDat4RW$AsiaTerr<- as.numeric(compDat4RW$Continent == "Asia" & compDat4RW$Realm == "Terrestrial")
-compDat4RW$AsiaFw<-   as.numeric(compDat4RW$Continent == "Asia" & compDat4RW$Realm == "Freshwater")
-compDat4RW$LATerr<- as.numeric(compDat4RW$Continent == "Latin America" & compDat4RW$Realm == "Terrestrial")
-compDat4RW$LAFw<-   as.numeric(compDat4RW$Continent == "Latin America" & compDat4RW$Realm == "Freshwater")
-compDat4RW$AusTerr<- as.numeric(compDat4RW$Continent == "Australia" & compDat4RW$Realm == "Terrestrial")
-compDat4RW$AusFw<-   as.numeric(compDat4RW$Continent == "Australia" & compDat4RW$Realm == "Freshwater")
-compDat4RW$AfricaTerr<- as.numeric(compDat4RW$Continent == "Africa" & compDat4RW$Realm == "Terrestrial")
-compDat4RW$AfricaFw<-   as.numeric(compDat4RW$Continent == "Africa" & compDat4RW$Realm == "Freshwater")
 
-compDat4RW$iYear2<- compDat4RW$iYear
-compDat4RW$iYear3<- compDat4RW$iYear
-compDat4RW$iYear4<- compDat4RW$iYear
-compDat4RW$iYear5<- compDat4RW$iYear
-compDat4RW$iYear6<- compDat4RW$iYear
-compDat4RW$iYear7<- compDat4RW$iYear
-compDat4RW$iYear8<- compDat4RW$iYear
-compDat4RW$iYear9<- compDat4RW$iYear
-compDat4RW$iYear10<- compDat4RW$iYear
-compDat4RW$iYear11<- compDat4RW$iYear
-compDat4RW$iYear12<- compDat4RW$iYear
+inlaCont1960<- as.data.frame(readRDS("inlaCont1960SUMMARY.rds"))[8:19, ]
+inlaCont1970<- as.data.frame(readRDS("inlaCont1970SUMMARY.rds"))[8:19, ]
+inlaCont1980<- as.data.frame(readRDS("inlaCont1980SUMMARY.rds"))[8:19, ]
+inlaCont1990<- as.data.frame(readRDS("inlaCont1990SUMMARY.rds"))[8:19, ]
+inlaCont1995<- as.data.frame(readRDS("inlaCont1995SUMMARY.rds"))[8:19, ]
+inlaCont2000<- as.data.frame(readRDS("inlaCont2000SUMMARY.rds"))[8:19, ]
+inlaCont2005<- as.data.frame(readRDS("inlaCont2005SUMMARY.rds"))[8:19, ]
 
+inlaCont1960$slice<- ">1960"
+inlaCont1970$slice<- ">1970"
+inlaCont1980$slice<- ">1980"
+inlaCont1990$slice<- ">1990"
+#inlaCont1995$slice<- ">1995"
+inlaCont2000$slice<- ">2000"
+inlaCont2005$slice<- ">2005"
+ContSlices<- rbind(inlaCont1960, inlaCont1970, inlaCont1980, inlaCont1990,  inlaCont2000, inlaCont2005)
+#ContSlices$slice<- ordered(ContSlices$slice, levels = (c(">1960", ">1970" , ">1980", ">1990", ">2000"  )))
 
-inlaRWcont <- inla( log10(Number+1) ~ Realm +
-                  f(iYear,  EuropeTerr   , model='rw1') +
-                  f(iYear2, EuropeFw     , model='rw1') +
-                  f(iYear3, NATerr, model='rw1') +
-                  f(iYear4, NAFw, model='rw1') +
-                  f(iYear5, AsiaTerr, model='rw1') +
-                  f(iYear6, AsiaFw, model='rw1') +
-                  f(iYear7, LATerr, model='rw1') +
-                  f(iYear8, LAFw, model='rw1') +
-                  f(iYear9, AusTerr, model='rw1') +
-                  f(iYear10, AusFw, model='rw1') +
-                  f(iYear11, AfricaTerr, model='rw1') +
-                  f(iYear12, AfricaFw, model='rw1') +
-                  
-                  f(Datasource_ID_4INLAR,iYear,model='iid')+
-                  f(Location_4INLA,model='iid')+
-                  f(Plot_ID,model='iid')+
-                  f(Period_4INLA,model='iid') , 
-                control.compute = list(dic=TRUE,waic=TRUE),     
-                data=compDat4RW)
+vars<-data.frame(do.call(rbind, strsplit(rownames(ContSlices), split = ":")))
+ContSlices<-cbind(ContSlices, vars)
+ContSlices$Realm<-gsub("Realm", "", ContSlices$X1);  ContSlices$Continent<-gsub("Continent", "", ContSlices$X2)
+#ContSlices$text = paste0("(", ContSlices$Datasources, " | ", ContSlices$Plots, ")")
+#ContSlices$slice<- ordered(ContSlices$slice, levels = (c(">1960", ">1970" , ">1980", ">1990", ">2000"  )))
+ContSlices$minmax<- NA 
+ContSlices$minmax[ContSlices$Continent == "Europe"]<- c(-0.025, 0.03)
+ContSlices$minmax[ContSlices$Continent == "North America"]<- c(-0.025, 0.03)
+ContSlices$minmax[ContSlices$Continent == "Asia"]<- c(-0.015, 0.05)
+ContSlices$minmax[ContSlices$Continent == "Latin America"]<- c(-0.030, 0.030)
+ContSlices$minmax[ContSlices$Continent == "Australia"]<- c(-0.030, 0.030)
+ContSlices$minmax[ContSlices$Continent == "Africa"]<- c(-0.025, 0.02)
 
-save(inlaRWcont, file = "inlaRWcont.RData")
+ContSlices<- merge(metadata_cont, ContSlices) ; dim(ContSlices) #shoudl be 59 rows
+ContSlices$Continent<- ordered(ContSlices$Continent, levels = (c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" )))
+ContSlices$plots.ok<- ContSlices$Plots > 20
+ContSlices$dataset.ok<- ContSlices$Datasources >3
+ContSlices$ok <- ContSlices$plots.ok + ContSlices$dataset.ok 
 
 
-load("E:/inlaRWcont.RData")
-# grab all year random effects and realm and continent into 1 df
-Year<-rep(1925:2018, 12)
-Continent <- rep(c("Europe", "North America", "Asia", "Latin America", "Australia", "Africa" ), each = 2*94)
-Realm <-  rep(c("Terrestrial", "Freshwater"), each = 94) 
-RWs<-rbind(inlaRWcont$summary.random$iYear, inlaRWcont$summary.random$iYear2, inlaRWcont$summary.random$iYear3, inlaRWcont$summary.random$iYear4, inlaRWcont$summary.random$iYear5,
-           inlaRWcont$summary.random$iYear6, inlaRWcont$summary.random$iYear7,inlaRWcont$summary.random$iYear8, inlaRWcont$summary.random$iYear9, inlaRWcont$summary.random$iYear10,
-           inlaRWcont$summary.random$iYear11, inlaRWcont$summary.random$iYear12)
-RWcont<-cbind(Year, Continent, Realm, RWs)
-RWcont$Continent<- ordered(RWcont$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
+slicePlot<- ggplot(subset(ContSlices, ok >0 & sd < 1))+
+  geom_errorbar(aes(x=slice,ymin=mean-sd, ymax=mean+sd, color = Realm),
+                size = 2, width=0, alpha = 0.7,  position=position_dodge(width= 0.5))+  
+  geom_errorbar(aes(x=slice,ymin=X0.025quant,ymax=X0.975quant, color = Realm),
+                width=0, position=position_dodge(width= 0.5))+  
+  geom_point(aes(x=slice,   y=mean, shape = Realm,  fill = Realm, color = Realm),
+             size = 2, position=  position_dodge(width = 0.5), alpha=1 )+
+  geom_blank(aes(y=minmax)) +
+  scale_color_manual(values = col.scheme.realm)+
+  scale_fill_manual(values = col.scheme.realm)+
+  scale_shape_manual(values = shps)+
+  geom_hline(yintercept=0,linetype="dashed") +
+  xlab ("")+ ylab("Trend slope")+
+facet_wrap(.~Continent, scales = "free_y")+  #)+#
+    theme_clean +
+  theme(strip.background =element_rect(fill="white"), 
+        axis.line=element_line() ,
+        axis.text.x  = element_text(angle=45, vjust=1, hjust = 1), 
+        legend.position = "bottom")   
 
 
-metadata_cont<-  completeData %>% # get start and end years  
-  group_by(Continent, Realm) %>%
-  summarise(
-    Datasources = length(unique(Datasource_ID)),
-    Plots =  length(unique(Plot_ID)),
-    Start_year = min(Year, na.rm = T),
-    End_year = max(Year, na.rm = T)) 
-  metadata_cont$value_startYear<-NA
-for (i in 1: nrow(metadata_cont)){
-year  <-  metadata_cont$Start_year[i] 
-if(year <1960){year = 1960}
-      metadata_cont$value_startYear[i]<-
-    RWcont$mean[RWcont$Continent == as.character(metadata_cont$Continent[i]) &
-                RWcont$Realm ==  as.character(metadata_cont$Realm[i]) &
-                RWcont$Year ==  year ]
-  }
 
-RWcont<- merge(RWcont, metadata_cont)
-RWcont$goodData<- RWcont$Year >= RWcont$Start_year &RWcont$Year <= RWcont$End_year # only select years with actual data 
+
+
 #Fig 3####
 ggplot(subset(RWcont, goodData == T ))+
   geom_line(aes(x=Year,y=mean - value_startYear, color = Realm ))+
   scale_colour_manual(values = col.scheme.realm)+
   geom_ribbon(aes(x=Year, ymin = `0.025quant`- value_startYear ,ymax = `0.975quant`- value_startYear, fill=Realm), alpha=0.5)+
+  geom_blank(aes(y=minmax)) +
   scale_fill_manual (values = col.scheme.realm)+
   xlim (1960, 2018)+
   geom_hline(yintercept = 0, linetype="dashed") +  theme_bw()+
-  facet_wrap(~Continent )+ #, scales = "free"
-  labs(y = "Standardized insect abundance") +
+  facet_wrap(~Continent , scales = "free")+ #
+  labs(y = "Standardized insect abundance", x = "") +
   theme_clean +
   annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)+
-  theme(strip.background =element_rect(fill="white"), 
-        strip.text.x = element_text(angle = 0, hjust = 0), 
-        axis.text.x  = element_text(angle=45, vjust=1, hjust = 1))
+  
 
-png("Fig 3.png", width=4000, height=2300, res = 360)
-fig1AC
-dev.off()
+
+
+
+
+
 
 
 ## # # # # # # # # # # # # # # ########################################################################## # 
@@ -1178,27 +1248,36 @@ l<- paste(brks, paste0(round(perc,1), "%"),sep = "\n")
 e<- c("","","","","","","")
 
 
-PAplot <- 
+PA.alph<- c(  "yes"  = 1, "no" = 0.7)
+
+
+PAplot #<- 
 ggplot(data.frame(paSlope))+
-  geom_errorbar(aes(x=Realm,ymin=mean-sd, ymax=mean+sd, color = PA),
+  geom_errorbar(aes(x=Realm,ymin=mean-sd, ymax=mean+sd, color = Realm, alpha = PA),
                 size = 2, width=0, position=position_dodge(width= 0.7))+  
-  geom_errorbar(aes(x=Realm,ymin=X0.025quant,ymax= X0.975quant, color = PA),
+  geom_errorbar(aes(x=Realm,ymin=X0.025quant,ymax= X0.975quant, color = Realm, alpha = PA),
                 width=0, position=position_dodge(width= 0.7))+  
-  geom_point(aes(x=Realm,   y=mean,  fill = PA, color = PA), shape = 21,
-             size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
+  geom_point(aes(x=Realm,   y=mean,  shape = Realm,  fill = Realm, color = Realm, alpha = PA),
+             size = 4, position=  position_dodge(width = 0.7) )+
   geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   scale_y_continuous(breaks = brks,labels = l, limits=c(-0.01, 0.015))+
   xlab ("")+ ylab("Trend slope  \n % change per year")+
-  geom_text(aes(x = Realm , y = 0.014, fill = PA,  label = text), position = position_dodge(width = 1), size = 3, color = 1) +
+  geom_text(aes(x = Realm , y = 0.014, fill = PA,  label = text), 
+            position = position_dodge(width = 0.7), size = 3, color = 1) +
+scale_alpha_manual(values = PA.alph)+
+scale_color_manual(values = col.scheme.realm)+
+scale_fill_manual(values = col.scheme.realm)+
+scale_shape_manual(values = shps)
+  
   scale_color_manual(name="Protection status",
                     breaks=c("no", "yes"),
                     labels=c("Unprotected", "Protected"), 
                     values = col.scheme.PA) + 
-  scale_fill_manual(name="Protection status",
-                     breaks=c("no", "yes"),
-                     labels=c("Unprotected", "Protected"), 
-                     values = col.scheme.PA) + 
+#  scale_fill_manual(name="Protection status",
+#                     breaks=c("no", "yes"),
+#                     labels=c("Unprotected", "Protected"), 
+#                     values = col.scheme.PA) + 
   guides(fill = guide_legend(reverse = TRUE), color = guide_legend(reverse = TRUE), shape =  guide_legend(reverse = TRUE)) +
   theme_clean +
   theme(legend.position="bottom") 
@@ -1209,6 +1288,16 @@ PAplot
 dev.off()
 
   
+
+geom_errorbar(aes(x=BiomeCoarse,ymin=mean-sd, ymax=mean+sd, color = Realm),
+              size = 2, width=0, position=position_dodge(width= 0.5))+  
+  geom_errorbar(aes(x=BiomeCoarse,ymin=X0.025quant,ymax=X0.975quant, color = Realm),
+                width=0, position=position_dodge(width= 0.5))+  
+  geom_point(aes(x=BiomeCoarse,   y=mean, shape = Realm,  fill = Realm, color = Realm),
+             size = 4, position=  position_dodge(width = 0.5), alpha=1 )+
+  scale_color_manual(values = col.scheme.realm)+
+  scale_fill_manual(values = col.scheme.realm)+
+  scale_shape_manual(values = shps)+
 
 
 
@@ -1334,6 +1423,10 @@ inlaFlanduseT<- inla(log10(Number+1) ~  cYear* sqrt(End_cropArea)+ cYear* sqrt(E
  readRDS("inlaFlanduseFWSUMMARY.rds") # ok
  all.results$Landuse_LUH2_FW <- (inlaFlanduseFW$summary.fixed) # save fixed effects
  
+ 
+ 
+ 
+ 
  load("RandEfPlot.Rdata")
 load("LU.RData")
  landusePlots<- merge(RandEfPlot,  LU[, c(1,18:25)] , by = c("Plot_ID") )
@@ -1343,9 +1436,9 @@ urbanPlot<- ggplot(landusePlots, aes(x=(End_urbanArea*100), y = slope))+  #`Plot
   geom_point (aes(color = Realm), size = sz )+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
   scale_x_sqrt()+
-  xlab (bquote('% Urban cover per 25'~ km^2 )) + ylab ("Trend slope")+
+  xlab ("% Urban cover (landscape scale)") + ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+  ylim(-0.041, 0.03)+
   facet_wrap(~Realm ) +#, scales = "free"
   theme_clean + 
   theme( strip.background = element_blank(),
@@ -1356,9 +1449,9 @@ cropPlot<-ggplot(landusePlots, aes(x=(End_cropArea*100), y = slope))+  #`Plot_sl
   geom_point (aes(color = Realm), size = sz )+
   scale_x_sqrt()+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
-  xlab (bquote('% Cropland cover per 25'~ km^2)) + ylab ("Trend slope")+
+  xlab ("% Crop cover (landscape scale)") + ylab ("")+
   geom_hline(yintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+  ylim(-0.041, 0.03)+
   facet_wrap(~Realm ) +#, scales = "free"
   theme_clean + 
   theme( strip.background = element_blank(),
@@ -1413,8 +1506,9 @@ readRDS("inlaFchangesFWSUMMARY.rds") # ok
 urbanizationPlot<- ggplot(landusePlots, aes(x=urbanization*100, y = slope))+  #`Plot_slp_ mean`
   geom_point (aes(color = Realm), size =sz)+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
-  xlab (bquote('Change in % urban cover per 25'~ km^2)) + ylab ("Trend slope")+
+  xlab ("Change in % urban cover (landscape scale)") + ylab ("")+
   geom_hline(yintercept=0,linetype="dashed")+
+  ylim(-0.041, 0.03)+
   facet_wrap(~Realm ) + #, scales = "free"
   theme_clean + 
   theme( strip.background = element_blank(),
@@ -1423,9 +1517,9 @@ urbanizationPlot<- ggplot(landusePlots, aes(x=urbanization*100, y = slope))+  #`
 cropificationPlot<- ggplot(landusePlots, aes(x=cropification*100, y = slope))+  #`Plot_slp_ mean`
   geom_point (aes(color = Realm) , size = sz)+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
-  xlab (bquote('Change in % cropland per 25'~ km^2)) + ylab ("Trend slope")+
+  xlab ("Change in % crop cover (landscape scale)") + ylab ("")+
   geom_hline(yintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+  ylim(-0.041, 0.03)+
   facet_wrap(~Realm ) + #, scales = "free"
   theme_clean + 
   theme( strip.background = element_blank(),
@@ -1442,9 +1536,11 @@ grid.arrange(urbanizationPlot, cropificationPlot, urbanPlot,cropPlot, nrow = 2)
 
 
 # ESA CCI#####
-load("percCover900m.RData")
+#load("percCover900m.RData")
+load("percCover900m19922015.RData")
+
 # small scale land use models: 900 * 900 m 
-landusePlots900<- merge(RandEfPlot,  percCover900m )
+landusePlots900<- merge(RandEfPlot,  percCover900m19922015 )
 landusePlots900<- merge(landusePlots900, metadata_per_plot)
 landusePlots900$Realm<- relevel(landusePlots900$Realm, ref = "Terrestrial")
 
@@ -1462,20 +1558,22 @@ inlaFlanduseESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m + cYear* Rea
                     num.threads = 2)#verbose = T,
 read_rds("inlaFlanduseESASUMMARY.rds") # ok
 
-inlaFlanduseESAterr<- inla(log10(Number+1) ~  cYear* frcCrop900m + cYear* frcUrban900m +
+inlaFlanduseESAterr<- inla(log10(Number+1) ~  cYear* frcCrop900m + cYear* frcUrban900m +# frcCrop900m + frcUrban900m +
                            f(Period_4INLA,model='iid')+
                              f(Location_4INLA,model='iid')+
                              f(Plot_ID_4INLA,model='iid')+
                              f(Datasource_ID_4INLA,model='iid')+
                              f(Plot_ID_4INLAR,iYear,model='iid')+
                              f(Location_4INLAR,iYear,model='iid')                      +
-                             f(Datasource_ID_4INLAR,iYear,model='iid')+
+                             f(Datasource_ID_4INLAR,iYear,model='iid'), #+
                              f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                            control.compute = list(dic=TRUE,waic=TRUE),
-                           data= subset(completeData, !is.na(completeData$frcCrop900m) & Realm == "Terrestrial"), 
+                           data= testDat, # subset(completeData, !is.na(completeData$frcCrop900m1992) & Realm == "Terrestrial"), 
                            num.threads = 2)#verbose = T,
 save(inlaFlanduseESAterr, file = "/data/Roel/inlaFlanduseESAterr.RData")
-read_rds("inlaFlanduseESAterr20SUMMARY.rds")
+read_rds("inlaFlanduseESAterrSUMMARY.rds")
+read_rds("inlaFlanduseESAterrSUMMARY20190930.rds")
+
 
 inlaFlanduseESAfw<- inla(log10(Number+1) ~   cYear* frcCrop900m + cYear* frcUrban900m+
                          f(Period_4INLA,model='iid')+
@@ -1496,9 +1594,9 @@ read_rds("inlaFlanduseESAfwSUMMARY.rds")
 crop900mPlot<- ggplot(landusePlots900, aes(x=frcCrop900m*100, y = slope))+  #`Plot_slp_ mean`
   geom_point (aes(color = Realm), size = sz )+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+
-  xlab (bquote('% Cropland per 0.81'~ km^2)) + ylab ("Trend slope")+
+  xlab (bquote('% Crop cover per 0.81'~ km^2))+ ylab ("")+
   geom_hline(yintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+  ylim(-0.041, 0.03)+
   facet_wrap(~Realm ) +
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1507,9 +1605,9 @@ crop900mPlot<- ggplot(landusePlots900, aes(x=frcCrop900m*100, y = slope))+  #`Pl
 urban900mPlot<- ggplot(landusePlots900, aes(x=frcUrban900m*100, y = slope))+  #`Plot_slp_ mean`
   geom_point (aes(color = Realm), size = sz )+
   scale_color_manual(values = col.scheme.realm, guide = FALSE)+ #
-  xlab (bquote('% Urban cover per 0.81'~ km^2)) + ylab ("Trend slope")+
+  xlab (bquote('% Urban cover per 0.81'~ km^2)) + ylab ("")+
     geom_hline(yintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+  ylim(-0.041, 0.03)+
   facet_wrap(~Realm ) +
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1619,7 +1717,7 @@ TrelPlot<- ggplot(CCplots, aes(x=relDeltaTmean, y = slope))+  #`Plot_slp_ mean`
   ylab ("Trend slope")+ #
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+ # ylim(-0.04, 0.03)+
   facet_wrap(~Realm ) + #, scales = "free"
   theme_clean +
 theme( strip.background = element_blank(),
@@ -1632,7 +1730,7 @@ PrelPlot<- ggplot(CCplots, aes(x=relDeltaPrec, y = slope))+  #`Plot_slp_ mean`
   ylab ("")+ #
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+#  ylim(-0.04, 0.03)+
   facet_wrap(~Realm ) + #, scales = "free"
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1645,7 +1743,7 @@ TmeanPlot<- ggplot(CCplots, aes(x=deltaTmean, y = slope))+  #`Plot_slp_ mean`
   xlab ("Change in mean temperature per decade")+ ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+ # ylim(-0.04, 0.03)+
   facet_wrap(~Realm , scales = "free") +
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1657,7 +1755,7 @@ PPlot<- ggplot(CCplots, aes(x=deltaPrec, y = slope))+  #`Plot_slp_ mean`
   xlab ("Change in precipitation per decade (mm)")+ ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+ # ylim(-0.04, 0.03)+
   facet_wrap(~Realm , scales = "free") +
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1730,7 +1828,7 @@ CHELSApPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaPrec, y = slope))+  #`Plot_sl
   xlab ("Absolute change in precipitation per decade (mm)")+ ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+  #ylim(-0.04, 0.03)+
   facet_wrap(~Realm , scales = "free") +
   theme_clean +theme( strip.background = element_blank(),
                       strip.text.x = element_blank()    )   #legend.position="bottom",
@@ -1744,7 +1842,7 @@ CHELSATmeanPlot<- ggplot(CHELSAplots, aes(x=CHELSAdeltaTmean, y = slope))+  #`Pl
   xlab ("Absolute change in mean Temperature")+ ylab ("")+ #Trend slope
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+ # ylim(-0.04, 0.03)+
   facet_wrap(~Realm , scales = "free") +
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1758,7 +1856,7 @@ CHELSAPrelPlot<- ggplot(CHELSAplots, aes(x=CHELSArelDeltaPrec, y = slope))+  #`P
   xlab( expression(atop("Relative change in precipitation", '('*Delta*'Prec / ' *mu*'Prec (mm))')))+
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+#  ylim(-0.04, 0.03)+
   facet_wrap(~Realm ) +
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1775,7 +1873,7 @@ CHELSATrelPlot<- ggplot(CHELSAplots, aes(x=CHELSArelDeltaTmean, y = slope))+  #`
   ylab ("Trend slope")+
   geom_hline(yintercept=0,linetype="dashed")+
   geom_vline(xintercept=0,linetype="dashed")+
-  ylim(-0.04, 0.03)+
+ # ylim(-0.04, 0.03)+
   facet_wrap(~Realm ) +
   theme_clean +
   theme( strip.background = element_blank(),
@@ -1823,18 +1921,54 @@ grid.arrange(TrelPlot,  PrelPlot,  CHELSATrelPlot,  CHELSAPrelPlot, nrow = 2)
 
 
 
+#plts confounders #####
+
+load("RandEfPlot.Rdata")
+
+
+strt<- ggplot(RandEfPlot, aes(x= Start_year ,  y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm), size =sz)+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+#  xlab ("Change in % urban cover per 1/16 degree") + ylab ("")+
+  geom_hline(yintercept=0,linetype="dashed")+
+ # ylim(-0.041, 0.03)+
+  facet_wrap(~Realm ) + #, scales = "free"
+  theme_clean + 
+  theme( strip.background = element_blank(),
+         strip.text.x = element_blank())
+cor( RandEfPlot$Start_year ,   RandEfPlot$slope, )
 
 
 
+end<- ggplot(RandEfPlot, aes(x= End_year ,  y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm), size =sz)+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  #  xlab ("Change in % urban cover per 1/16 degree") + ylab ("")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  # ylim(-0.041, 0.03)+
+  facet_wrap(~Realm ) + #, scales = "free"
+  theme_clean + 
+  theme( strip.background = element_blank(),
+         strip.text.x = element_blank())
+
+cor( RandEfPlot$End_year ,   RandEfPlot$slope, )
 
 
+dur<- ggplot(RandEfPlot, aes(x= Duration ,  y = slope))+  #`Plot_slp_ mean`
+  geom_point (aes(color = Realm), size =sz)+
+  scale_color_manual(values = col.scheme.realm, guide = FALSE)+
+  #  xlab ("Change in % urban cover per 1/16 degree") + ylab ("")+
+  geom_hline(yintercept=0,linetype="dashed")+
+  # ylim(-0.041, 0.03)+
+  facet_wrap(~Realm ) + #, scales = "free"
+  theme_clean + 
+  theme( strip.background = element_blank(),
+         strip.text.x = element_blank())
 
+cor( RandEfPlot$Duration ,   RandEfPlot$slope, )
 
-
-
-
-
-
+library(gridExtra)
+grid.arrange(strt,  end,  dur, nrow = 3)
 
 
 
@@ -2818,3 +2952,256 @@ contPlot<- ggplot(data.frame(subset(contSlope, Continent != "Africa"   )))+ # ex
         axis.text.x=element_blank()) +
   geom_text(aes(x = 5.3 , y = -0.025, label = "A"),  
             size = 6, color = 1) 
+
+
+
+
+
+# Random walk model #####
+compDat4RW<- completeData
+compDat4RW$Terrestrial<- as.numeric(compDat4RW$Realm == "Terrestrial")
+compDat4RW$Freshwater<- as.numeric(compDat4RW$Realm == "Freshwater")
+compDat4RW$iYear2<- compDat4RW$iYear
+compDat4RW$iYear3<- compDat4RW$iYear
+compDat4RW$iYear4<- compDat4RW$iYear
+compDat4RW$iYear5<- compDat4RW$iYear
+compDat4RW$iYear6<- compDat4RW$iYear
+
+
+inlaRW <- inla( log10(Number+1) ~ Realm +
+                  f(iYear, Terrestrial, model='rw1') +
+                  f(iYear2, Freshwater, model='rw1') +
+                  f(Datasource_ID_4INLAR,iYear,model='iid')+
+                  f(Location_4INLA,model='iid')+
+                  f(Plot_ID,model='iid')+
+                  f(Period_4INLA,model='iid') , 
+                control.compute = list(dic=TRUE,waic=TRUE),     
+                data=compDat4RW)
+save(inlaRW, file =  "E:/inlaRW.RData")
+# check what this does 
+inlaRW2 <- inla( log10(Number+1) ~ Realm +
+                   f(iYear, Terrestrial, model='rw1') +
+                   f(iYear2, Freshwater, model='rw1') +
+                   
+                   f(Datasource_ID_4INLA,model='iid')+
+                   f(Location_4INLA,model='iid')+
+                   f(Plot_ID,model='iid')+
+                   f(Period_4INLA,model='iid')+ 
+                   f(Plot_ID_4INLAR,iYear3,model='iid')+
+                   f(Location_4INLAR,iYear4,model='iid')                      +
+                   f(Datasource_ID_4INLAR,iYear5,model='iid'),
+                 # f(iYear6,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                 
+                 control.compute = list(dic=TRUE,waic=TRUE),     
+                 data=compDat4RW)
+# exaclty the same
+load("inlaRW.RData")
+# cut off above max and below mean for each realm 
+terMax<- max(metadata_per_dataset$End[metadata_per_dataset$Realm == "Terrestrial"] )
+fwMax <- max(metadata_per_dataset$End[metadata_per_dataset$Realm == "Freshwater"] )
+terMin<- min(metadata_per_dataset$Start[metadata_per_dataset$Realm == "Terrestrial"] )
+fwMin <- min(metadata_per_dataset$Start[metadata_per_dataset$Realm == "Freshwater"] )
+
+
+rwTerr<- inlaRW$summary.random$iYear
+rwTerr$Year<-  sort(unique(completeData$Year))
+rwTerr$Realm <- "Terrestrial"
+rwTerr$fixedInt<- inlaRW$summary.fixed[1,1] + inlaRW$summary.fixed[1,2]
+rwTerr<- subset(rwTerr, Year >= terMin & Year <=terMax )
+
+rwFW  <- inlaRW$summary.random$iYear2
+rwFW$Year<- sort(unique(completeData$Year))
+rwFW$Realm <- "Freshwater"
+rwFW$fixedInt<- inlaRW$summary.fixed[1,1]
+rwFW<- subset(rwFW, Year >= fwMin & Year <=fwMax )
+
+RW<- rbind(rwTerr, rwFW)
+
+
+ggplot(RW )+
+  # geom_line(aes(x=Year,y=TerrMn, color = "Terrestrial")) +
+  geom_line(aes(x=Year,y=FwMn, color = "Freshwater")) +
+  geom_ribbon(aes(x=Year, ymin = FwMin,  ymax = FwMax, fill="Freshwater"),alpha=0.5)+
+  geom_ribbon(aes(x=Year, ymin = TerMin,  ymax = TerMax, fill= "Terrestrial"),alpha=0.5)+
+  scale_fill_manual(values = col.scheme.realm)   +
+  scale_color_manual(values = col.scheme.realm)   +
+  labs(y = "Arthropod abundance") + 
+  theme_clean
+
+
+
+
+# FULL FIG 1 #####
+RW$Realm<- factor(RW$Realm, levels = c("Terrestrial", "Freshwater")) # make sure that TErr is ordered first 
+labs<- data.frame(
+  x = c(1930, 1930), 
+  y = c(50000, 50000), 
+  Realm = c("Terrestrial", "Freshwater"), 
+  labs = c("A", "C"))
+
+# overal slopes 
+
+
+
+fig1AC<-ggplot(data = RW, 
+               aes(x= Year, y=10^ (RW$mean+ RW$fixedInt),   colour = Realm)) + 
+  scale_y_log10() +  
+  labs(x = "", y = "Insect abundance / biomass") +
+  geom_line(data = RW,    aes(x=Year,  y= 10^ (RW$mean+ RW$fixedInt), colour=Realm), size = 1)+
+  geom_ribbon(data = RW, aes(x=Year, ymin = 10^(fixedInt + `0.025quant`),  
+                             ymax = 10^(fixedInt + `0.975quant`), fill=Realm),alpha=0.4, color = NA)+
+  scale_colour_manual(values = col.scheme.realm, name = "Random walk model") +
+  scale_fill_manual (values = col.scheme.realm, name = "Random walk model")+
+  theme_clean +
+  geom_text(aes(x, y, label=labs, group=NULL),data=labs,  
+            size = 6, color = 1) +
+  
+  new_scale_color ()+
+  geom_line(data=pframe, aes(x= Year, y=unlog, group = Datasource_ID,  colour = Realm), size =0.2, alpha = 0.7)+
+  scale_colour_manual(values = col.scheme.realm, name = "Dataset trends")+
+  facet_grid(Realm~.)+
+  theme(strip.text.y = element_blank())
+
+ggsave(filename = "fig 1AC test5.pdf",
+       plot = print(fig1AC),
+       device = "pdf", 
+       colormodel = "cmyk", 
+       useDingbats = F)
+png("Fig 1AC.png", width=2000, height=2500, res = 360)
+fig1AC
+dev.off()
+
+
+
+# fig 3 random fits per continent #####
+compDat4RW<- completeData
+compDat4RW$EuropeTerr<- as.numeric(compDat4RW$Continent == "Europe" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$EuropeFw<-   as.numeric(compDat4RW$Continent == "Europe" & compDat4RW$Realm == "Freshwater")
+compDat4RW$NATerr<- as.numeric(compDat4RW$Continent == "North America" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$NAFw<-   as.numeric(compDat4RW$Continent == "North America" & compDat4RW$Realm == "Freshwater")
+compDat4RW$AsiaTerr<- as.numeric(compDat4RW$Continent == "Asia" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$AsiaFw<-   as.numeric(compDat4RW$Continent == "Asia" & compDat4RW$Realm == "Freshwater")
+compDat4RW$LATerr<- as.numeric(compDat4RW$Continent == "Latin America" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$LAFw<-   as.numeric(compDat4RW$Continent == "Latin America" & compDat4RW$Realm == "Freshwater")
+compDat4RW$AusTerr<- as.numeric(compDat4RW$Continent == "Australia" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$AusFw<-   as.numeric(compDat4RW$Continent == "Australia" & compDat4RW$Realm == "Freshwater")
+compDat4RW$AfricaTerr<- as.numeric(compDat4RW$Continent == "Africa" & compDat4RW$Realm == "Terrestrial")
+compDat4RW$AfricaFw<-   as.numeric(compDat4RW$Continent == "Africa" & compDat4RW$Realm == "Freshwater")
+
+compDat4RW$iYear2<- compDat4RW$iYear
+compDat4RW$iYear3<- compDat4RW$iYear
+compDat4RW$iYear4<- compDat4RW$iYear
+compDat4RW$iYear5<- compDat4RW$iYear
+compDat4RW$iYear6<- compDat4RW$iYear
+compDat4RW$iYear7<- compDat4RW$iYear
+compDat4RW$iYear8<- compDat4RW$iYear
+compDat4RW$iYear9<- compDat4RW$iYear
+compDat4RW$iYear10<- compDat4RW$iYear
+compDat4RW$iYear11<- compDat4RW$iYear
+compDat4RW$iYear12<- compDat4RW$iYear
+
+
+inlaRWcont <- inla( log10(Number+1) ~ Realm +
+                      f(iYear,  EuropeTerr   , model='rw1') +
+                      f(iYear2, EuropeFw     , model='rw1') +
+                      f(iYear3, NATerr, model='rw1') +
+                      f(iYear4, NAFw, model='rw1') +
+                      f(iYear5, AsiaTerr, model='rw1') +
+                      f(iYear6, AsiaFw, model='rw1') +
+                      f(iYear7, LATerr, model='rw1') +
+                      f(iYear8, LAFw, model='rw1') +
+                      f(iYear9, AusTerr, model='rw1') +
+                      f(iYear10, AusFw, model='rw1') +
+                      f(iYear11, AfricaTerr, model='rw1') +
+                      f(iYear12, AfricaFw, model='rw1') +
+                      
+                      f(Datasource_ID_4INLAR,iYear,model='iid')+
+                      f(Location_4INLA,model='iid')+
+                      f(Plot_ID_4INLA,model='iid')+
+                      f(Period_4INLA,model='iid') , 
+                    control.compute = list(dic=TRUE,waic=TRUE),     
+                    data=compDat4RW)
+
+save(inlaRWcont, file = "inlaRWcont.RData")
+
+
+load("inlaRWcont20191003.RData")
+# grab all year random effects and realm and continent into 1 df
+Year<-rep(1925:2018, 12)
+Continent <- rep(c("Europe", "North America", "Asia", "Latin America", "Australia", "Africa" ), each = 2*94)
+Realm <-  rep(c("Terrestrial", "Freshwater"), each = 94) 
+RWs<-rbind(inlaRWcont$summary.random$iYear, inlaRWcont$summary.random$iYear2, inlaRWcont$summary.random$iYear3, inlaRWcont$summary.random$iYear4, inlaRWcont$summary.random$iYear5,
+           inlaRWcont$summary.random$iYear6, inlaRWcont$summary.random$iYear7,inlaRWcont$summary.random$iYear8, inlaRWcont$summary.random$iYear9, inlaRWcont$summary.random$iYear10,
+           inlaRWcont$summary.random$iYear11, inlaRWcont$summary.random$iYear12)
+RWcont<-cbind(Year, Continent, Realm, RWs)
+RWcont$Continent<- ordered(RWcont$Continent, levels = c("Europe", "North America" , "Asia", "Latin America", "Australia", "Africa" ))
+
+
+metadata_cont<-  completeData %>% # get start and end years  
+  group_by(Continent, Realm) %>%
+  summarise(
+    Datasources = length(unique(Datasource_ID)),
+    Plots =  length(unique(Plot_ID)),
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T)) 
+metadata_cont$value_startYear<-NA
+for (i in 1: nrow(metadata_cont)){
+  year  <-  metadata_cont$Start_year[i] 
+  if(year <1960){year = 1960}
+  metadata_cont$value_startYear[i]<-
+    RWcont$mean[RWcont$Continent == as.character(metadata_cont$Continent[i]) &
+                  RWcont$Realm ==  as.character(metadata_cont$Realm[i]) &
+                  RWcont$Year ==  year ]
+}
+
+RWcont<- merge(RWcont, metadata_cont)
+RWcont$goodData<- RWcont$Year >= RWcont$Start_year &RWcont$Year <= RWcont$End_year # only select years with actual data 
+
+# create fake variable to force equal min max values 
+minUpper<- min(subset(RWcont, Continent == "North America")$'0.025quant')
+maxUpper
+minLower
+maxLower<- 
+  RWcont$minmax<- NA 
+RWcont$minmax[RWcont$Continent == "Europe"]<- c(-0.7, 0.85)
+RWcont$minmax[RWcont$Continent == "North America"]<- c(-0.7, 0.85)
+RWcont$minmax[RWcont$Continent == "Asia"]<- c(-0.7, 0.85)
+RWcont$minmax[RWcont$Continent == "Latin America"]<- c(-1.5, 1.5)
+RWcont$minmax[RWcont$Continent == "Australia"]<- c(-1.5, 1.5)
+RWcont$minmax[RWcont$Continent == "Africa"]<- c(-1.5, 1.5)
+
+
+#Fig 3####
+ggplot(subset(RWcont, goodData == T ))+
+  geom_line(aes(x=Year,y=mean - value_startYear, color = Realm ))+
+  scale_colour_manual(values = col.scheme.realm)+
+  geom_ribbon(aes(x=Year, ymin = `0.025quant`- value_startYear ,ymax = `0.975quant`- value_startYear, fill=Realm), alpha=0.5)+
+  geom_blank(aes(y=minmax)) +
+  scale_fill_manual (values = col.scheme.realm)+
+  xlim (1960, 2018)+
+  geom_hline(yintercept = 0, linetype="dashed") +  theme_bw()+
+  facet_wrap(~Continent , scales = "free")+ #
+  labs(y = "Standardized insect abundance", x = "") +
+  theme_clean +
+  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)+
+  theme(strip.background =element_rect(fill="white"), 
+        strip.text.x = element_text(angle = 0, hjust = 0), 
+        axis.text.x  = element_text(angle=45, vjust=1, hjust = 1), 
+        legend.position = "bottom")
+
+
+png("Fig 3.png", width=4000, height=2300, res = 360)
+fig1AC
+dev.off()
+
+
+
+test<- inlaRWcont$summary.random$iYear
+test$TrueMean<- test$mean+ 2.262 +0.037 # europe + terr
+test$True025<- test$`0.025quant`  + 2.262 + 0.037
+test$True975<- test$`0.975quant`  + 2.262 +0.037
+test$TrueMean
+#1980 = 55
+10^test$TrueMean[55]
+10^test$TrueMean[94]
