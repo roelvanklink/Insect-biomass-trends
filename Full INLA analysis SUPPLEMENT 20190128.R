@@ -80,18 +80,28 @@ summary(inlaF)
 
 # PC prior #####
 
-load("inlaFprior0.5-5651182.RData")
-summary(inlaFpcCor0)
+inlaContPC1_0.86<- as.data.frame(readRDS("inlaContPC1_0.86SUMMARY.rds"))[8:19,]
+inlaCont<- as.data.frame(readRDS("inlaFcontSUMMARY.rds"))[8:19,]
+plot(inlaContPC1_0.86$mean, inlaCont$mean) ;abline(a=0, b=1) # almost ideantical
+plot(inlaContPC1_0.86$X0.025quant, inlaCont$X0.025quant) ;abline(a=0, b=1)
+plot(inlaContPC1_0.86$X0.975quant, inlaCont$X0.975quant) ;abline(a=0, b=1)
+
+inlaContPC1_0.5<- as.data.frame(readRDS("inlaContPC1_0.5SUMMARY.rds"))[8:19,]  
+inlaCont<- as.data.frame(readRDS("inlaFcontSUMMARY.rds"))[8:19,]
+plot(inlaContPC1_0.5$mean, inlaCont$mean) ;abline(a=0, b=1) # almost ideantical
+plot(inlaContPC1_0.5$X0.025quant, inlaCont$X0.025quant) ;abline(a=0, b=1)
+plot(inlaContPC1_0.5$X0.975quant, inlaCont$X0.975quant) ;abline(a=0, b=1)
+
 
 realmSlope<-inlaFpcCor0 $summary.fixed[ 3:4,]
 rownames(realmSlope)<- c("Freshwater" , "Terrestrial" )
 
 PCPlot<-ggplot(data.frame(realmSlope))+
-  geom_errorbar(aes(x=rownames(realmSlope1),ymin=mean-sd, ymax=mean+sd, color = rownames(realmSlope1)),
+  geom_errorbar(aes(x=rownames(realmSlope),ymin=mean-sd, ymax=mean+sd, color = rownames(realmSlope)),
                 size = 2, width=0, position=position_dodge(width= 0.7), alpha = 0.7)+  
-  geom_errorbar(aes(x=rownames(realmSlope1), ymin=X0.025quant,ymax= X0.975quant, color = rownames(realmSlope1)),
+  geom_errorbar(aes(x=rownames(realmSlope), ymin=X0.025quant,ymax= X0.975quant, color = rownames(realmSlope)),
                 width=0, position=position_dodge(width= 0.7))+  
-  geom_point(aes(x=rownames(realmSlope1),   y=mean, shape = rownames(realmSlope1),  color = rownames(realmSlope1), fill = rownames(realmSlope1)),
+  geom_point(aes(x=rownames(realmSlope),   y=mean, shape = rownames(realmSlope),  color = rownames(realmSlope), fill = rownames(realmSlope)),
              size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
   scale_color_manual(values = col.scheme.realm)+
   scale_fill_manual(values = col.scheme.realm)+
@@ -130,6 +140,27 @@ DefPlot<-ggplot(data.frame(realmSlope1))+
 library(gridExtra)
 grid.arrange(DefPlot, PCPlot, nrow = 2 ,  heights = c(2,2.95))
 
+# correlation pred-obs for PC and default prior #####
+inlaRealm<- readRDS("InlaRealmTEST.rds")
+inlaPCcor1<-get(load("inlaPCcor1.r-5758990.RData")) # 18-10-19
+inlaPCcor0<- get(load('.Rdata'))
+
+
+completeData$predsDef <- inlaRealm$summary.fitted.values$mean  # gt predicted from default model
+completeData$predsPC0 <- inlaPCcor0$summary.fitted.values$mean  # get predicted from PC prior model
+completeData$predsPC1 <- inlaPCcor1$summary.fitted.values$mean  # get predicted from PC prior model
+
+cor.test(completeData$predsDef, log10(completeData$Number+1))
+cor.test(completeData$predsPC0, log10(completeData$Number+1))
+cor.test(completeData$predsPC0, log10(completeData$Number+1))
+
+library(brinla)
+bri.hyperpar.summary(inlaRealm)
+bri.hyperpar.summary(inlaFpcCor)
+
+
+
+
 
 
 # differences between biomass and abundance data (uses dataframe with both Units for datasets that have both) #####
@@ -142,7 +173,7 @@ metadata_AB
 
 
 
-# abundance vs biomass (overall model)
+# abundance vs biomass (overall model) #####
 inla1.AB <- inla(log10(Number+1) ~ cYear: Unit +  Unit +
                    f(Period_4INLA,model='iid')+
                    f(Plotunit_4INLA,model='iid')+
@@ -443,7 +474,7 @@ inlaFrealmAU <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
 
 ###############################
 
-# outliers
+# outliers #####
 
 load("randEfDataset.RData")
 hist(RandEfDataset$slope)
@@ -459,8 +490,13 @@ sort(outliers)
 completeData5<- completeData[! completeData$Datasource_ID %in% outliers, ]
 
 
+realmExclO<- as.data.frame(read_rds("./inla Excl Outliers/inlaFrealmExclOutlSUMMARY.rds"))[3:4,]
+realm<- as.data.frame(read_rds("inlaRealmSUMMARY.rds"))[3:4,]
+rownames(realmExclO)<- paste0(rownames(realmExclO), "exclO")
+rbind(realm, realmExclO)
 
-contExclO<- as.data.frame(read_rds("inlaFcontExclSUMMARY.rds"))
+
+contExclO<- as.data.frame(read_rds("./inla Excl Outliers/inlaFcontExclOutlSUMMARY.rds"))
 cont<- as.data.frame(read_rds("inlaFcontSUMMARY.rds"))
 
 names(contExclO)<- paste0(names(contExclO), "exclO")
@@ -476,10 +512,34 @@ cont.correlation <- ggplot(subset(cont, Continent != "Africa"), aes(x = mean, y 
     geom_errorbar(aes(x=mean ,ymin=meanexclO-sdexclO, ymax=meanexclO+sdexclO))+
     geom_errorbarh(aes(y=meanexclO ,xmin=mean-sd, xmax=mean+sd))+
   geom_abline(aes(intercept = 0, slope = 1))+
+  geom_hline(aes(yintercept = 0))+
+  geom_vline(xintercept = 0,linetype="dashed")+
   scale_color_manual(values = col.scheme.cont)+
   xlab ("full model estimates") + ylab("esimates of model excluding outliers") +
   theme_clean
 
+# Climatic zones
+biomExclO<- as.data.frame(read_rds("./inla Excl Outliers/inlaFbiomExclOutlSUMMARY.rds"))
+biom<- as.data.frame(read_rds("inlaFbiomSUMMARY.rds"))
+
+names(biomExclO)<- paste0(names(biomExclO), "exclO")
+biom<- cbind(biom, biomExclO)
+biom<- biom[6:13,]
+vars<-data.frame(do.call(rbind, strsplit(rownames(biom), split = ":")))
+biom<-cbind(biom, vars)
+biom$Realm<-gsub("Realm", "", biom$X1)
+biom$biome<-gsub("BiomeCoarse", "", biom$X2)
+
+biom.correlation <- ggplot(biom, aes(x = mean, y = meanexclO, shape = Realm , color = biome)) + 
+  geom_point( size = 2)+
+  geom_errorbar(aes(x=mean ,ymin=meanexclO-sdexclO, ymax=meanexclO+sdexclO))+
+  geom_errorbarh(aes(y=meanexclO ,xmin=mean-sd, xmax=mean+sd))+
+  geom_abline(aes(intercept = 0, slope = 1))+
+  geom_hline(aes(yintercept = 0))+
+  geom_vline(xintercept = 0,linetype="dashed")+
+#  scale_color_manual(values = col.scheme.cont)+
+  xlab ("full model estimates") + ylab("esimates of model excluding outliers") +
+  theme_clean
 
 
 
