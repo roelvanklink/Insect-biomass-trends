@@ -1,6 +1,7 @@
 
 
-setwd("C:\\Dropbox\\Dropbox\\Insect Biomass Trends/csvs") # work
+setwd("C:\\Dropbox\\Insect Biomass Trends/csvs") # work
+setwd("C:\\Users\\roelv\\Dropbox\\Insect Biomass Trends/csvs/")
 
 load("metadata_per_plot.RData")
 
@@ -62,6 +63,10 @@ LU2nbrsnw<- read.table("LU_CCIESA_neighbours_1992on_newplots.txt", header = T)
 
 LU2<- rbind(LU2, LU2nw)
 LU2nbrs<- rbind(LU2nbrs, LU2nbrsnw)
+sum(duplicated(LU2))
+sum(duplicated(LU2nbrs))
+
+
 
 hist(LU2$X2015, breaks=seq(5,225,by=1)) # distribution of sites over different categories 
 # were there any changes in landcover in this period? 
@@ -76,10 +81,10 @@ unique(changed[,1:2])
 
 LU2nbrs<- LU2nbrs[, c(25,1:24)]
 LU2IDs<-LU2[, c(1,26,27)]
-LU2IDs$Datasource_ID[LU$Plot_ID  == 1739]<- 1527
+LU2IDs$Datasource_ID[LU2$Plot_ID  == 1739]<- 1527
 
 LU2<- LU2[, 1:25]
-LU2<- unique(LU2) # keep only 1 value for each mainCell
+LU2<- unique(LU2) # keep only 1 value for each mainCell, remove all duplicates
 
 LU2<- rbind(LU2, LU2nbrs)
 dim(LU2)/9  # 1023 unique cells
@@ -89,7 +94,7 @@ fullLU2<-merge(LU2, LU2IDs) #
 dim(fullLU2)/9  #= 1711 plots! correct 
 
 changed<- (fullLU2[(fullLU2$X1992 - fullLU2$X2015 != 0)   , c(1,24:26) ])
-nrow(changed)/ nrow(fullLU2)
+nrow(changed)/ nrow(fullLU2) # 5% of cells changed during period
 # make matrix 
 
 library(reshape2)
@@ -101,8 +106,15 @@ hist((counts$frcCrop))
 # works
 
 
+
+load("metadata_per_plot.RData")
+
 # only take plots that are in completeData
 fullLU2<- fullLU2[fullLU2$Plot_ID %in%  metadata_per_plot$Plot_ID, ]
+
+
+
+
 
 valueLastYr<-NULL
 
@@ -114,12 +126,13 @@ year<- metadata_per_plot$End_year[metadata_per_plot$Plot_ID == plt]
 true.yr<-year
 if (length(year) == 0) {year <-0} # if plotID is missing, replce year  by 0
 if(year>2015){  year<-2015} # for yrs after 2015 use 2015
-if (year<1992  & year >1986){year <- 1992} # for yrs between 1987 and 1991 use 1992
+#if (year<1992  & year >1986){year <- 1992} # for yrs between 1987 and 1991 use 1992
 
 yearx<- paste0( "X", year)
 value <- fullLU2[i, yearx]
 
-if(true.yr < 1987){value <-NA} # for yrs before 1987 use NA
+if(true.yr < 1992){value <-NA} # for yrs before 1987 use NA
+#if(true.yr > 2015){value <-NA} # for yrs after 2015 use NA
 
 valueLastYr[i]<- value
 }
@@ -128,15 +141,35 @@ valueLastYr[i]<- value
 fullLU2$valueLastYr<-valueLastYr
 
 counts<- dcast(na.omit(fullLU2), Plot_ID~valueLastYr, length)
-dim(counts)  # 40 plots lost because too old
+dim(counts)  # 100 plots lost because too old
 counts$frcCrop900m<- (counts$`10` / 9) + (counts$`11`/9)  + (counts$`12`/9) + (counts$`30`*0.75)/9 + (counts$`40`*0.25)/9  
 counts$frcUrban900m<-counts$`190` / 9
 hist((counts$frcCrop900m))
 hist(counts$frcUrban900m)
 
 
-percCover900m <-counts 
-save(percCover900m, file = "percCover900m.RData")
+# remove sites with < 10 years data before 2015
+
+percCover900m19922015 <-counts 
+
+
+load("all.aggr.insects.RData")
+aggr92.15<- subset(all.aggr.insects,  Year < 2016 )
+
+metadata_92.15<- aggr92.15 %>% 
+  group_by(Plot_ID) %>%
+  summarise(
+    Datasource_ID = unique(Datasource_ID),
+    Datasource_name = unique(Datasource_name), 
+    Duration = (max(Year, na.rm = T) - min(Year, na.rm = T))+1, 
+    Start_year = min(Year, na.rm = T),
+    End_year = max(Year, na.rm = T),
+  )
+too.short<-subset(metadata_92.15, Duration < 9)
+print(too.short, n= Inf)
+
+
+ save(percCover900m19922015, file = "percCover900m19922015.RData")
 
 
 
