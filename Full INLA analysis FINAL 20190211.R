@@ -1052,8 +1052,8 @@ metadata_2005<-  cD2005 %>%   group_by(Continent, Realm) %>%
 # load all RDS files 
 
 # realm
-inlaRealm1960<- as.data.frame(readRDS("InlaRealm1960SUMMARY.rds"))[3:4, ]
-inlaRealm$slice<- ">1960"
+inlaRealm<- as.data.frame(readRDS("InlaRealmSUMMARY.rds"))[3:4, ]
+inlaRealm$slice<- "Full"
 inlaRealm1970<- as.data.frame(readRDS("inlaRealm1970SUMMARY.rds"))[3:4, ]
 inlaRealm1970$slice<- ">1970"
 inlaRealm1980<- as.data.frame(readRDS("inlaRealm1980SUMMARY.rds"))[3:4, ]
@@ -1081,16 +1081,16 @@ slicePlot<- ggplot(data.frame(realmSlices))+
   xlab ("")+ ylab("Trend slope  \n % change per year")+
   theme_clean +
   theme(legend.key=element_blank(), 
-        legend.position="bottom")   
+        legend.position="right")   
 #  geom_text(aes(x = 4.3 , y = -0.025, label = "C"),  
  #           size = 6, color = 1) 
-metadata_1960$slice<- ">1960"
-metadata_1970$slice<- ">1970"
-metadata_1980$slice<- ">1980"
-metadata_1990$slice<- ">1990"
-metadata_1995$slice<- ">1995"
-metadata_2000$slice<- ">2000"
-metadata_2005$slice<- ">2005"
+metadata_1960$slice<- "1960"
+metadata_1970$slice<- "1970"
+metadata_1980$slice<- "1980"
+metadata_1990$slice<- "1990"
+metadata_1995$slice<- "1995"
+metadata_2000$slice<- "2000"
+metadata_2005$slice<- "2005"
 
 metadata_cont<- rbind(metadata_1960, metadata_1970, metadata_1980, metadata_1990, metadata_1995, metadata_2000, metadata_2005)
 
@@ -1105,13 +1105,13 @@ inlaCont1995<- as.data.frame(readRDS("inlaCont1995SUMMARY.rds"))[8:19, ]
 inlaCont2000<- as.data.frame(readRDS("inlaCont2000SUMMARY.rds"))[8:19, ]
 inlaCont2005<- as.data.frame(readRDS("inlaCont2005SUMMARY.rds"))[8:19, ]
 
-inlaCont1960$slice<- ">1960"
-inlaCont1970$slice<- ">1970"
-inlaCont1980$slice<- ">1980"
-inlaCont1990$slice<- ">1990"
+inlaCont1960$slice<- "1960"
+inlaCont1970$slice<- "1970"
+inlaCont1980$slice<- "1980"
+inlaCont1990$slice<- "1990"
 #inlaCont1995$slice<- ">1995"
-inlaCont2000$slice<- ">2000"
-inlaCont2005$slice<- ">2005"
+inlaCont2000$slice<- "2000"
+inlaCont2005$slice<- "2005"
 ContSlices<- rbind(inlaCont1960, inlaCont1970, inlaCont1980, inlaCont1990,  inlaCont2000, inlaCont2005)
 #ContSlices$slice<- ordered(ContSlices$slice, levels = (c(">1960", ">1970" , ">1980", ">1990", ">2000"  )))
 
@@ -1136,44 +1136,30 @@ ContSlices$ok <- ContSlices$plots.ok + ContSlices$dataset.ok
 
 
 slicePlot<- ggplot(subset(ContSlices, ok >0 & sd < 1))+
+  geom_hline(yintercept=0,linetype="dashed") +
   geom_errorbar(aes(x=slice,ymin=mean-sd, ymax=mean+sd, color = Realm),
-                size = 2, width=0, alpha = 0.7,  position=position_dodge(width= 0.5))+  
+                size = 1, width=0, alpha = 0.7,  position=position_dodge(width= 0.5))+  
   geom_errorbar(aes(x=slice,ymin=X0.025quant,ymax=X0.975quant, color = Realm),
                 width=0, position=position_dodge(width= 0.5))+  
   geom_point(aes(x=slice,   y=mean, shape = Realm,  fill = Realm, color = Realm),
-             size = 2, position=  position_dodge(width = 0.5), alpha=1 )+
+             size = 1.2, position=  position_dodge(width = 0.5), alpha=1 )+
   geom_blank(aes(y=minmax)) +
   scale_color_manual(values = col.scheme.realm)+
   scale_fill_manual(values = col.scheme.realm)+
   scale_shape_manual(values = shps)+
-  geom_hline(yintercept=0,linetype="dashed") +
-  xlab ("")+ ylab("Trend slope")+
+  xlab ("Start year") + ylab("Trend slope")+
 facet_wrap(.~Continent, scales = "free_y")+  #)+#
+  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)+
     theme_clean +
   theme(strip.background =element_rect(fill="white"), 
         axis.line=element_line() ,
         axis.text.x  = element_text(angle=45, vjust=1, hjust = 1), 
-        legend.position = "bottom")   
+        legend.position = "right")   
 
 
 
-
-
-#Fig 3####
-ggplot(subset(RWcont, goodData == T ))+
-  geom_line(aes(x=Year,y=mean - value_startYear, color = Realm ))+
-  scale_colour_manual(values = col.scheme.realm)+
-  geom_ribbon(aes(x=Year, ymin = `0.025quant`- value_startYear ,ymax = `0.975quant`- value_startYear, fill=Realm), alpha=0.5)+
-  geom_blank(aes(y=minmax)) +
-  scale_fill_manual (values = col.scheme.realm)+
-  xlim (1960, 2018)+
-  geom_hline(yintercept = 0, linetype="dashed") +  theme_bw()+
-  facet_wrap(~Continent , scales = "free")+ #
-  labs(y = "Standardized insect abundance", x = "") +
-  theme_clean +
-  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
-  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)+
-  
+ 
 
 
 
@@ -1237,10 +1223,11 @@ paSlope<- inlaFpa[4:7,]
 vars<-data.frame(do.call(rbind, strsplit(rownames(paSlope), split = ":")))
 paSlope<-cbind(paSlope, vars)
 paSlope$Realm<-gsub("Realm", "", paSlope$X2);  paSlope$PA<-gsub("PA", "", paSlope$X1)
+paSlope$factor4<-rownames(paSlope) 
 paSlope$PA <-paSlope$PA
 paSlope<- merge(paSlope, metadata_pa)
 paSlope$text = paste0("(", paSlope$Datasources, " | ", paSlope$Plots, ") ")
-
+paSlope$PA<- factor(paSlope$PA, levels = rev( "no", "yes")) 
 
 brks<- c(-0.010, -0.005, 0, 0.005, 0.01)
 perc<-(10^(brks )  *100) - 100
@@ -1249,38 +1236,44 @@ e<- c("","","","","","","")
 
 
 PA.alph<- c(  "yes"  = 1, "no" = 0.7)
-
+PA.col<- c("PAno:RealmFreshwater:cYear" = "dodgerblue4",  "PAyes:RealmFreshwater:cYear" = "dodgerblue2", 
+           "PAno:RealmTerrestrial:cYear" =  "chocolate4", "PAyes:RealmTerrestrial:cYear" =  "chocolate3" )
 
 PAplot #<- 
 ggplot(data.frame(paSlope))+
-  geom_errorbar(aes(x=Realm,ymin=mean-sd, ymax=mean+sd, color = Realm, alpha = PA),
-                size = 2, width=0, position=position_dodge(width= 0.7))+  
-  geom_errorbar(aes(x=Realm,ymin=X0.025quant,ymax= X0.975quant, color = Realm, alpha = PA),
-                width=0, position=position_dodge(width= 0.7))+  
-  geom_point(aes(x=Realm,   y=mean,  shape = Realm,  fill = Realm, color = Realm, alpha = PA),
+  geom_point(aes(x= Realm,   y=mean,  shape = Realm,  fill = factor4, color = factor4), #, alpha = PA 
              size = 4, position=  position_dodge(width = 0.7) )+
+  geom_errorbar(aes(x=Realm, ymin=mean-sd, ymax=mean+sd, color = factor4),
+                size = 2, width=0, alpha = 0.7, position=position_dodge(width= 0.7))+  
+  geom_errorbar(aes(x=Realm, ymin=X0.025quant,ymax= X0.975quant, color = factor4),
+                width=0, position=position_dodge(width= 0.7))+  
+  
   geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   scale_y_continuous(breaks = brks,labels = l, limits=c(-0.01, 0.015))+
   xlab ("")+ ylab("Trend slope  \n % change per year")+
-  geom_text(aes(x = Realm , y = 0.014, fill = PA,  label = text), 
+  geom_text(aes(x = Realm , y = 0.014, group = PA,  label = text), 
             position = position_dodge(width = 0.7), size = 3, color = 1) +
-scale_alpha_manual(values = PA.alph)+
-scale_color_manual(values = col.scheme.realm)+
-scale_fill_manual(values = col.scheme.realm)+
-scale_shape_manual(values = shps)
+#scale_alpha_manual(values = PA.alph)+
+#scale_color_manual(values =PA.col)+
+scale_fill_manual(values = PA.col)+
+scale_shape_manual(values = shps)+
   
   scale_color_manual(name="Protection status",
-                    breaks=c("no", "yes"),
-                    labels=c("Unprotected", "Protected"), 
-                    values = col.scheme.PA) + 
+                    breaks=rev(c("PAno:RealmFreshwater:cYear", "PAyes:RealmFreshwater:cYear", 
+                             "PAno:RealmTerrestrial:cYear", "PAyes:RealmTerrestrial:cYear")),
+                    labels=rev(c("Unprotected", "Protected", "Unprotected", "Protected")), 
+                    values = PA.col) + 
 #  scale_fill_manual(name="Protection status",
 #                     breaks=c("no", "yes"),
 #                     labels=c("Unprotected", "Protected"), 
 #                     values = col.scheme.PA) + 
-  guides(fill = guide_legend(reverse = TRUE), color = guide_legend(reverse = TRUE), shape =  guide_legend(reverse = TRUE)) +
+  guides(#fill = guide_legend(reverse = TRUE), 
+        fill = FALSE,
+shape =  FALSE)+
+          
   theme_clean +
-  theme(legend.position="bottom") 
+  theme(legend.position="right") 
  
 
 png("PA plot.png", width=2000, height=700, res = 360)
@@ -3205,3 +3198,22 @@ test$TrueMean
 #1980 = 55
 10^test$TrueMean[55]
 10^test$TrueMean[94]
+
+
+
+
+#Fig 3####
+ggplot(subset(RWcont, goodData == T ))+
+  geom_line(aes(x=Year,y=mean - value_startYear, color = Realm ))+
+  scale_colour_manual(values = col.scheme.realm)+
+  geom_ribbon(aes(x=Year, ymin = `0.025quant`- value_startYear ,ymax = `0.975quant`- value_startYear, fill=Realm), alpha=0.5)+
+  geom_blank(aes(y=minmax)) +
+  scale_fill_manual (values = col.scheme.realm)+
+  xlim (1960, 2018)+
+  geom_hline(yintercept = 0, linetype="dashed") +  theme_bw()+
+  facet_wrap(~Continent , scales = "free")+ #
+  labs(y = "Standardized insect abundance", x = "") +
+  theme_clean +
+  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf)+
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)+
+  
