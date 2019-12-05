@@ -186,37 +186,7 @@ data.frame(
 # Check for confounding factors####
 
 
-inlaConfounders <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration  +  #  + cYear:Country_state
-                f(Period_4INLA,model='iid')+
-                  f(Plot_ID_4INLA,model='iid')+
-                  f(Location_4INLA,model='iid')+
-                  f(Datasource_ID_4INLA,model='iid')+
-                   f(Plot_ID_4INLAR,iYear,model='iid')+
-                   f(Location_4INLAR,iYear,model='iid')                      +
-                   f(Datasource_ID_4INLAR,iYear,model='iid')+
-                  f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-              control.compute = list(dic=TRUE,waic=TRUE),
-              data=completeData) # 
-#  
-read_rds("inlaConfoundersSUMMARY.rds")
-
-inlaConfoundersFW <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration  + cYear: cEndYear + #  + cYear:Country_state
-                            f(Period_4INLA,model='iid')+
-                            f(Plot_ID_4INLA,model='iid')+
-                            f(Location_4INLA,model='iid')+
-                            f(Datasource_ID_4INLA,model='iid')+
-                            f(Plot_ID_4INLAR,iYear,model='iid')+
-                            f(Location_4INLAR,iYear,model='iid')                      +
-                            f(Datasource_ID_4INLAR,iYear,model='iid')+
-                            f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                          control.compute = list(dic=TRUE,waic=TRUE),
-                          data=subset(completeData, Realm == "Freshwater")) # 
-summary(inlaConfoundersFW)
-read_rds("inlaConfoundersFWSUMMARY.rds")
-# only duration positive: 2.5%:0.0001   mean: 0.0018     97.5%: 0.0037
-
-inlaConfoundersT <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration  + cYear: cEndYear +  #  + cYear:Country_state
-                           f(Period_4INLA,model='iid')+
+inlaConfoundEndYr  <- inla(log10(Number+1) ~    cEndYear +  cYear: cEndYear +  #cYear: cDuration   +   cDuration  + #cYear: cStartYear + cStartYear +    
                            f(Plot_ID_4INLA,model='iid')+
                            f(Location_4INLA,model='iid')+
                            f(Datasource_ID_4INLA,model='iid')+
@@ -225,13 +195,38 @@ inlaConfoundersT <- inla(log10(Number+1) ~ cYear: cStartYear + cYear: cDuration 
                            f(Datasource_ID_4INLAR,iYear,model='iid')+
                            f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
                          control.compute = list(dic=TRUE,waic=TRUE),
-                         data=subset (completeData, Realm == "Terrestrial" )) # 
-summary(inlaConfoundersT)
-read_rds("inlaConfoundersTSUMMARY.rds")
+                         control.inla = list(h = 16.1713), 
+                         data=completeData) # 
+
+inlaConfounDuration  <- inla(log10(Number+1) ~    cYear: cDuration   +   cDuration +  #cEndYear +  cYear: cEndYear + + #cYear: cStartYear + cStartYear +    
+                             f(Plot_ID_4INLA,model='iid')+
+                             f(Location_4INLA,model='iid')+
+                             f(Datasource_ID_4INLA,model='iid')+
+                             f(Plot_ID_4INLAR,iYear,model='iid')+
+                             f(Location_4INLAR,iYear,model='iid')                      +
+                             f(Datasource_ID_4INLAR,iYear,model='iid')+
+                             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                           control.compute = list(dic=TRUE,waic=TRUE),
+                           control.inla = list(h = 16.1713), 
+                           data=completeData) # 
+
+inlaConfoundStartYr  <- inla(log10(Number+1) ~    cYear: cStartYear + cStartYear + #cEndYear +  cYear: cEndYear +  #cYear: cDuration   +   cDuration  + #    
+                             f(Plot_ID_4INLA,model='iid')+
+                             f(Location_4INLA,model='iid')+
+                             f(Datasource_ID_4INLA,model='iid')+
+                             f(Plot_ID_4INLAR,iYear,model='iid')+
+                             f(Location_4INLAR,iYear,model='iid')                      +
+                             f(Datasource_ID_4INLAR,iYear,model='iid')+
+                             f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
+                           control.compute = list(dic=TRUE,waic=TRUE),
+                           control.inla = list(h = 16.1713), 
+                           data=completeData) # 
+
+
 # nothing sign
 
-
-
+read_rds("inlaConfounders-5788439inlaConfounDurationSUMMARY.rds")
+read_rds("inlaConfounders-5788342inlaConfoundStartYrSUMMARY.rds")
 
 
 
@@ -1208,6 +1203,8 @@ all.results<-c(all.results, PA_model = list(inlaFpaInt$summary.fixed)) # save fi
 save(inlaFpaInt, file = "/data/Roel/inlaFpaInt.RData")
 
 inlaFpa<- as.data.frame(readRDS("inlaFpaSUMMARY.rds"))
+ as.data.frame(readRDS("inlaFpaInteractionSUMMARY.rds"))
+
 
 data.frame(
 var =   rownames(inlaFpa)[4:7], 
@@ -1462,7 +1459,7 @@ cropPlot<-ggplot(landusePlots, aes(x=(End_cropArea*100), y = slope))+  #`Plot_sl
 
 # LAND USE CHANGE #####
 #models (only use LUH2  = LANDSCAPE change) 
-inlaFChangesTerr<- inla(log10(Number+1) ~ cYear + cYear *  urbanization + cYear * cropification +# cYear*PA +
+inlaFChangesTerr<- inla(log10(Number+1) ~ cYear + urbanization + cropification + cYear *  urbanization + cYear * cropification  +  # cYear*PA +
                           f(Period_4INLA,model='iid')+
                           f(Location_4INLA,model='iid')+
                           f(Plot_ID_4INLA,model='iid')+
@@ -1475,8 +1472,7 @@ inlaFChangesTerr<- inla(log10(Number+1) ~ cYear + cYear *  urbanization + cYear 
                         control.inla = list(tolerance = 1e-10),
                         data=subset(completeData, Realm == "Terrestrial"), verbose = T, num.threads = 2)
 readRDS("inlaFchangesTerrSUMMARY.rds") # fixed hessian
-all.results$Changes_LUH2_Terr <- (inlaFChangesTerr$summary.fixed) # urbanization effect is gone
-
+# almost positive effect of crop! slightly negative effect of urban 
 
 inlaFChangesFW<- inla(log10(Number+1) ~ cYear + cYear *  urbanization + cYear * cropification + #cYear:PA +
                         f(Period_4INLA,model='iid')+
@@ -1490,7 +1486,7 @@ inlaFChangesFW<- inla(log10(Number+1) ~ cYear + cYear *  urbanization + cYear * 
                       control.compute = list(dic=TRUE,waic=TRUE),
                       control.inla = list(tolerance = 1e-10),
                       data=subset(completeData, Realm == "Freshwater"), verbose = F, num.threads = 2)
-readRDS("inlaFchangesFWSUMMARY.rds") # ok
+readRDS("inlaFchangesFWSUMMARY.rds") # nothing 
 
 
 
@@ -1551,7 +1547,7 @@ inlaFlanduseESA<- inla(log10(Number+1) ~  cYear* Realm* frcCrop900m + cYear* Rea
                     num.threads = 2)#verbose = T,
 read_rds("inlaFlanduseESASUMMARY.rds") # ok
 
-inlaFlanduseESAterr<- inla(log10(Number+1) ~  cYear* frcCrop900m + cYear* frcUrban900m +# frcCrop900m + frcUrban900m +
+inlaFlanduseESAterr<- inla(log10(Number+1) ~  cYear* frcCrop900m1992 + cYear* frcUrban900m1992 +# frcCrop900m + frcUrban900m +
                            f(Period_4INLA,model='iid')+
                              f(Location_4INLA,model='iid')+
                              f(Plot_ID_4INLA,model='iid')+
@@ -1568,7 +1564,7 @@ read_rds("inlaFlanduseESAterrSUMMARY.rds")
 read_rds("inlaFlanduseESAterrSUMMARY20190930.rds")
 
 
-inlaFlanduseESAfw<- inla(log10(Number+1) ~   cYear* frcCrop900m + cYear* frcUrban900m+
+inlaFlanduseESAfw<- inla(log10(Number+1) ~   cYear* frcCrop900m1992 + cYear* frcUrban900m1992+
                          f(Period_4INLA,model='iid')+
                            f(Location_4INLA,model='iid')+
                            f(Plot_ID_4INLA,model='iid')+
@@ -1648,7 +1644,7 @@ inlaFClimChangesTerr<- inla(log10(Number+1) ~ cYear + cYear *  relDeltaTmean + c
                             control.compute = list(dic=TRUE,waic=TRUE),
                             control.inla = list(tolerance = 1e-10),
                             data=subset(completeData, Realm == "Terrestrial"), verbose = T, num.threads = 2)
-readRDS("inlaFClimChangesTerrSUMMARY.rds") # ok
+readRDS("inlaFClimChangesTerrSUMMARY.rds") # nothing 
 
 
 inlaFClimChangesFW<- inla(log10(Number+1) ~ cYear + cYear *  relDeltaTmean + cYear * relDeltaPrec + #cYear:PA +
