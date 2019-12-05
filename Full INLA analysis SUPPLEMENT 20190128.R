@@ -79,84 +79,66 @@ summary(inlaFprior0.1)
 summary(inlaF)
 
 # PC prior #####
+sdres <- sd(log10(completeData$Number+1),na.rm=T)
 
-inlaContPC1_0.86<- as.data.frame(readRDS("inlaContPC1_0.86SUMMARY.rds"))[8:19,]
-inlaCont<- as.data.frame(readRDS("inlaFcontSUMMARY.rds"))[8:19,]
-plot(inlaContPC1_0.86$mean, inlaCont$mean) ;abline(a=0, b=1) # almost ideantical
-plot(inlaContPC1_0.86$X0.025quant, inlaCont$X0.025quant) ;abline(a=0, b=1)
-plot(inlaContPC1_0.86$X0.975quant, inlaCont$X0.975quant) ;abline(a=0, b=1)
+pcpriorAR1_0.6 <- list(theta1 = list(prior="pc.prec", param = c(u=3*sdres,0.01)),
+                       theta2 = list(prior="pc.cor1", param=c(0.6, 0.75)))#75% likely that the autocorrelation is bigger than 0.6
+pcpriorAR1_0.5 <- list(theta1 = list(prior="pc.prec", param = c(u=3*sdres,0.01)),
+                       theta2 = list(prior="pc.cor1", param=c(0.5, 0.75)))#75% likely that the autocorrelation is bigger than 0.5
+pcpriorAR1_0.86 <- list(theta1 = list(prior="pc.prec", param = c(u=3*sdres,0.01)),
+                        theta2 = list(prior="pc.cor1", param=c(u=sqrt(3)/2, 3/4)))
+pcpriorAR0_0.5 <- list(theta1 = list(prior="pc.prec", param = c(3*sdres,0.01)),
+                       theta2 = list(prior="pc.cor0", param=c(0.5, 0.75)))#
+#PC prior on random effects
+pcpriorIID <- list(prec = list(prior="pc.prec", param = c(3*sdres,0.01)))
+#prior prior on family
+pcpriorFamily <- list(prec = list(prior="pc.prec", param = c(3*sdres,0.01)))
 
-inlaContPC1_0.5<- as.data.frame(readRDS("inlaContPC1_0.5SUMMARY.rds"))[8:19,]  
+
+
+formul<-as.formula(paste("" ))
+
+model <- inla( log10(Number+1) ~ cYear: Realm:Continent + Realm + Continent+ 
+                 f(Period_4INLA,model='iid',hyper=pcpriorIID)+
+                 f(Location_4INLA,model='iid',hyper=pcpriorIID)+
+                 f(Plot_ID_4INLA,model='iid',hyper=pcpriorIID)+
+                 f(Datasource_ID_4INLA,model='iid',hyper=pcpriorIID)+
+                 f(Plot_ID_4INLAR,iYear,model='iid',hyper=pcpriorIID)+
+                 f(Location_4INLAR,iYear,model='iid',hyper=pcpriorIID)+
+                 f(Datasource_ID_4INLAR,iYear,model='iid',hyper=pcpriorIID)+
+                 f(iYear,model='ar1', replicate=as.numeric(completeData$Plot_ID_4INLA), hyper = pcpriorAR0_0.5),
+               control.compute = list(dic=TRUE,waic=TRUE, cpo = TRUE), 
+               control.predictor = list(link = 1) , verbose = F, 
+               control.family = list(hyper = pcpriorFamily),
+               data=completeData)
+
+
+inlaContPC1_0.5<- as.data.frame(readRDS("./Inla PC priors/inlaContPC1_0.5SUMMARY.rds"))[8:19,]  
 inlaCont<- as.data.frame(readRDS("inlaFcontSUMMARY.rds"))[8:19,]
 plot(inlaContPC1_0.5$mean, inlaCont$mean) ;abline(a=0, b=1) # almost ideantical
 plot(inlaContPC1_0.5$X0.025quant, inlaCont$X0.025quant) ;abline(a=0, b=1)
 plot(inlaContPC1_0.5$X0.975quant, inlaCont$X0.975quant) ;abline(a=0, b=1)
 
+inlaContPC1_0.86<- as.data.frame(readRDS("./Inla PC priors/inlaContPC1_0.86SUMMARY.rds"))[8:19,]
+inlaCont<- as.data.frame(readRDS("inlaFcontSUMMARY.rds"))[8:19,]
+plot(inlaContPC1_0.86$mean, inlaCont$mean) ;abline(a=0, b=1) # almost ideantical
+plot(inlaContPC1_0.86$X0.025quant, inlaCont$X0.025quant) ;abline(a=0, b=1)
+plot(inlaContPC1_0.86$X0.975quant, inlaCont$X0.975quant) ;abline(a=0, b=1)
 
-realmSlope<-inlaFpcCor0 $summary.fixed[ 3:4,]
-rownames(realmSlope)<- c("Freshwater" , "Terrestrial" )
-
-PCPlot<-ggplot(data.frame(realmSlope))+
-  geom_errorbar(aes(x=rownames(realmSlope),ymin=mean-sd, ymax=mean+sd, color = rownames(realmSlope)),
-                size = 2, width=0, position=position_dodge(width= 0.7), alpha = 0.7)+  
-  geom_errorbar(aes(x=rownames(realmSlope), ymin=X0.025quant,ymax= X0.975quant, color = rownames(realmSlope)),
-                width=0, position=position_dodge(width= 0.7))+  
-  geom_point(aes(x=rownames(realmSlope),   y=mean, shape = rownames(realmSlope),  color = rownames(realmSlope), fill = rownames(realmSlope)),
-             size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
-  scale_color_manual(values = col.scheme.realm)+
-  scale_fill_manual(values = col.scheme.realm)+
-  scale_shape_manual(values = shps)+
-  coord_flip()+  ylim(-0.01, 0.02)+  xlab ("")+
-  geom_hline(yintercept=0,linetype="dashed")+
-  ylab ("Trend slope")+
-  ggtitle("PC prior") +
-  theme_clean +
-  theme(legend.position="bottom" ,
-        legend.title=element_blank()) 
-
-inlaRealmSum<- as.data.frame(readRDS("InlaRealmSUMMARY.rds"))
-
-realmSlope1<-inlaRealmSum[ 3:4,]
-rownames(realmSlope1)<- c("Freshwater" , "Terrestrial" )
-
-DefPlot<-ggplot(data.frame(realmSlope1))+
-  geom_errorbar(aes(x=rownames(realmSlope1),ymin=mean-sd, ymax=mean+sd, color = rownames(realmSlope1)),
-                size = 2, width=0, position=position_dodge(width= 0.7), alpha = 0.7)+  
-  geom_errorbar(aes(x=rownames(realmSlope1), ymin=X0.025quant,ymax= X0.975quant, color = rownames(realmSlope1)),
-                width=0, position=position_dodge(width= 0.7))+  
-  geom_point(aes(x=rownames(realmSlope1),   y=mean, shape = rownames(realmSlope1),  color = rownames(realmSlope1), fill = rownames(realmSlope1)),
-             size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
-  scale_color_manual(values = col.scheme.realm)+
-  scale_fill_manual(values = col.scheme.realm)+
-  scale_shape_manual(values = shps)+
-  coord_flip()+  ylim(-0.01, 0.02)+  xlab ("")+
-  geom_hline(yintercept=0,linetype="dashed")+
- ylab ("")+
-  ggtitle("Uninformative prior (default)") +
-  theme_clean +
-  theme(legend.position="none" ,
-        legend.title=element_blank()) 
-
-library(gridExtra)
-grid.arrange(DefPlot, PCPlot, nrow = 2 ,  heights = c(2,2.95))
-
-# correlation pred-obs for PC and default prior #####
-inlaRealm<- readRDS("InlaRealmTEST.rds")
-inlaPCcor1<-get(load("inlaPCcor1.r-5758990.RData")) # 18-10-19
-inlaPCcor0<- get(load('.Rdata'))
+inlaRealmPC1_0.5<- as.data.frame(readRDS("./Inla PC priors/inlaRealmPC1_0.5SUMMARY.rds"))[3:4,]  
+inlaRealmPC1_0.6<- as.data.frame(readRDS("./Inla PC priors/inlaRealmPC1_0.6SUMMARY.rds"))[3:4,]  
+inlaRealmPC1_0.86<- as.data.frame(readRDS("./Inla PC priors/inlaRealmPC1_0.86SUMMARY.rds"))[3:4,]
+inlaRealm<- as.data.frame(readRDS("inlaRealmSUMMARY.rds"))[3:4,]
+rownames(inlaRealmPC1_0.5)<- paste0(rownames(inlaRealmPC1_0.5), "PC1_0.5")
+rownames(inlaRealmPC1_0.6)<- paste0(rownames(inlaRealmPC1_0.6), "PC1_0.6")
+rownames(inlaRealmPC1_0.86)<- paste0(rownames(inlaRealmPC1_0.86), "PC1_0.86")
 
 
-completeData$predsDef <- inlaRealm$summary.fitted.values$mean  # gt predicted from default model
-completeData$predsPC0 <- inlaPCcor0$summary.fitted.values$mean  # get predicted from PC prior model
-completeData$predsPC1 <- inlaPCcor1$summary.fitted.values$mean  # get predicted from PC prior model
+allPCmodels<- rbind(inlaRealm, inlaRealmPC1_0.5, inlaRealmPC1_0.6,inlaRealmPC1_0.86)
+allPCmodels$varname<- rownames(allPCmodels)
+arrange(allPCmodels, rownames(allPCmodels))
 
-cor.test(completeData$predsDef, log10(completeData$Number+1))
-cor.test(completeData$predsPC0, log10(completeData$Number+1))
-cor.test(completeData$predsPC0, log10(completeData$Number+1))
 
-library(brinla)
-bri.hyperpar.summary(inlaRealm)
-bri.hyperpar.summary(inlaFpcCor)
 
 
 
@@ -388,21 +370,6 @@ dev.off()
 
 # only europe and NA 
 
-completeData2<- subset(completeData, Continent == "North America" | Continent == "Europe")
-# almost half of the data out
-
-inlaFrealmNAmEur <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
-                            f(Period_4INLA,model='iid')+
-                            f(Location_4INLA,model='iid')+
-                            f(Plot_ID_4INLA,model='iid')+
-                            f(Datasource_ID_4INLA,model='iid')+
-                            f(Plot_ID_4INLAR,iYear,model='iid')+
-                            f(Location_4INLAR,iYear,model='iid')                      +
-                            f(Datasource_ID_4INLAR,iYear,model='iid')+
-                            f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                          control.compute = list(dic=TRUE,waic=TRUE),
-                          data=completeData2)
-#still sign 
 
 
 completeDataE<- subset(completeData,  Continent == "Europe")
@@ -431,46 +398,9 @@ inlaFrealmNA <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
                       control.compute = list(dic=TRUE,waic=TRUE),
                       data=completeDataNA)
 
-completeDataLA<- subset(completeData,  Continent == "Latin America")
-inlaFrealmLA <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
-                       f(Period_4INLA,model='iid')+
-                       f(Location_4INLA,model='iid')+
-                       f(Plot_ID_4INLA,model='iid')+
-                       f(Datasource_ID_4INLA,model='iid')+
-                       f(Plot_ID_4INLAR,iYear,model='iid')+
-                       f(Location_4INLAR,iYear,model='iid')                      +
-                       f(Datasource_ID_4INLAR,iYear,model='iid')+
-                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                     control.compute = list(dic=TRUE,waic=TRUE),
-                     data=completeDataLA)
-
-completeDataAs<- subset(completeData,  Continent == "Asia")
-inlaFrealmAs <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
-                       f(Period_4INLA,model='iid')+
-                       f(Location_4INLA,model='iid')+
-                       f(Plot_ID_4INLA,model='iid')+
-                       f(Datasource_ID_4INLA,model='iid')+
-                       f(Plot_ID_4INLAR,iYear,model='iid')+
-                       f(Location_4INLAR,iYear,model='iid')                      +
-                       f(Datasource_ID_4INLAR,iYear,model='iid')+
-                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                     control.compute = list(dic=TRUE,waic=TRUE),
-                     data=completeDataAs)
 
 
 
-completeDataAU<- subset(completeData,  Continent == "Australia")
-inlaFrealmAU <- inla(log10(Number+1) ~ cYear: Realm+ Realm  +
-                       f(Period_4INLA,model='iid')+
-                       f(Location_4INLA,model='iid')+
-                       f(Plot_ID_4INLA,model='iid')+
-                       f(Datasource_ID_4INLA,model='iid')+
-                       f(Plot_ID_4INLAR,iYear,model='iid')+
-                       f(Location_4INLAR,iYear,model='iid')                      +
-                       f(Datasource_ID_4INLAR,iYear,model='iid')+
-                       f(iYear,model='ar1', replicate=as.numeric(Plot_ID_4INLA)),
-                     control.compute = list(dic=TRUE,waic=TRUE),
-                     data=completeDataAU)
 
 ###############################
 
@@ -669,6 +599,108 @@ biomPlot<- ggplot(data.frame(biomSlope))+
         legend.position="bottom")  + 
   geom_text(aes(x = 4.3 , y = -0.025, label = "B"),  
             size = 6, color = 1) 
+
+
+
+# R2 #####
+inla0 <- inla(log10(Number+1)~ 1, data=completeData)
+inla1<- readRDS("inla1TEST.rds")
+inlaRealm<- readRDS("inlaRealmTEST.rds")
+inlaBiom<- readRDS("inlaFbiomTEST.rds")
+inlaCont<- readRDS("inlaFcontTEST.rds")
+
+outFE<-inla0$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inla0$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varF0<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varF0 # variation explained by year-only  model 
+varTotal<- bri.hyperpar.summary(inla0)[1]
+
+outFE<-inla1$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inla1$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varF<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varF # variation explained by year-only  model 
+
+
+outFE<-inlaRealm$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inlaRealm$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varFrealm<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varFrealm # variation explained by year+realm   model 
+
+outFE<-inlaBiom$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inlaBiom$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varFbiom<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varFbiom # variation explained by year+realm   model 
+
+outFE<-inlaCont$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inlaCont$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varFcont<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varFcont # variation explained by year+realm   model 
+
+varFcont/varTotal # 0.061
+varFbiom/varTotal # 0.027
+varFrealm/varTotal # 0.01
+
+
+inlaT0<-inla(log10(Number+1)~ 1, data=subset(completeData, Realm == "Terrestrial"))
+inlaFW0<-inla(log10(Number+1)~ 1, data=subset(completeData, Realm == "Freshwater"))
+
+inla1T<- readRDS("inla1TerrTEST.rds")
+inla1FW<- readRDS("inla1FWTEST.rds")
+
+inlaChangesT<- readRDS("inlaFChangesTerrTEST.rds")
+inlaChangesFW<- readRDS("inlaFChangesFWTEST.rds")
+inlaLUt<- readRDS("inlaFlanduseTTEST.rds")
+inlaLUfw<- readRDS("inlaFlanduseFWTEST.rds")
+
+varTotalTerr<- bri.hyperpar.summary(inlaT0)[1]
+varTotalFW<- bri.hyperpar.summary(inlaFW0)[1]
+
+
+outFE<-inlaChangesT$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inlaChangesT$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varTchange<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varTchange # variation explained by year-only  model 
+
+varTchange/varTotalTerr
+
+outFE<-inlaChangesT$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inlaChangesT$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varTchange<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varTchange # variation explained by year-only  model 
+
+varTchange/varTotalTerr
+
+
+outFE<-inla1T$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inla1T$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varT1<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varT1 # variation explained by year-only  model 
+
+outFE<-inlaChangesFW$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inlaChangesFW$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varFWchange<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varFWchange # variation explained by year-only  model 
+
+varFWchange/varTotalFW
+
+outFE<-inlaLUt$model.matrix #just get the values of year and realm for each data row
+coefFE<-as.matrix(inlaLUt$summary.fixed[,1],ncol=1) #the fixed effect coefficient for the effects of year and realm
+inla_dfFE<-outFE%*%coefFE #multiply them as written in the model equation to get the model predictions based on fixed effects
+varTlu<-var(as.numeric(inla_dfFE[,1])) #get the variance of these values
+varTlu # variation explained by year-only  model 
+
+varTlu/varTotalTerr
+
+
 
 
 
@@ -922,46 +954,44 @@ qplot(x=abundance,y=biomass, data=all.aggrAB.test,colour=as.factor(Plot_ID))+
 
 # Fig S3 diver effect size  #####
 
-setwd("C:/Dropbox/Insect Biomass Trends/csvs/new models 1-10-19/")
+setwd("C:/Dropbox/Insect Biomass Trends/csvs/")
 
-names(all.results)
 
-LUchangeFW     <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFchangesFWSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFchangesFWSUMMARY.rds"))[4:5,]))
-LUchangeTer    <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFchangesTerrSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFchangesTerrSUMMARY.rds"))[4:5,]))
-cover25kmFW    <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFlanduseFWSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFlanduseFWSUMMARY.rds"))[4:5,]))
-cover25kmTer   <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFlanduseTSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFlanduseTSUMMARY.rds"))[4:5,]))
-cover0.81FW    <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFlanduseESAfwSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFlanduseESAfwSUMMARY.rds"))[4:5,]))
-cover0.81Ter   <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFlanduseESAterrSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFlanduseESAterrSUMMARY.rds"))[4:5,]))
-deltaFwCRU     <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFClimChangesFWSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFClimChangesFWSUMMARY.rds"))[4:5,]))
-deltaTerCRU    <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFClimChangesTerrSUMMARY.rds"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFClimChangesTerrSUMMARY.rds"))[4:5,]))
-deltaFwCHELSA  <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFCHELSAChangesFWSUMMARY.RDS"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFCHELSAChangesFWSUMMARY.RDS"))[4:5,]))
-deltaTerCHELSA <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFCHELSAChangesTerrSUMMARY.RDS"))[4:5,], variable = rownames(as.data.frame(readRDS("inlaFCHELSAChangesTerrSUMMARY.RDS"))[4:5,]))
+LUchangeFW     <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFchangesFWSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFchangesFWSUMMARY.rds"))[5:6,]))
+LUchangeTer    <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFchangesTerrSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFchangesTerrSUMMARY.rds"))[5:6,]))
+cover25kmFW    <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFlanduseFWSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseFWSUMMARY.rds"))[5:6,]))
+cover25kmTer   <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFlanduseTSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseTSUMMARY.rds"))[5:6,]))
+cover0.81FW    <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFlanduseESAfwSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseESAfwSUMMARY.rds"))[5:6,]))
+cover0.81Ter   <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFlanduseESAterrSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFlanduseESAterrSUMMARY.rds"))[5:6,]))
+deltaFwCRU     <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFClimChangesFWSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFClimChangesFWSUMMARY.rds"))[5:6,]))
+deltaTerCRU    <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFClimChangesTerrSUMMARY.rds"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFClimChangesTerrSUMMARY.rds"))[5:6,]))
+deltaFwCHELSA  <- cbind(Realm = "Freshwater",  as.data.frame(readRDS("inlaFCHELSAChangesFWSUMMARY.RDS"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFCHELSAChangesFWSUMMARY.RDS"))[5:6,]))
+deltaTerCHELSA <- cbind(Realm = "Terrestrial", as.data.frame(readRDS("inlaFCHELSAChangesTerrSUMMARY.RDS"))[5:6,], variable = rownames(as.data.frame(readRDS("inlaFCHELSAChangesTerrSUMMARY.RDS"))[5:6,]))
 
 
    
 drivers<- rbind(LUchangeTer, LUchangeFW, cover25kmFW   , cover25kmTer, cover0.81Ter, cover0.81FW, 
              deltaTerCRU, deltaFwCRU, deltaTerCHELSA, deltaFwCHELSA)
-drivers$scale <- NA
-drivers$scale [ drivers$X0.975quant-drivers$X0.025quant  <0.5]<-"small"
-drivers$scale [drivers$X0.975quant-drivers$X0.025quant  >0.5]<-"large"
-drivers$scale [drivers$variable == "urbanization:cYear" ]<-"mid"
-drivers$scale [drivers$variable == "cropification:cYear" ]<-"mid"
+drivers$scale <- "mid"
+drivers$scale [ drivers$X0.975quant-drivers$X0.025quant  <0.08]<-"small"
+drivers$scale [drivers$X0.975quant-drivers$X0.025quant  >1]<-"large"
+drivers$scale [drivers$variable == "cYear:cropification" ]<-"mid"
 
 
 
 # rename variables 
 
 drivers$name <- NA
-drivers$name[drivers$variable == "urbanization:cYear"]        <- "Change in urban cover (landscape scale)"
-drivers$name[drivers$variable == "cropification:cYear"]       <- "                         Change in cropland cover (landscape scale)"
-drivers$name[drivers$variable == "sqrt(End_cropArea):cYear"]  <- "sqrt fraction Cropland cover at end (landscape scale)"
-drivers$name[drivers$variable == "sqrt(End_urbanArea):cYear"] <- "sqrt fraction Urban cover at end (landscape scale)"
-drivers$name[drivers$variable == "frcCrop900m1992:cYear"]     <- "fraction Cropland cover at end (0.81 km2)"
-drivers$name[drivers$variable == "frcUrban900m1992:cYear"]    <- "fraction Urban cover per at end (0.81 km2)"
-drivers$name[drivers$variable == "relDeltaTmean:cYear"]       <- "    Relative change in mean temperature (landscape scale)"
-drivers$name[drivers$variable == "relDeltaPrec:cYear"]        <- "Relative change in monthly precipitation (landscape scale)"
-drivers$name[drivers$variable == "CHELSArelDeltaTmean:cYear"] <- "Relative change in mean temperature (1 km2)"
-drivers$name[drivers$variable == "CHELSArelDeltaPrec:cYear"]  <- "Relative change in monthly precipitation (1 km2)"
+drivers$name[drivers$variable == "cYear:urbanization"]        <- "Change in urban cover (landscape scale)"
+drivers$name[drivers$variable == "cYear:cropification"]       <- "                         Change in cropland cover (landscape scale)"
+drivers$name[drivers$variable == "cYear:cEnd_cropArea"]  <- "sqrt fraction Cropland cover at end (landscape scale)"
+drivers$name[drivers$variable == "cYear:cEnd_urbanArea"] <- "sqrt fraction Urban cover at end (landscape scale)"
+drivers$name[drivers$variable == "cYear:cFrcCrop900m1992"]     <- "fraction Cropland cover at end (0.81 km2)"
+drivers$name[drivers$variable == "cYear:cFrcUrban900m1992"]    <- "fraction Urban cover per at end (0.81 km2)"
+drivers$name[drivers$variable == "cYear:cRelDeltaTmean"]       <- "    Relative change in mean temperature (landscape scale)"
+drivers$name[drivers$variable == "cYear:cRelDeltaPrec"]        <- "Relative change in monthly precipitation (landscape scale)"
+drivers$name[drivers$variable == "cYear:cCHELSArelDeltaTmean"] <- "Relative change in mean temperature (1 km2)"
+drivers$name[drivers$variable == "cYear:cCHELSArelDeltaPrec"]  <- "Relative change in monthly precipitation (1 km2)"
 
 drivers$name<- factor(drivers$name, levels = rev(c( "Change in urban cover (landscape scale)", 
                                                    "                         Change in cropland cover (landscape scale)", 
@@ -978,6 +1008,7 @@ drivers$name<- factor(drivers$name, levels = rev(c( "Change in urban cover (land
 
 
 sml<- ggplot( subset(drivers, scale =="small")   ) + 
+  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   geom_errorbar(aes(x=name,ymin=mean-sd, ymax=mean+sd, color = Realm),
                 size = 2, width=0, alpha = 0.7, position=position_dodge(width= 0.7))+  
   geom_errorbar(aes(x=name, ymin=X0.025quant,ymax= X0.975quant, color = Realm),
@@ -988,15 +1019,14 @@ sml<- ggplot( subset(drivers, scale =="small")   ) +
   #  geom_crossbar(aes(x=name,   y=mean, fill = Realm,
 #                    ymin=X0.025quant ,ymax= X0.975quant ), position="dodge",alpha=1 ,  width =0.7)+
  scale_color_manual(values = col.scheme.realm)+
-  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
    theme_clean + 
   theme(legend.position = "", 
         strip.text = element_blank(), 
-        strip.background = element_blank())+
-  facet_wrap(.~scale, scales = "free", nrow = 3)
+        strip.background = element_blank())
 
 md<- ggplot( subset(drivers, scale =="mid")   ) + 
+  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   geom_errorbar(aes(x=name,ymin=mean-sd, ymax=mean+sd, color = Realm),
                 size = 2, width=0, alpha = 0.7, position=position_dodge(width= 0.7))+  
   geom_errorbar(aes(x=name, ymin=X0.025quant,ymax= X0.975quant, color = Realm),
@@ -1004,15 +1034,14 @@ md<- ggplot( subset(drivers, scale =="mid")   ) +
   geom_point(aes(x=name,   y=mean, shape = Realm,  color = Realm, fill = Realm),
              size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
   scale_color_manual(values = col.scheme.realm)+
-  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   theme_clean + 
   theme(legend.position = "", 
         strip.text = element_blank(), 
-        strip.background = element_blank())+
-  facet_wrap(.~scale, scales = "free", nrow = 3)
+        strip.background = element_blank())
 
 lrg<- ggplot( subset(drivers, scale =="large")   ) + 
+  xlab ("")+ ylab ("Model estimate")+geom_hline(yintercept=0,linetype="dashed")+
   geom_errorbar(aes(x=name,ymin=mean-sd, ymax=mean+sd, color = Realm),
                 size = 2, width=0, alpha = 0.7, position=position_dodge(width= 0.7))+  
   geom_errorbar(aes(x=name, ymin=X0.025quant,ymax= X0.975quant, color = Realm),
@@ -1020,7 +1049,6 @@ lrg<- ggplot( subset(drivers, scale =="large")   ) +
   geom_point(aes(x=name,   y=mean, shape = Realm,  color = Realm, fill = Realm),
              size = 4, position=  position_dodge(width = 0.7), alpha=1 )+
   scale_color_manual(values = col.scheme.realm)+
-  xlab ("")+ ylab ("")+geom_hline(yintercept=0,linetype="dashed")+
   coord_flip()+
   theme_clean + 
   theme(legend.position = "", 
@@ -1030,7 +1058,19 @@ lrg<- ggplot( subset(drivers, scale =="large")   ) +
 
 
 library(gridExtra)
-grid.arrange(md, sml, lrg,  nrow = 3,  heights = c(3,7, 3) )#
+grid.arrange(md,  sml, lrg,  nrow = 3,  heights = c(2.5, 7,2.5) )#
+
+#
+
+
+
+
+
+
+
+
+
+saveRDS(completeData, file =  "completeData20191026.RDS")
 
 
 
@@ -1043,34 +1083,3 @@ grid.arrange(md, sml, lrg,  nrow = 3,  heights = c(3,7, 3) )#
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-lrg<- ggplot( subset(drivers, scale =="large")   ) + 
-  geom_crossbar(aes(x=name,   y=mean, fill = Realm,
-                    ymin=X0.025quant ,ymax= X0.975quant ), position="dodge",alpha=1 ,  width =0.7)+
-  scale_fill_manual(values = col.scheme.realm)+
-  ylab ("Model estimate")+ xlab ("")+geom_hline(yintercept=0,linetype="dashed")+
-  coord_flip()+
-  theme_clean + 
-  theme(legend.position = "", 
-        strip.text = element_blank(), 
-        strip.background = element_blank())+
-  facet_wrap(.~scale, scales = "free", nrow = 3)
