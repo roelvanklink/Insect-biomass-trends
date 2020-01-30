@@ -197,6 +197,16 @@ ggplot(data=df, aes(x=Datasource_name, y=Duration, fill = Realm)) +
                              x = coordinates(pts.rob)[,1],
                              y = coordinates(pts.rob)[,2])
   
+# plot locations
+  plots.wgs <- metadata_per_plot
+  plots.wgs <- SpatialPointsDataFrame(coords = data.frame(lon = plots.wgs$Longitude,
+                                                        lat = plots.wgs$Latitude),
+                                    proj4string = CRS(WGS84),
+                                    data = plots.wgs)
+  plots.rob <- spTransform(plots.wgs, CRSobj = ROBINSON)
+  plots.rob@data <- data.frame(plots.rob@data, 
+                             x = coordinates(plots.rob)[,1],
+                             y = coordinates(plots.rob)[,2])
   
   
   
@@ -258,7 +268,7 @@ lgnd<-  data.frame(
    
    
    map_with_bars+ 
-       
+     ggtitle("a. Dataset locations and duration")+
      annotation_custom(leg_plot, 
                        
                        xmin = x - 0 ,
@@ -273,6 +283,22 @@ lgnd<-  data.frame(
    dev.off()
    
   
+   
+   map_w_plots<-    p.wgs+
+     geom_point(data = plots.rob@data ,  size = 0.5,pch = 3,
+                aes(x = x,   y = y, color = Realm,   group = NULL), 
+                position=position_jitter(h=1, w=1)) +     
+     theme(legend.position = "none")+
+     scale_color_manual(values=col.scheme.realm)  +
+     
+     ggtitle("b. Plot locations") 
+   
+   png("map_w_plots.png", width=4400, height=2000, res = 360)
+   map_w_plots
+   
+   dev.off()
+   
+   
    
   
   
