@@ -212,7 +212,7 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
 # 1) do we have duplicate data?
  
  #
-dups<-  database[duplicated(database), ] # this needs t be checked thoroughly 
+dups<-  database[duplicated(database), ] # this needs to be checked thoroughly 
 dim(dups)
   # Owen 1984 wk 34 has been removed because many species were present 5 times. Remaining duplicate: 1 male, 1 female  
  # iceland have 0 
@@ -483,7 +483,7 @@ older<-read.csv("metadata per plot 20181123.csv") #1486
 
 
 # which plots and datasets  have less that 10 years data? 
-# only acceptable for Donana (Spain butterflies) (1 plot) and Israel (all plots)  and Ukraine beetles (1 plot) 
+# and Israel (all plots)  and Ukraine beetles (1 plot) 
 load("metadata_per_plot.RData")
 # which  datasets have short plots?
 unique(subset(metadata_per_plot, Duration < 10)$Datasource_name) # 
@@ -500,7 +500,7 @@ merge4$duration.ok<- ! merge4$Plot_ID %in% short.plots # length = ok
 
 # only select plots that have sufficient duration
 merge4.1<- subset(merge4, duration.ok == T)
-dim(merge4.1)# 680801  on 19-12-2019
+dim(merge4.1)# 680801  on 19-12-2019      680658 on 19.2.20
 
 
 # remove plots with 0 observations 
@@ -522,7 +522,7 @@ dim(merge4.3)
 
 
 
-full.dataset<- merge4.3 # 680714 on 6-9-19   #676582 on 9.12 # 678677 on 19-12-19
+full.dataset<- merge4.3 # 680714 on 6-9-19   #676582 on 9.12 # 678677 on 19-12-19    # 678551 on 19-2-20
 save(full.dataset, file = "full.dataset.RData") # 
 
 
@@ -531,12 +531,12 @@ save(full.dataset, file = "full.dataset.RData") #
 dim(merge4.3) #   
 others<-subset(merge4.3, Phylum !=  "Arthropoda" & Phylum != "invertebrata" ); dim(others)
 merge4.4<-subset(merge4.3, Phylum ==  "Arthropoda" | Phylum == "invertebrata" | Phylum == "Invertebrata")
-dim(merge4.4) # 660584 9-12-19     658583 on 19-12-19
+dim(merge4.4) # 660584 9-12-19     658583 on 19-12-19    658457 on 19.2.20
 length(unique(merge4.4$Datasource_ID)) # 167
 setdiff(merge4.3$Datasource_name, merge4.4$Datasource_name) # only Russia earthworms data disappeared
 
 all.arthropods.dataset<- merge4.4
-save(all.arthropods.dataset, file = "all.arthropods.dataset.RData")
+saveRDS(all.arthropods.dataset, file = "all.arthropods.dataset.RDS")
 
 
 # deselect  crustaceans
@@ -557,12 +557,12 @@ merge4.5<-subset(merge4.5, Class !=  "Diplopoda" )
 merge4.5<-subset(merge4.5, Class !=  "Symphyla" )
 
 unique(merge4.5$Class)
-dim(merge4.5) # 652279 on 19-12--19
+dim(merge4.5) # 652279 on 19-12--19     652153 on 19-2-20 = 126 datapoints from Portal missing 
 length(unique(merge4.5$Datasource_ID))
 
 all.insects.dataset<- merge4.5
 
-save(all.insects.dataset, file = "all.insects.dataset.RData")  # 
+saveRDS(all.insects.dataset, file = "all.insects.dataset.RDS")  # 
 
 
 
@@ -613,18 +613,18 @@ all.selectedIns<-merge5.ins
 all.selectedArth<- merge5.arth
 all.ABinsects <- merge5AB.ins
 allSelectedArthHigherTax<- merge5.arth.higherTax
-save(all.selectedIns, file = "all.selectedIns.RData")
-save(all.selectedArth, file = "all.selectedArth.RData")
-save(allSelectedArthHigherTax, file = "allSelectedArthHigherTax.RData")
-save(all.ABinsects, file = "all.ABinsects.RData")
+saveRDS(all.selectedIns, file = "all.selectedIns.RDS")
+saveRDS(all.selectedArth, file = "all.selectedArth.RDS")
+saveRDS(allSelectedArthHigherTax, file = "allSelectedArthHigherTax.RDS")
+saveRDS(all.ABinsects, file = "all.ABinsects.RDS")
 
 
 
 # make dataframe for Abundance/biomass trend comparison
-ABcomparison.arthr<- subset(merge4.4, Abundance.Biomass == "AB")
+ABcomparison.arthr <- subset(merge4.4, Abundance.Biomass == "AB")
 ABcomparison.insect<- subset(merge4.5, Abundance.Biomass == "AB")
-save(ABcomparison.insect, file = "ABcomparison.insect.RData")
-save(ABcomparison.arthr, file = "ABcomparison.arthr.RData")
+saveRDS(ABcomparison.insect, file = "ABcomparison.insect.RDS")
+saveRDS(ABcomparison.arthr, file = "ABcomparison.arthr.RDS")
 
 
 
@@ -652,33 +652,33 @@ save(ABcomparison.arthr, file = "ABcomparison.arthr.RData")
 
 # aggregate all data#####
 #per sampling per timepoint per location 
-load("all.aggr.insectsOKT2019.RData")
-OLD<- all.aggr.insects
+load("all.aggr.insects 2019.RData")
+load("all.selectedIns 2019.RData")
+OLDag<- all.aggr.insects 
+oldall<- all.selectedIns # has exactly 126 obs more than previous version 
 
-
-load( "all.selectedIns.RData")
-load( "all.selectedArth.RData")
-load("all.ABinsects.RData")
+all.selectedIns<-  readRDS("all.selectedIns.RDS")
+all.selectedArth<- readRDS("all.selectedArth.RDS")
+all.ABinsects<-    readRDS("all.ABinsects.RDS")
 
 all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum +  Plot_ID + Plot_name + Unit  + #
                    Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE); dim(all.aggr.insects)
- #  60551 on 6-9-19    # 60461 on 9.12
-cols<- c( "Datasource_ID",  "Plot_ID"    ,  "Year"  ,        "Number"   , "Continent"          )  #"Unit" ,
+ #  60551 on 6-9-19    # 60461 on 9.12   # 60547 on 19.12.19  # 60502 on 19.2.20
+cols<- c( "Datasource_ID", "Datasource_name",  "Plot_ID"    ,  "Year"  ,        "Number"   , "Continent"          )  #"Unit" ,
 
-setdiff(OLD[,cols], all.aggr.insects[,cols]) # all good, only differences are fixed mistakes in belarus hymenoptera and italy FW, greenland and GPDD (4recs). 
-#And country level classifiers 
+setdiff(OLDag[,cols], all.aggr.insects[,cols]) # correct: changes in Iowa mosquitos and Portal ants (1 plot lost) 
 
-length(unique(all.aggr.insects$Plot_ID)) # 1678 on 5-9-2019    1681 on 9-12-19 These are Russia steppe arthropod plots. these were formerly as texon redundant classified. changes 11.11.19
+length(unique(all.aggr.insects$Plot_ID)) # 1678 on 5-9-2019    1681 on 9-12-19 #  1679 on 19-2-20 because of 2 plots lost in Portal 
 
 all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name + Unit +  
                           Year + Period + Date  + Country + Region + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE);dim(all.aggr.arth)
-#  60547
+#  60547    #60502 on 19.2.20
 
-length(unique(all.aggr.arth$Plot_ID)) #1678
+length(unique(all.aggr.arth$Plot_ID)) #1679
 
 all.aggr.insectsAB<-dcast(all.ABinsects,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
                           Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
-dim(all.aggr.insectsAB) # 6482 on 20190906   642929 on 9.12    64378  on 19-12-19
+dim(all.aggr.insectsAB) # 6482 on 20190906   642929 on 9.12    64378  on 19-12-19     64333 on 19-2-20
 
 
 # check if exclusion of biomass gives the same dataframe for insects 
@@ -703,9 +703,9 @@ arth<- as.data.frame(table(all.aggr.arth$Datasource_name))
 m1<-merge(old, new, by = "Var1", all.y = T)
 merge(m1, arth, by = "Var1", all.y = T)
 
-save(all.aggr.insects, file = "all.aggr.insects.RData")
-save(all.aggr.arth, file = "all.aggr.arth.RData")
-save(all.aggr.insectsAB, file = "all.aggr.insectsAB.RData")
+saveRDS(all.aggr.insects, file = "all.aggr.insects.RDS")
+saveRDS(all.aggr.arth, file = "all.aggr.arth.RDS")
+saveRDS(all.aggr.insectsAB, file = "all.aggr.insectsAB.RDS")
 
 
 
@@ -715,9 +715,9 @@ save(all.aggr.insectsAB, file = "all.aggr.insectsAB.RData")
 
 # Insects
 #####and aggregated data 
-load("all.aggr.insects.RData")
-load("all.aggr.arth.RData")
-load("all.aggr.insectsAB.RData")
+all.aggr.insects<- readRDS("all.aggr.insects.RDS")
+all.aggr.arth <-readRDS("all.aggr.arth.RDS")
+all.aggr.insectsAB<- readRDS("all.aggr.insectsAB.RDS")
 
 
 # do these df's have different dims? 
@@ -736,7 +736,10 @@ for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
   plt<- unique(all.aggr.insectsA$Plot_ID)[i]
   myData<- all.aggr.insectsA[all.aggr.insectsA$Plot_ID == plt , ]
   
-  #expand grid to include NAs  
+  #expand grid to include NAs  # note that the 'date' variable is removed here. 
+  # Date plays no role in the analysis, 
+  # and in case multiple weeks were sampled withing a month, these are thus seen as "replicates" within a month. 
+  # month is accounted for as random effect
   constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
   allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
                          Year= min(myData$Year):max(myData$Year))
@@ -763,24 +766,24 @@ for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
 }
 
 
-dim(completeDataA) #  67729 on 17-9-19 (65787 with newly rarefied ECN moth data on 16-10-19)  # 9-12-19: 67639 
+dim(completeDataA) #  67729 on 17-9-19 (65787 with newly rarefied ECN moth data on 16-10-19)  # 9-12-19: 67639  # 67677 on 19-2-2020
 beep(2)
 subset(completeDataA, Number < 0)
 
 
 # thorough check
-load("completeDataOKT2019.RData")
+load("completeData2019.RData")
 cdOLD<-completeData ; dim(cdOLD)
-sum(duplicated(cdOLD)) # 1008 dups! 
+sum(duplicated(cdOLD)) # 1008 dups! okt 2019,  879 dups 19.2.2020 
 dups<- cdOLD[duplicated(cdOLD),]
 dim(dups)
-sample_n(dups, 20)
+sample_n(dups, 20) # all datasets with multiple counts per month
 cols<- c("Plot_ID" , "Year"     , "Datasource_ID" , "Datasource_name",     "Number"  , "Location",     "Realm",               
          "Unit"   ,  "Stratum"  ,  "scaledNumber" )
-(setdiff(completeDataA[, cols], subset(cdOLD, Unit == "abundance")[, cols] ))  # Russia steppe  and belarus aculeata 
- setdiff( subset(cdOLD, Unit == "abundance")[, cols] ,(completeDataA[, cols])) # greenland and belarus aculaeata
-
-
+diffs <- (setdiff(completeDataA[, cols], subset(cdOLD, Unit == "abundance")[, cols] ))  #  
+diffs2<-  setdiff( subset(cdOLD, Unit == "abundance")[, cols] ,(completeDataA[, cols])) # 
+cols<- c("Plot_ID" , "Year"     , "Datasource_ID" , "Datasource_name"  )
+unique(diffs2$Datasource_name) # correct: changes occurred in name of Indiana mosquitos, data of Iowa mosquitos, , plots of Portal ants
 
 
 # 2) add NA's for biomass data, excluding biomass data for datasets that report both units
@@ -818,7 +821,7 @@ for(i in 1:length(unique(all.aggr.insectsB1$Plot_ID))){
   completeDataB1<-rbind (completeDataB1,myData)
   
 }
-dim(completeDataB1)# 2473 on 9-12-19
+dim(completeDataB1)# 2473 on 9-12-19   the same on 19-2-2020
 completeData<- rbind(completeDataA, completeDataB1)
 
 dim(completeData) # 70202 on 17-9-19    
@@ -866,7 +869,7 @@ for(i in 1:length(unique(all.aggr.insectsB2$Plot_ID))){
 dim(completeDataB2)
 completeDataAB<- rbind(completeDataA, completeDataB2)
 
-dim(completeDataAB) # 74973 on 17-9-19  # 74883 on 9-12-19
+dim(completeDataAB) # 74973 on 17-9-19  # 74883 on 9-12-19  # 74921 on 19-2-20
 beep(2)
 dim(subset(completeData, Unit != "biomass")) #same as A1
 
@@ -906,7 +909,7 @@ for(i in 1:length(unique(all.aggr.arth $Plot_ID))){
   completeDataArth<-rbind (completeDataArth,myData)
   
 }
-dim(completeDataArth) #same as insects on 17-9-19 still the same on 10.12
+dim(completeDataArth) #same as insects on 17-9-19 still the same on 10.12 , still on 19-2-20
 beep(2)
 
 
@@ -945,7 +948,7 @@ addIndicies <- function(myData){
 }
 
 completeData <- addIndicies(completeData)
-dim(completeData) # 70112
+dim(completeData) # 70150
 save(completeData, file = "completeData.RData")
 
 #checks: 
@@ -957,7 +960,8 @@ sum(is.na(completeData$Stratum)) # looks good
 unique(completeData$Stratum)
 
 
-
+# add indices for Inla. VEry important to have different indices for the biomass and abundance data in the same dataset! 
+# otherwise Inla thinks these different metrics are drawn from the same distribution! 
 completeDataAB <- addIndicies(completeDataAB)
 completeDataAB$DSunit_4INLA <- interaction(completeDataAB$Datasource_ID,completeDataAB$Unit)
 completeDataAB$DSunit_4INLA <- as.numeric(factor(completeDataAB$DSunit_4INLA))
@@ -990,10 +994,10 @@ unique(completeDataAB$Unit)
 
 completeDataArth <- addIndicies(completeDataArth)
 
-dim(completeData) # 70112
-dim(completeDataArth) # 70112
-sum(is.na(completeData$Number)) # 9253
-sum(is.na(completeDataArth$Number)) # 9253
+dim(completeData) # 70150
+dim(completeDataArth) # 70150
+sum(is.na(completeData$Number)) # 9250
+sum(is.na(completeDataArth$Number)) # 9250
 sum(is.na(completeData$Location)) # should be 0
 sum(is.na(completeDataArth$Location)) # 
 sum(is.na(completeData$biome)) # should be 0
@@ -1179,7 +1183,8 @@ save(completeData, file = "completeData.RData")
 
 
 # metadata for suppl material #####
-load( "all.selectedIns.RData") # check version date
+all.selectedIns<-readRDS( "all.selectedIns.RDS") # check version date
+all.selectedIns<- subset(all.selectedIns, Datasource_ID != 1514)
 
 metadata_per_dataset<-  all.selectedIns %>% 
   group_by(Datasource_ID) %>%
@@ -1198,7 +1203,7 @@ metadata_per_dataset<-  all.selectedIns %>%
     Continent = unique(Continent), 
     Realm = unique(Realm)
     )
-dim(metadata_per_dataset) #  should be 167
+dim(metadata_per_dataset) #  should be 166
 print(metadata_per_dataset, n = Inf)
 
 Taxon<- metadata_per_dataset$Taxon
@@ -1297,6 +1302,16 @@ save(metadata_per_plot, file = "metadata_per_plot.RData")
 
 
 
+
+
+
+
+
+
+
+
+
+############################### TRASH ############################################
 
 
 # select countries
