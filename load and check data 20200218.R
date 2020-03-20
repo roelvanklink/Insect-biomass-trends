@@ -15,6 +15,7 @@ plots<-read.csv( file = "Plots.csv"); dim(plots)
 samples <-read.csv( file = "Sample_Info.csv"); dim(samples)
 database <-read.csv( file = "Data.csv"); dim(database)
 database<- subset(database, Note != "remove");dim(database)
+database<- subset(database, Datasource_name != "Spain butterflies");dim(database) # remove Donana data, these are not to be used, because they can't be shared
 
 studies<-read.csv(file = "studies.csv", header = T); dim(studies)
 #studies1 <-read.table( file = "clipboard", header = T, sep = "\t"); dim(studies1) 
@@ -88,9 +89,9 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
   California <-read.csv( "Cali freshwater Resh.csv", header = T)
   CC<- read.csv(file = "cedarcreekBEF.csv", header = T) ; CC$Number<-as.numeric(as.character(CC$Number))                 # checked 2019
   AZ<- read.csv(file = "LTER Arizona Pitfalls NEW2019.csv", header = T);levels(AZ$Taxon)<-c(levels(AZ$Taxon), "NONE")  ; AZ$Taxon[is.na(AZ$Taxon)]<-"NONE"
-  AZ2<- read.csv(file = "sycamore creek formatted.csv", header = T)
-  sev.ants<- read.csv(file = "sev antnests formatted.csv", header = T) ; sev.ants$Unit<- "abundance"
-  sev.gh  <- read.csv(file = "sev grasshoppers formatted.csv", header = T); sev.gh$Unit<- "abundance"
+  #AZ2<- read.csv(file = "sycamore creek formatted.csv", header = T)
+  #sev.ants<- read.csv(file = "sev antnests formatted.csv", header = T) ; sev.ants$Unit<- "abundance"
+  #sev.gh  <- read.csv(file = "sev grasshoppers formatted.csv", header = T); sev.gh$Unit<- "abundance"
   sev.pf  <- read.csv(file = "sev pitfalls formatted.csv", header = T); sev.pf$Unit<- "abundance"
   ecn.but<- read.csv(file = "ECN butterflies final.csv", header = T)
   levels(ecn.but$Taxon)[levels(ecn.but$Taxon) == "NONE" ] <- "Butterflies"
@@ -148,6 +149,43 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
   
   
   
+  
+  
+  
+  
+#  1514 = DOnana
+  
+# done and understood: 
+#    1479 tasmania (the two strata are fully duplicated) 
+#  1393 russia island (2 strata in 1 plot duplicated) 
+#  1382 chile (both strata duplicated) 
+ # 1351 sycamore creek fw: everything is duplicated - due to different date formats                 fixed after rerunning full load script
+#  1319 sev grasshoppers: everything is duplicated - due to different date formats                  fixed after rerunning full load script
+#  1346 sev ants: everything is duplicated - due to different date formats                          fixed after rerunning full load script
+  
+  
+#  not problematic (or problem was in original data)
+#  249 one date in copenhagen duplicated? 
+#    301 konza: 3 sub plots with duplicate that are taken as true replicates at plot level.  
+#  294 tam dao: some weeks within months give same number
+#  375 japan: one month with same value on diffrent dates. not sure if mistake in original data.  
+#  1476 1477 1478: same number of bf on different days in the same month
+#  1409 malaise traps: same biomass on different days in 1 month
+#  1263 ECN butterflies: same number of bf on different days in the same month
+#  1328 Owen: same number of hoverflies on different days in the same month
+#  1501 ireland butterflies: same number of bf on different days in the same month
+#  1481 Israel butterflies: same number of bf on different days in the same month
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   # metadata per dataset (aggregated over plots) - this can go into Studies file
   
   descriptors<- plots %>% 
@@ -169,7 +207,7 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
   
   test <- rbind(
      AZ[, -(1)], 
-    AZ2[, -(1)], 
+  #  AZ2[, -(1)], 
     Biotime[, -(1)],
     Breitenbach[, -(1)],
     California[, -(1)],
@@ -187,8 +225,8 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
     Lauwersmeer[, -1],
     Luquillo[, -(1)], 
     NZ[, -(1)],
-    sev.ants[, -(1)], 
-    sev.gh[, -(1)], 
+  #  sev.ants[, -(1)], 
+  #  sev.gh[, -(1)], 
     sev.pf[, -(1)], 
     Schuch[, -(1:2)],
     Sweden [, -(1)],  
@@ -198,7 +236,7 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
     iowa[, -(1)],
     database[, -c(1,6, 17,18)]  )
   dim(test)   # 685481 on 6-9-2019  #681356 on 9-12-19 (greenland 0's removed) 
-  # 683451 greenland and GPDD fixed 19-12-19, is 683325 on 18.2.20 plot 12 of Portal ants removed
+  # 683451 greenland and GPDD fixed 19-12-19, is 683325 on 18.2.20 plot 12 of Portal ants removed     679589 on 20.3.20 (removed duplicaed AZ and sev data)
   #
   
 
@@ -417,7 +455,7 @@ merge4$Period[merge4$Period == ""]<-1  # replace missing Period data with 1
 levels(merge4$Unit)[levels(merge4$Unit) == "density"]<- "abundance"
 
 sum(is.na(merge4$Plot_ID))
-sum(is.na(merge4$Number)) #
+sum(is.na(merge4$Number)) #966 on 20.3.20
 sum(is.na(merge4$Year ))
 
 
@@ -455,7 +493,7 @@ metadata_per_plot<-  merge4 %>%
     NUMBER_OF_TAXA = length(unique(Taxon)),
     TOTAL_N = sum(Number, na.rm = T)
   )
-dim(metadata_per_plot) # 1711 on 3-9-2019
+dim(metadata_per_plot) # 1711 on 3-9-2019   1709 on 
 newest<- as.data.frame(metadata_per_plot)
 write.csv(metadata_per_plot, "metadata per plot 20200218.csv")
 save(metadata_per_plot, file ="metadata_per_plot.RData")
