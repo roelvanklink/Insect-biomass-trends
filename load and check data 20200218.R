@@ -236,7 +236,8 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
     iowa[, -(1)],
     database[, -c(1,6, 17,18)]  )
   dim(test)   # 685481 on 6-9-2019  #681356 on 9-12-19 (greenland 0's removed) 
-  # 683451 greenland and GPDD fixed 19-12-19, is 683325 on 18.2.20 plot 12 of Portal ants removed     679589 on 20.3.20 (removed duplicaed AZ and sev data)
+  # 683451 greenland and GPDD fixed 19-12-19, is 683325 on 18.2.20 plot 12 of Portal ants removed     
+  # 678548 on 20.3.20 (removed duplicaed AZ and sev data and DOnana)
   #
   
 
@@ -493,9 +494,9 @@ metadata_per_plot<-  merge4 %>%
     NUMBER_OF_TAXA = length(unique(Taxon)),
     TOTAL_N = sum(Number, na.rm = T)
   )
-dim(metadata_per_plot) # 1711 on 3-9-2019   1709 on 
+dim(metadata_per_plot) # 1711 on 3-9-2019   1706 on 20.3.20
 newest<- as.data.frame(metadata_per_plot)
-write.csv(metadata_per_plot, "metadata per plot 20200218.csv")
+write.csv(metadata_per_plot, "metadata per plot 20200320.csv")
 save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 
@@ -538,7 +539,7 @@ merge4$duration.ok<- ! merge4$Plot_ID %in% short.plots # length = ok
 
 # only select plots that have sufficient duration
 merge4.1<- subset(merge4, duration.ok == T)
-dim(merge4.1)# 680801  on 19-12-2019      680658 on 19.2.20
+dim(merge4.1)# 680801  on 19-12-2019      680658 on 19.2.20    675898 on 20.3.20
 
 
 # remove plots with 0 observations 
@@ -551,7 +552,7 @@ merge4.1<- merge4.1[! merge4.1$Plot_ID %in% empty.plots, ]
 nas<-subset(merge4.1, is.na(Number) ) ;dim(nas) #
 merge4.2<-subset(merge4.1, !is.na(Number) ) # 
 dim(merge4.2)
-length(unique(merge4.2$Datasource_name)) # 167
+length(unique(merge4.2$Datasource_ID)) # 167
 
 
 # Selection 3: remove species richness #####
@@ -560,7 +561,7 @@ dim(merge4.3)
 
 
 
-full.dataset<- merge4.3 # 680714 on 6-9-19   #676582 on 9.12 # 678677 on 19-12-19    # 678551 on 19-2-20
+full.dataset<- merge4.3 # 680714 on 6-9-19   #676582 on 9.12 # 678677 on 19-12-19    # 678551 on 19-2-20   #
 save(full.dataset, file = "full.dataset.RData") # 
 
 
@@ -571,7 +572,7 @@ others<-subset(merge4.3, Phylum !=  "Arthropoda" & Phylum != "invertebrata" ); d
 merge4.4<-subset(merge4.3, Phylum ==  "Arthropoda" | Phylum == "invertebrata" | Phylum == "Invertebrata")
 dim(merge4.4) # 660584 9-12-19     658583 on 19-12-19    658457 on 19.2.20
 length(unique(merge4.4$Datasource_ID)) # 167
-setdiff(merge4.3$Datasource_name, merge4.4$Datasource_name) # only Russia earthworms data disappeared
+setdiff(merge4.3$Datasource_ID, merge4.4$Datasource_ID) # only 1447 Russia earthworms data disappeared
 
 all.arthropods.dataset<- merge4.4
 saveRDS(all.arthropods.dataset, file = "all.arthropods.dataset.RDS")
@@ -701,22 +702,30 @@ all.ABinsects<-    readRDS("all.ABinsects.RDS")
 
 all.aggr.insects<-dcast(all.selectedIns,  Datasource_ID + Datasource_name+ Location + Stratum +  Plot_ID + Plot_name + Unit  + #
                    Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE); dim(all.aggr.insects)
- #  60551 on 6-9-19    # 60461 on 9.12   # 60547 on 19.12.19  # 60502 on 19.2.20
+ #  60551 on 6-9-19    # 60461 on 9.12   # 60547 on 19.12.19  # 60502 on 19.2.20  # 59896 on 20.3.20
 cols<- c( "Datasource_ID", "Datasource_name",  "Plot_ID"    ,  "Year"  ,        "Number"   , "Continent"          )  #"Unit" ,
 
-setdiff(OLDag[,cols], all.aggr.insects[,cols]) # correct: changes in Iowa mosquitos and Portal ants (1 plot lost) 
+#check latest changes in datasets: 
+tas<- subset(all.aggr.insects, Datasource_ID == 1479) # no dups here (col 4 are the strata)
+duplicated(tas[, -(4)])
+  rus<- (subset(all.aggr.insects, Datasource_ID == 1393))
+duplicated(rus[, -(4)])# no dups
+arrange(rus, Number, Plot_ID, Stratum) # looks like it should
+chile<- (subset(all.aggr.insects, Datasource_ID == 1479))
+duplicated(chile[, -(4)]) # no dups
 
-length(unique(all.aggr.insects$Plot_ID)) # 1678 on 5-9-2019    1681 on 9-12-19 #  1679 on 19-2-20 because of 2 plots lost in Portal 
+
+length(unique(all.aggr.insects$Plot_ID)) # 1678 on 5-9-2019    1681 on 9-12-19 #  1679 on 19-2-20 because of 2 plots lost in Portal #  20.3.20: donana lost: 1676
 
 all.aggr.arth<-dcast(all.selectedArth,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name + Unit +  
                           Year + Period + Date  + Country + Region + Country_State + Realm +Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE);dim(all.aggr.arth)
-#  60547    #60502 on 19.2.20
+#  60547    #60502 on 19.2.20   #59896  on 20.3.20
 
-length(unique(all.aggr.arth$Plot_ID)) #1679
+length(unique(all.aggr.arth$Plot_ID)) #1676
 
 all.aggr.insectsAB<-dcast(all.ABinsects,  Datasource_ID + Datasource_name+ Location + Stratum  + Plot_ID + Plot_name +  Unit+
                           Year + Period + Date  + Realm + Country_State +  Region + Country+ Continent~ "Number",    value.var = "Number", sum, na.rm = TRUE)
-dim(all.aggr.insectsAB) # 6482 on 20190906   642929 on 9.12    64378  on 19-12-19     64333 on 19-2-20
+dim(all.aggr.insectsAB) # 6482 on 20190906   642929 on 9.12    64378  on 19-12-19     64333 on 19-2-20    63727 on 20.3.20
 
 
 # check if exclusion of biomass gives the same dataframe for insects 
@@ -784,11 +793,11 @@ for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
   allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Stratum", "Number")],  #"classes",
                    by=c("Year","Plot_ID"),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
-                                            "Continent",  "Country", "Country_State", "Region", "Stratum" )]),
+                                            "Continent",  "Country", "Country_State", "Region" )]),
                   by="Plot_ID",all=T)
   if(!all(is.na(myData$Period))){
     myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
@@ -804,13 +813,17 @@ for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
 }
 
 
-dim(completeDataA) #  67729 on 17-9-19 (65787 with newly rarefied ECN moth data on 16-10-19)  # 9-12-19: 67639  # 67677 on 19-2-2020
+
+
+
+
+dim(completeDataA) #  67729 on 17-9-19 (65787 with newly rarefied ECN moth data on 16-10-19)  # 9-12-19: 67639  # 67677 on 19-2-2020  # 66624 on 20.3.20 
 beep(2)
 subset(completeDataA, Number < 0)
 
 
 # thorough check
-load("completeData2019.RData")
+load("completeData 19-2-20.Rdata")
 cdOLD<-completeData ; dim(cdOLD)
 sum(duplicated(cdOLD)) # 1008 dups! okt 2019,  879 dups 19.2.2020 
 dups<- cdOLD[duplicated(cdOLD),]
@@ -821,7 +834,15 @@ cols<- c("Plot_ID" , "Year"     , "Datasource_ID" , "Datasource_name",     "Numb
 diffs <- (setdiff(completeDataA[, cols], subset(cdOLD, Unit == "abundance")[, cols] ))  #  
 diffs2<-  setdiff( subset(cdOLD, Unit == "abundance")[, cols] ,(completeDataA[, cols])) # 
 cols<- c("Plot_ID" , "Year"     , "Datasource_ID" , "Datasource_name"  )
-unique(diffs2$Datasource_name) # correct: changes occurred in name of Indiana mosquitos, data of Iowa mosquitos, , plots of Portal ants
+unique(diffs2$Datasource_name) # 
+unique(diffs$Datasource_name)
+
+
+
+
+
+
+
 
 
 # 2) add NA's for biomass data, excluding biomass data for datasets that report both units
@@ -840,11 +861,11 @@ for(i in 1:length(unique(all.aggr.insectsB1$Plot_ID))){
   allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Stratum", "Number")],  #"classes",
                    by=c("Year","Plot_ID"),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
-                                            "Continent",  "Country", "Country_State", "Region", "Stratum" )]),
+                                            "Continent",  "Country", "Country_State", "Region" )]),
                   by="Plot_ID",all=T)
   if(!all(is.na(myData$Period))){
     myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
@@ -859,12 +880,15 @@ for(i in 1:length(unique(all.aggr.insectsB1$Plot_ID))){
   completeDataB1<-rbind (completeDataB1,myData)
   
 }
-dim(completeDataB1)# 2473 on 9-12-19   the same on 19-2-2020
+dim(completeDataB1)# 2473 on 9-12-19   the same on 19-2-2020 and on 20.3.20
 completeData<- rbind(completeDataA, completeDataB1)
 
 dim(completeData) # 70202 on 17-9-19    
 beep(2)
 dim(subset(completeData, Unit != "biomass")) # should be same as above
+
+
+
 
 
 # 3) add NA's for biomass data, including datasets that report both units
@@ -884,11 +908,11 @@ for(i in 1:length(unique(all.aggr.insectsB2$Plot_ID))){
   allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Stratum", "Number")],  #"classes",
                    by=c("Year","Plot_ID"),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
-                                            "Continent",  "Country", "Country_State", "Region", "Stratum" )]),
+                                            "Continent",  "Country", "Country_State", "Region" )]),
                   by="Plot_ID",all=T)
   if(!all(is.na(myData$Period))){
     myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
@@ -904,7 +928,7 @@ for(i in 1:length(unique(all.aggr.insectsB2$Plot_ID))){
   
 }
 
-dim(completeDataB2)
+dim(completeDataB2) #7012 on 20.3.20
 completeDataAB<- rbind(completeDataA, completeDataB2)
 
 dim(completeDataAB) # 74973 on 17-9-19  # 74883 on 9-12-19  # 74921 on 19-2-20
