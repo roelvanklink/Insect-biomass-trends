@@ -789,12 +789,14 @@ for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
   # month is accounted for as random effect
   constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
   allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                         Year= min(myData$Year):max(myData$Year))
+                         Year= min(myData$Year):max(myData$Year),
+                         Stratum = unique(myData$Stratum))
+  
   allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Stratum", "Number")],  #"classes",
-                   by=c("Year","Plot_ID"),all=T)
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number", "Stratum")],  #"classes",
+                   by=c("Stratum", "Year","Plot_ID" ),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
                                             "Continent",  "Country", "Country_State", "Region" )]),
@@ -817,7 +819,7 @@ for(i in 1:length(unique(all.aggr.insectsA$Plot_ID))){
 
 
 
-dim(completeDataA) #  67729 on 17-9-19 (65787 with newly rarefied ECN moth data on 16-10-19)  # 9-12-19: 67639  # 67677 on 19-2-2020  # 66624 on 20.3.20 
+dim(completeDataA) #  67729 on 17-9-19 (65787 with newly rarefied ECN moth data on 16-10-19)  # 9-12-19: 67639  # 67677 on 19-2-2020  # 76070 on 20.3.20 
 beep(2)
 subset(completeDataA, Number < 0)
 
@@ -834,7 +836,7 @@ cols<- c("Plot_ID" , "Year"     , "Datasource_ID" , "Datasource_name",     "Numb
 diffs <- (setdiff(completeDataA[, cols], subset(cdOLD, Unit == "abundance")[, cols] ))  #  
 diffs2<-  setdiff( subset(cdOLD, Unit == "abundance")[, cols] ,(completeDataA[, cols])) # 
 cols<- c("Plot_ID" , "Year"     , "Datasource_ID" , "Datasource_name"  )
-unique(diffs2$Datasource_name) # 
+unique(diffs2$Datasource_name) # correct only those with duplicates removed, and Donana  are now lost 
 unique(diffs$Datasource_name)
 
 
@@ -857,12 +859,14 @@ for(i in 1:length(unique(all.aggr.insectsB1$Plot_ID))){
   #expand grid to include NAs  
   constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
   allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                         Year= min(myData$Year):max(myData$Year))
+                         Year= min(myData$Year):max(myData$Year),
+                         Stratum = unique(myData$Stratum))
+  
   allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Stratum", "Number")],  #"classes",
-                   by=c("Year","Plot_ID"),all=T)
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number", "Stratum")],  #"classes",
+                   by=c("Stratum", "Year","Plot_ID" ),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
                                             "Continent",  "Country", "Country_State", "Region" )]),
@@ -883,7 +887,7 @@ for(i in 1:length(unique(all.aggr.insectsB1$Plot_ID))){
 dim(completeDataB1)# 2473 on 9-12-19   the same on 19-2-2020 and on 20.3.20
 completeData<- rbind(completeDataA, completeDataB1)
 
-dim(completeData) # 70202 on 17-9-19    
+dim(completeData) # 70202 on 17-9-19    # 69155 on 20-3-20
 beep(2)
 dim(subset(completeData, Unit != "biomass")) # should be same as above
 
@@ -904,12 +908,14 @@ for(i in 1:length(unique(all.aggr.insectsB2$Plot_ID))){
   #expand grid to include NAs  
   constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
   allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                         Year= min(myData$Year):max(myData$Year))
+                         Year= min(myData$Year):max(myData$Year),
+                         Stratum = unique(myData$Stratum))
+  
   allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Stratum", "Number")],  #"classes",
-                   by=c("Year","Plot_ID"),all=T)
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number", "Stratum")],  #"classes",
+                   by=c("Stratum", "Year","Plot_ID" ),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
                                             "Continent",  "Country", "Country_State", "Region" )]),
@@ -931,7 +937,7 @@ for(i in 1:length(unique(all.aggr.insectsB2$Plot_ID))){
 dim(completeDataB2) #7012 on 20.3.20
 completeDataAB<- rbind(completeDataA, completeDataB2)
 
-dim(completeDataAB) # 74973 on 17-9-19  # 74883 on 9-12-19  # 74921 on 19-2-20
+dim(completeDataAB) # 74973 on 17-9-19  # 74883 on 9-12-19  # 74921 on 19-2-20   # 73694
 beep(2)
 dim(subset(completeData, Unit != "biomass")) #same as A1
 
@@ -950,15 +956,17 @@ for(i in 1:length(unique(all.aggr.arth $Plot_ID))){
   #expand grid to include NAs  
   constantData <- unique(myData[,c("Plot_ID","Datasource_ID")])#these are defo unique
   allgrid <- expand.grid(Plot_ID = unique(myData$Plot_ID),
-                         Year= min(myData$Year):max(myData$Year))
+                         Year= min(myData$Year):max(myData$Year),
+                         Stratum = unique(myData$Stratum))
+  
   allgrid <- merge(allgrid,constantData,by=c("Plot_ID"),all.x=T)
   
   #add observed data
-  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number")],  #"classes",
-                   by=c("Year","Plot_ID"),all=T)
+  myData1 <- merge(allgrid,myData[,c("Year","Plot_ID", "Period", "Number", "Stratum")],  #"classes",
+                   by=c("Stratum", "Year","Plot_ID" ),all=T)
   # add descriptors
   myData <- merge(myData1, unique(myData[,c("Plot_ID",  "Location", "Datasource_name", "Realm", "Unit",
-                                            "Continent", "Country", "Country_State", "Region", "Stratum" )]),
+                                            "Continent",  "Country", "Country_State", "Region" )]),
                   by="Plot_ID",all=T)
   if(!all(is.na(myData$Period))){
     myData$Period[is.na(myData$Period)]<-sample(myData$Period[!is.na(myData$Period)],
@@ -1010,12 +1018,12 @@ addIndicies <- function(myData){
 }
 
 completeData <- addIndicies(completeData)
-dim(completeData) # 70150
+dim(completeData) # 69155
 save(completeData, file = "completeData.RData")
 
 #checks: 
 sum(is.na(completeData$Continent))  # should be 0 
-sum(is.na(completeData$Number)) #  9253 on 17-9
+sum(is.na(completeData$Number)) #  9253 on 17-9  9259 on 20-3-20
 sum(is.na(completeData$Location))
 sum(is.na(completeData$Datasource_ID))
 sum(is.na(completeData$Stratum)) # looks good
@@ -1195,7 +1203,18 @@ unique(c(cropGrad, urbGrad)) # 36
  dim(completeData) ; length(unique(completeData$Plot_ID))
 
 # which are missing? These are all old plots 
-unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% percCover900m$Plot_ID]
+ # note that from the GIS dayer, all plots were extracted which had a end year until 1987 (5 years before 1992, when the dataset started)  
+missing<- unique(completeData$Plot_ID) [!unique(completeData$Plot_ID) %in% percCover900m$Plot_ID]
+
+missing<- completeData[completeData$Plot_ID %in% missing ,]
+missing[1:125,1:8]
+missing[126:250,1:8]
+missing[251:375,1:8]
+missing[376:500,1:8]
+missing[500:nrow(missing),1:8]
+
+# 545 obs missing on 20-3-20
+
 
 #completeData<- merge(completeData, percCover900m [, c(1,32,33) ], by = "Plot_ID", all.x=T)
 completeData<- merge(completeData, percCover900m19922015 [, c(1,32,33) ], by = "Plot_ID", all.x=T)
@@ -1205,7 +1224,7 @@ dim(completeData)
 sum(is.na(completeData$frcCrop900m) ) 
 sum(is.na(completeData$frcCrop900m1992) ) 
 
-# 509 obs missing 
+
 
 
 save(completeData, file = "completeData.RData")
