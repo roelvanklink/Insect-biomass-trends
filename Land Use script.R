@@ -24,7 +24,7 @@ LU$Datasource_ID[LU$Plot_ID  == 1739]<- 1527
 # LUH2
 
 #how much changed?
-(sum(LU$End_forestArea) - sum(LU$Start_forestArea)) / sum(LU$Start_forestArea) # forest: +0.45
+(sum(LU$End_forestArea) - sum(LU$Start_forestArea)) / sum(LU$Start_forestArea) # forest: +0.045
 (sum(LU$End_cropArea) - sum(LU$Start_cropArea)) / sum(LU$Start_cropArea) # crop: -0.098
 (sum(LU$End_pastureArea) - sum(LU$Start_pastureArea)) / sum(LU$Start_pastureArea) # pasture: -0.045
 (sum(LU$End_urbanArea) - sum(LU$Start_urbanArea)) / sum(LU$Start_urbanArea) # urban: +0.19
@@ -75,7 +75,35 @@ nrow(changed) / nrow (metadata_per_plot) # 5.3%
 # which changes do we have 
 unique(changed[,1:2])
 
+# how many crop plots changed? 
+cropCodes<- c(10,11,12,30,40)
+LU2goodplots<- LU2[LU2$Plot_ID %in% unique(subset(completeData, !is.na (frcCrop900m1992))$Plot_ID), ] # only get plots that have local sclae land use data
 
+crop92<- (LU2goodplots$X1992 %in% cropCodes) #8 which of the plots with crop at any time did not have crop in 1992   7 changed
+crop15<- (LU2goodplots$X2015 %in% cropCodes)
+cropchange<- crop92-crop15
+sum(cropchange == 1) #  27 were no longer crop 
+sum(cropchange == -1) /nrow(LU2goodplots)# 7 became crop
+
+noncrop92<- (!LU2goodplots$X1992 %in% cropCodes)
+noncrop15<- (!LU2goodplots$X2015 %in% cropCodes)
+restchange<- noncrop92-noncrop15
+
+(sum(restchange != 0) +  # 34 changed 
+  sum(cropchange == 1) )/  # 27 changed
+  nrow(LU2goodplots)
+
+crop<- subset(LU2goodplots, X1992 == 10 | X1992 == 11 |X1992 == 12 |X1992 == 30 |X1992 == 40 | X2015 == 10 |X2015 == 11 |X2015 == 12 |X2015 == 30 |X2015 == 40 )
+
+notYetCrop<- (crop[(!crop$X1992 %in% cropCodes)   , c(1,25:27) ]); dim(notYetCrop) #8 which of the plots with crop at any time did not have crop in 1992   7 changed
+nrow(notYetCrop)/nrow(crop) # 1.5%
+notCropAnymore<- (crop[(!crop$X2015 %in% cropCodes)   , c(1,24:27) ]); dim(notCropAnymore) #27 which of the plots with crop at any time were no longer crop in 2015   32 changed
+nrow(notCropAnymore)/nrow(crop) #= 5%
+
+noncrop<- subset(LU2goodplots, X1992 != 10 & X1992 != 11 &X1992 != 12 &X1992 != 30 &X1992 != 40 & X2015 != 10 &X2015 != 11 &X2015 != 12 &X2015 != 30 &X2015 != 40 )
+dim(noncrop)
+changed<- (noncrop[(noncrop$X1992 - noncrop$X2015 != 0)   , c(1,25:27) ])
+nrow(changed)/ nrow(noncrop) # 4.3%
 
 #1) combine the file for main cell and neighbor cells
 
