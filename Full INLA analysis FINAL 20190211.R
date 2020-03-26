@@ -673,7 +673,7 @@ data.frame(
   CI97.5 = c((10^(inlaRealmSum  [3:4,12] )-1 ) *100, (10^(inlaRealmSum  [3:4,12] *10)-1)  *100)# 0.975
 )
 
-(10^(inlaRealmSum  [4,1] *27)-1)  *100 # compare to Hallman 
+(10^(inlaRealmSum  [4,1] *75)-1)  *100 # compare to Hallman 
 (10^(-0.02161 *36)-1)  *100 # Lister = ~ -83.32 in 36 years
 (10^(-0.02161)-1)  *100 # Lister -4.85 per year 
 
