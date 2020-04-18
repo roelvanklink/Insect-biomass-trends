@@ -361,6 +361,8 @@ randomFits$c0.975quant<- randomFits$RW.0.975quant+ randomFits$intercept
 # Fig 1B D plot map #####
   
 load("RandEfDataset.RData")
+RandEfDataset <-  readRDS(file = "RandEfDataset.rds")
+  
 
   library(rgdal)
   library(sp)
@@ -421,6 +423,67 @@ dev.off()
 library(gridExtra)
 grid.arrange(terr.wgs,  fw.wgs, nrow = 2)
 # Export ratio: 4.72 : 5.00
+
+
+# for press release
+mypalettPG<- colorRampPalette  (c("darkorchid4", "darkorchid2", "cornsilk2", "chartreuse2", "chartreuse4"), space = "rgb")
+mypalettBR<- colorRampPalette  (c("#CC0000", "#FF6666", "cornsilk2", "dodgerblue2", "dodgerblue4"), space = "rgb")
+mypalettPG<- colorRampPalette  (c("#762A83", "#9970AB",   "cornsilk2", "#5AAE61", "#1B7837"), space = "rgb") #"#C2A5CF","#E7D4E8","#D9F0D3","#A6DBA0",
+
+datTer<- arrange(pts.rob@data, desc(slope.lim))
+datFw<- arrange(pts.rob@data, (slope.lim))
+
+
+FWtitleDutch <- "Zoetwaterinsecten"    ; TtitleDutch <- "Landinsecten"          ; negDutch  <- "Afname"  ;posDutch  <- "Toename"
+FWtitleGerman <- "Süßwasserinsekten"  ; TtitleGerman <- "Landlebende Insekten" ; negGerman <- "Abnahme" ;posGerman <- "Zunahme" 
+FWtitleEnglish <- "Freshwater insects" ; TtitleEnglish<- "Land-dwelling insects"; negEnglish<- "Decline" ;posEnglish<- "Increase" 
+FWtitleRussian <- "Пресноводные насекомые"; TtitleRussian<- "Наземные насекомые"; negRussian<- "Снижение"; posRussian<- "Возрастание"
+
+fw.wgs <-
+  p.wgsLIGHT+
+  geom_point(data = subset(datFw, Realm =="Freshwater") ,  size = 2, #color = "grey30",pch = 21,
+             aes(x = x,   y = y,  color = slope.lim, group = NULL), 
+             position=position_jitter(h=200000, w=200000)) +  #
+  scale_colour_gradientn(colours = mypalettPG(100), limits=c(-0.02, 0.02), breaks = waiver(),
+                         labels = c(negRussian, "", "", "", posRussian))+
+  scale_x_continuous(limits = c(-12500000, 16000000 ))+
+  scale_y_continuous(limits = c(-6000000, 8000000 ))+
+  labs(color = "")+
+  ggtitle(FWtitleRussian) + 
+  theme(legend.position = "bottom")+
+#  theme(legend.text = "none")+
+  theme(axis.text.x=element_blank(), axis.text.y=element_blank(), 
+        plot.title = element_text(hjust = 0.5, vjust=-1), 
+        plot.margin = unit(c(0, -0.5, 0, -0.5), "cm"))+
+  ylab("")+xlab("")
+#fw.wgs
+
+terr.wgs <-
+  p.wgsLIGHT+
+  geom_point(data = subset(datTer, Realm =="Terrestrial"), size = 2, #pch = 21,color = "grey30" ,
+             aes(x = x,   y = y,  color = slope.lim, group = NULL) , 
+             position=position_jitter(h=200000, w=200000)) +
+  scale_colour_gradientn(colours = mypalettPG(100), limits=c(-0.02, 0.02), breaks = waiver(),
+                         labels = c(negRussian, "", "", "", posRussian))+
+  scale_x_continuous(limits = c(-12500000, 16000000 ))+
+  scale_y_continuous(limits = c(-6000000, 8000000 ))+
+  labs(color = "")+
+  ggtitle(TtitleRussian) +
+  theme(legend.position = "bottom")+
+  #  theme(legend.text = "none")+
+  theme(axis.text.x=element_blank(), axis.text.y=element_blank(), 
+        plot.title = element_text(hjust = 0.5, vjust=-1), 
+        plot.margin = unit(c(0, -0.5, 0, -0.5), "cm"))+ 
+        
+  ylab("")+xlab("") 
+#terr.wgs
+
+library(gridExtra)
+grid.arrange(terr.wgs,  fw.wgs, nrow = 1)
+
+
+
+
 
 
 # both on one map
