@@ -248,7 +248,7 @@ studies<-read.csv(file = "studies.csv", header = T); dim(studies)
 #################################################################################################################################
 #Test all merges and links
 
-# 1) do we have duplicate data?
+# 1) duplicate data?#####
  
  #
 dups<-  database[duplicated(database), ] # this needs to be checked thoroughly 
@@ -500,7 +500,7 @@ write.csv(metadata_per_plot, "metadata per plot 20200320.csv")
 save(metadata_per_plot, file ="metadata_per_plot.RData")
 
 
-new<- read.csv("metadata per plot 20190405.csv")
+new<- read.csv("metadata per plot 20200320.csv")
 old<-read.csv("metadata per plot 20190531.csv")   #1509
 older<-read.csv("metadata per plot 20181123.csv") #1486
 
@@ -558,7 +558,9 @@ length(unique(merge4.2$Datasource_ID)) # 167
 # Selection 3: remove species richness #####
 merge4.3<- subset(merge4.2, Unit_in_data != "richness")
 dim(merge4.3)
-
+merge4.3Sr<- subset(merge4.2, Unit_in_data == "richness")
+dim(merge4.3Sr)
+unique(merge4.3Sr$Datasource_name)
 
 
 full.dataset<- merge4.3 # 680714 on 6-9-19   #676582 on 9.12 # 678677 on 19-12-19    # 678551 on 19-2-20   #
@@ -1267,6 +1269,10 @@ save(completeData, file = "completeData.RData")
 all.selectedIns<-readRDS( "all.selectedIns.RDS") # check version date
 all.selectedIns<- subset(all.selectedIns, Datasource_ID != 1514)
 
+# method list 
+methods<- dcast (all.selectedIns, Datasource_ID +Datasource_name + Sampling_method ~ "Number")
+
+
 metadata_per_dataset<-  all.selectedIns %>% 
   group_by(Datasource_ID) %>%
   summarise(
@@ -1340,7 +1346,7 @@ taxaPlot<-ggplot(data.frame(metadata_per_dataset), aes(x= Order)) +
       coord_flip()+
   xlab ("")+ ylab("Number of datasets")+  #Trend slope  \n % change per year
     theme_clean 
-  
+taxaPlot  
 
 
 write.csv(metadata_per_dataset, "metadata per dataset.csv")
