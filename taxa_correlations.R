@@ -99,7 +99,7 @@ fit1 <- brm(
   chains = 3)
 summary(fit1)
 
-#or slightly simpler
+#or slightly simpler - uncorrelated intercepts and slopes
 fit1 <- brm(
   mvbind(log_T, log_E) ~ Year + (1|p|Plot_ID) + (0 + Year|q|Plot_ID) ,
   data = mydata_taxasubset, 
