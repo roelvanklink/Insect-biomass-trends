@@ -12,6 +12,7 @@
   
 #libraries
 library(tidyverse)
+library(lme4)
 
 #data - check this is the right one
 mydata <- readRDS("C:/Users/db40fysa/Dropbox/Insect Biomass Trends/csvs/Toy data Density values 20210805.rds")
@@ -61,7 +62,6 @@ ggplot(subset(mydata_long, Plot_ID == 2397))+
   theme_classic()
 #seems to be in cases when distribution was v skewed
 
-
 #quick and dirty analysis
 
 #trend at each percentile and data set
@@ -83,14 +83,13 @@ ggplot(allTrends) +
   theme_classic()
 
 #using lmer
-library(lme4)
-
 allTrends <- mydata_long %>% 
   group_by(percentile) %>%
   nest_by() %>% 
   mutate(model = list(lmer(log10(value+0.1) ~ Year + (1+Year|Plot_ID), data = data))) %>% 
   summarise(data.frame(t(summary(model)$coef[2,]))) %>%
   unnest(percentile) %>%
+  ungroup() %>%
   mutate(upper = Estimate + (Std..Error*2),
          lower = Estimate - (Std..Error*2))
          
@@ -103,4 +102,21 @@ ggplot(allTrends) +
   ylab("Trend")+xlab("SAD percentile")
 
   
+#or plotting SAD at each time point
+allTrends <- mydata_long %>% 
+  group_by(percentile) %>%
+  nest_by() %>% 
+  mutate(model = list(lmer(log10(value+0.1) ~ -1 + factor(Year) + (1|Plot_ID), data = data))) %>% 
+  summarise(data.frame(summary(model)$coef)) %>%
+  unnest(percentile) %>%
+  ungroup() %>%
+  mutate(Estimate = (10^Estimate)-0.1) %>%
+  add_column(Year = rep(sort(unique(mydata_long$Year)),length(unique(mydata_long$percentile))))
+
+
+ggplot(subset(allTrends,Year>=1980)) +
+  geom_path(aes(x=percentile,y=Estimate,group = Year, color = Year),size=1.5)+
+  scale_color_viridis_c(option='A')+
+  theme_classic()+
+  xlab("SAD percentile")+ylab("Density")
 
